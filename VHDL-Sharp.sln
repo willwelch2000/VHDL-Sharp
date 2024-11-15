@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VHDLSharp", "VHDLSharp\VHDLSharp.csproj", "{4211C745-A7E7-4E2F-8787-A03B79C267C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VHDLSharpTests", "VHDLSharpTests\VHDLSharpTests.csproj", "{5CF7E7DF-E211-44C2-BBBF-4F0308F0C50C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RunVHDLSharp", "RunVHDLSharp\RunVHDLSharp.csproj", "{1860FBAB-9372-406F-B1B4-20DDEB1A99E8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4211C745-A7E7-4E2F-8787-A03B79C267C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4211C745-A7E7-4E2F-8787-A03B79C267C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4211C745-A7E7-4E2F-8787-A03B79C267C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4211C745-A7E7-4E2F-8787-A03B79C267C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CF7E7DF-E211-44C2-BBBF-4F0308F0C50C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CF7E7DF-E211-44C2-BBBF-4F0308F0C50C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CF7E7DF-E211-44C2-BBBF-4F0308F0C50C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CF7E7DF-E211-44C2-BBBF-4F0308F0C50C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1860FBAB-9372-406F-B1B4-20DDEB1A99E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1860FBAB-9372-406F-B1B4-20DDEB1A99E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1860FBAB-9372-406F-B1B4-20DDEB1A99E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1860FBAB-9372-406F-B1B4-20DDEB1A99E8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
