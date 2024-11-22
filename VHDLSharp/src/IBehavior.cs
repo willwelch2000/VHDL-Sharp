@@ -1,8 +1,12 @@
 namespace VHDLSharp;
 
-public interface IBehavior
+/// <summary>
+/// Interface defining a behavior that makes up a module
+/// </summary>
+public interface IDigitalBehavior
 {
-    public IEnumerable<Node> InvolvedNodes { get; }
-
-    public event EventHandler NodesChanged;
+    /// <summary>
+    /// Get all of the signals used in this behavior
+    /// </summary>
+    public IEnumerable<Signal> InvolvedSignals { get; }
 }
