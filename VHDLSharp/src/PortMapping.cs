@@ -43,14 +43,7 @@ public class PortMapping : IDictionary<Port, Signal>
     
     private readonly Dictionary<Port, Signal> backendDictionary = [];
 
-    private ICollection<KeyValuePair<Port, Signal>> BackendDictionaryAsCollection
-    {
-        get
-        {
-            ICollection<KeyValuePair<Port, Signal>> collection = backendDictionary;
-            return collection;
-        }
-    }
+    private ICollection<KeyValuePair<Port, Signal>> BackendDictionaryAsCollection => backendDictionary;
 
     /// <summary>
     /// Construct port mapping given instantiated module and parent module

@@ -44,12 +44,12 @@ public class Module
     /// <summary>
     /// All behaviors that define the module
     /// </summary>
-    public IEnumerable<IDigitalBehavior> Behaviors { get; set; } = [];
+    public List<IDigitalBehavior> Behaviors { get; set; } = [];
 
     /// <summary>
     /// Mapping of events to the actions that happen with that event
     /// </summary>
-    public IEnumerable<(IDigitalEvent Event, IEnumerable<IDigitalAction> Actions)> EventMappings { get; set; } = [];
+    public List<(IDigitalEvent Event, IEnumerable<IDigitalAction> Actions)> EventMappings { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -59,7 +59,7 @@ public class Module
     /// <summary>
     /// List of module instantiations inside of this module
     /// </summary>
-    public IEnumerable<Instantiation> Instantiations { get; set; } = [];
+    public List<Instantiation> Instantiations { get; set; } = [];
 
     
 

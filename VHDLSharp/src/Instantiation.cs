@@ -1,37 +1,24 @@
 namespace VHDLSharp;
 
 /// <summary>
-/// Instantiation of one module inside of another
+/// Instantiation of one module inside of another (parent)
 /// </summary>
-public class Instantiation
+/// <param name="module">module that is instantiated</param>
+/// <param name="parent">the module inside which this instantiation exists</param>
+public class Instantiation(Module module, Module parent)
 {
-    private readonly List<Signal> portConnections;
+    /// <summary>
+    /// Module that is instantiated
+    /// </summary>
+    public Module Module { get; private init; } = module;
 
     /// <summary>
-    /// Create an instantiation of a given module in another module
+    /// Mapping of module's ports to parent's signals (connections to module)
     /// </summary>
-    /// <param name="module">module that is instantiated</param>
-    /// <param name="portConnections">the nodes inside parent that are connected to the ports</param>
-    /// <param name="parent">the module inside which this instantiation exists</param>
-    /// <exception cref="ArgumentException"></exception>
-    public Instantiation(Module module, IEnumerable<Signal> portConnections, Module parent)
-    {
-        Module = module;
-        this.portConnections = new(portConnections);
-        Parent = parent;
+    public PortMapping PortMapping { get; private init; } = new(module, parent);
 
-        if (portConnections.Select(p => p.Parent).Distinct().Union([parent]).Count() > 1)
-            throw new ArgumentException("All port connections should have the same parent as this instantiation");
-    }
-
-    public Module Module { get; private set; }
-
-    public Dictionary<Port, Signal> PortConnections => [];
-
-    public Module Parent { get; private set; }
-
-    public bool CheckValid()
-    {
-        return true;
-    }
+    /// <summary>
+    /// Module inside which the module is instantiated
+    /// </summary>
+    public Module Parent { get; private init; } = parent;
 }
