@@ -27,7 +27,7 @@ public class Port
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required Signal Signal { get; set; }
+    public required ISignal Signal { get; set; }
 
     /// <summary>
     /// The direction that this port is with respect to the module
@@ -38,5 +38,5 @@ public class Port
     /// Convert to string
     /// </summary>
     /// <returns></returns>
-    public override string ToString() => Signal.ToString();
+    public override string ToString() => Signal.Name;
 }

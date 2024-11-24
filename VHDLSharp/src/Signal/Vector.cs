@@ -1,0 +1,58 @@
+namespace VHDLSharp;
+
+/// <summary>
+/// Signal with multiple nodes inside of it (array)
+/// </summary>
+public class Vector : ISignal
+{
+    private readonly int dimension;
+
+    private readonly VectorNode[] vectorNodes;
+
+    /// <summary>
+    /// Create a vector given name, parent, and dimension
+    /// </summary>
+    /// <param name="name">name of signal</param>
+    /// <param name="parent">module to which this signal belongs</param>
+    /// <param name="dimension">length of vector</param>
+    public Vector(string name, Module parent, int dimension)
+    {
+        this.dimension = dimension;
+        Name = name;
+        Parent = parent;
+        vectorNodes = Enumerable.Range(0, dimension).Select(i => new VectorNode(this, i)).ToArray();
+    }
+
+    /// <summary>
+    /// Name of the signal
+    /// </summary>
+    public string Name { get; private init; }
+
+    /// <summary>
+    /// Name of the module the signal is in
+    /// </summary>
+    public Module Parent { get; private init; }
+
+    /// <summary>
+    /// How many nodes are part of this signal (1 for base version)
+    /// </summary>
+    public int Dimension => dimension;
+    
+    /// <summary>
+    /// Access individual node signals of vector
+    /// These can be used as single-node signals
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public VectorNode this[int index]
+    {
+        get
+        {
+            if (index < dimension && index >= 0)
+                return vectorNodes[index];
+            else
+                throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
+        }
+    }
+}

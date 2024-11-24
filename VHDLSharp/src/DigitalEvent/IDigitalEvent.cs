@@ -8,5 +8,5 @@ public interface IDigitalEvent
     /// <summary>
     /// Get all of the signals referenced in this event
     /// </summary>
-    public IEnumerable<Signal> InvolvedSignals { get; }
+    public IEnumerable<ISignal> InvolvedSignals { get; }
 }

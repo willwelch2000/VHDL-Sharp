@@ -8,5 +8,5 @@ public interface IDigitalBehavior
     /// <summary>
     /// Get all of the signals used in this behavior
     /// </summary>
-    public IEnumerable<Signal> InvolvedSignals { get; }
+    public IEnumerable<ISignal> InvolvedSignals { get; }
 }

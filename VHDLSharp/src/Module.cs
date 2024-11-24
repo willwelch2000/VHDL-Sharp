@@ -67,7 +67,7 @@ public class Module
     /// Get all signals used in this module
     /// Signals can come from ports, behaviors, or event mappings' actions
     /// </summary>
-    public IEnumerable<Signal> Signals =>
+    public IEnumerable<ISignal> Signals =>
         Ports.Select(p => p.Signal)
         .Union(Behaviors.SelectMany(b => b.InvolvedSignals))
         .Union(EventMappings.SelectMany(e => e.Actions).SelectMany(a => a.InvolvedSignals));
@@ -95,7 +95,7 @@ public class Module
     {
         Port result = new()
         {
-            Signal = new(name, this),
+            Signal = new Signal(name, this),
             Direction = direction
         };
         Ports.Add(result);
@@ -108,7 +108,7 @@ public class Module
     /// <param name="signal"></param>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public Port AddNewPort(Signal signal, PortDirection direction)
+    public Port AddNewPort(ISignal signal, PortDirection direction)
     {
         if (signal.Parent != this)
             throw new ArgumentException("Signal must have this module as parent");
