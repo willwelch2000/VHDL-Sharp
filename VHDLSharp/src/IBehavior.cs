@@ -6,7 +6,12 @@ namespace VHDLSharp;
 public interface IDigitalBehavior
 {
     /// <summary>
-    /// Get all of the signals used in this behavior
+    /// Get all of the input signals used in this behavior
     /// </summary>
-    public IEnumerable<ISignal> InvolvedSignals { get; }
+    public IEnumerable<ISignal> InputSignals { get; }
+
+    /// <summary>
+    /// Get the output signal for this behavior
+    /// </summary>
+    public ISignal OutputSignal { get; }
 }

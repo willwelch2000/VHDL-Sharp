@@ -17,6 +17,8 @@ public class Vector : ISignal
     /// <param name="dimension">length of vector</param>
     public Vector(string name, Module parent, int dimension)
     {
+        if (dimension < 2)
+            throw new ArgumentException("Dimension should be > 1");
         this.dimension = dimension;
         Name = name;
         Parent = parent;

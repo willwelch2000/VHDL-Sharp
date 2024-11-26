@@ -69,7 +69,8 @@ public class Module
     /// </summary>
     public IEnumerable<ISignal> Signals =>
         Ports.Select(p => p.Signal)
-        .Union(Behaviors.SelectMany(b => b.InvolvedSignals))
+        .Union(Behaviors.SelectMany(b => b.InputSignals))
+        .Union(Behaviors.Select(b => b.OutputSignal))
         .Union(EventMappings.SelectMany(e => e.Actions).SelectMany(a => a.InvolvedSignals));
 
     /// <summary>
@@ -84,6 +85,14 @@ public class Module
     /// <param name="name">name of the signal</param>
     /// <returns></returns>
     public Signal GenerateSignal(string name) => new(name, this);
+
+    /// <summary>
+    /// Generate a signal with this module as the parent
+    /// </summary>
+    /// <param name="name">name of the vector</param>
+    /// <param name="dimension">dimension of the vector</param>
+    /// <returns></returns>
+    public Vector GenerateVector(string name, int dimension) => new(name, this, dimension);
 
     /// <summary>
     /// Create a port with a new signal and add the new port to the list of ports
