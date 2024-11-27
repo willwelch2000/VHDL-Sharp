@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace VHDLSharp;
 
@@ -12,7 +13,11 @@ public class Module
     /// </summary>
     public Module()
     {
-        Ports.CollectionChanged += PortsUpdated;
+        Ports.CollectionChanged += InvokeModuleUpdated;
+        Behaviors.CollectionChanged += InvokeModuleUpdated;
+        Behaviors.CollectionChanged += BehaviorsListUpdated;
+        EventMappings.CollectionChanged += InvokeModuleUpdated;
+        Instantiations.CollectionChanged += InvokeModuleUpdated;
     }
 
     /// <summary>
@@ -25,9 +30,17 @@ public class Module
             AddNewPort(name, direction);
     }
 
-    private void PortsUpdated(object? sender, EventArgs e)
+    private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
+        CheckValid();
         ModuleUpdated?.Invoke(this, e);
+    }
+
+    private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems is not null)
+            foreach (DigitalBehavior behavior in e.NewItems)
+                behavior.BehaviorUpdated += InvokeModuleUpdated;
     }
 
 
@@ -44,12 +57,12 @@ public class Module
     /// <summary>
     /// All behaviors that define the module
     /// </summary>
-    public List<IDigitalBehavior> Behaviors { get; set; } = [];
+    public ObservableCollection<DigitalBehavior> Behaviors { get; set; } = [];
 
     /// <summary>
     /// Mapping of events to the actions that happen with that event
     /// </summary>
-    public List<(IDigitalEvent Event, IEnumerable<IDigitalAction> Actions)> EventMappings { get; set; } = [];
+    public ObservableCollection<(IDigitalEvent Event, IEnumerable<IDigitalAction> Actions)> EventMappings { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -59,7 +72,7 @@ public class Module
     /// <summary>
     /// List of module instantiations inside of this module
     /// </summary>
-    public List<Instantiation> Instantiations { get; set; } = [];
+    public ObservableCollection<Instantiation> Instantiations { get; set; } = [];
 
     
 
@@ -136,4 +149,9 @@ public class Module
     /// </summary>
     /// <returns></returns>
     public override string ToString() => Name;
+
+    private void CheckValid()
+    {
+
+    }
 }
