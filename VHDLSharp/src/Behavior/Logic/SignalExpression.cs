@@ -13,4 +13,16 @@ public class SignalExpression(SingleNodeSignal signal) : LogicExpression
 
     /// <inheritdoc/>
     public override IEnumerable<SingleNodeSignal> Signals => [Signal];
+
+    /// <summary>
+    /// Convert to signal
+    /// </summary>
+    /// <param name="exp"></param>
+    public static implicit operator SingleNodeSignal(SignalExpression exp) => exp.Signal;
+
+    /// <summary>
+    /// Convert signal to signal expression
+    /// </summary>
+    /// <param name="signal"></param>
+    public static implicit operator SignalExpression(SingleNodeSignal signal) => new(signal);
 }

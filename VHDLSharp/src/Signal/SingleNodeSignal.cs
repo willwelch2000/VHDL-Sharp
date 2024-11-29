@@ -18,10 +18,4 @@ public abstract class SingleNodeSignal : ISignal
     /// Convert to logical expression
     /// </summary>
     public LogicExpression ToLogicExpression => new SignalExpression(this);
-
-    /// <summary>
-    /// Convert ot logical expression
-    /// </summary>
-    /// <param name="signal"></param>
-    public static implicit operator LogicExpression(SingleNodeSignal signal) => signal.ToLogicExpression;
 }

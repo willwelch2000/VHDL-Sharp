@@ -11,7 +11,7 @@ public class PortMappingException : Exception
     /// <summary>
     /// Parameterless constructor
     /// </summary>
-    public PortMappingException() : base("A custom exception has occurred.")
+    public PortMappingException() : base("A port mapping exception has occurred.")
     {
     }
 

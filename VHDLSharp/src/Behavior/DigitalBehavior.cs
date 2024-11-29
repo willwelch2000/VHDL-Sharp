@@ -36,10 +36,20 @@ public abstract class DigitalBehavior
     /// Checks that the behavior is valid given the input and output signals
     /// </summary>
     /// <exception cref="Exception"></exception>
-    public void CheckValid()
+    public virtual void CheckValid()
     {
         var modules = InputSignals.Select(s => s.Parent).Append(OutputSignal.Parent).Distinct();
         if (modules.Count() != 1)
             throw new Exception("Input and output signals should come from the same module");
+    }
+
+    /// <summary>
+    /// Call this method to raise the <see cref="BehaviorUpdated"/> event
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void RaiseBehaviorChanged(object? sender, EventArgs e)
+    {
+        BehaviorUpdated?.Invoke(sender, e);
     }
 }

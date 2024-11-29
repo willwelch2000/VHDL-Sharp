@@ -32,4 +32,21 @@ public abstract class LogicExpression
     /// </summary>
     /// <returns></returns>
     public Not Not() => new(this);
+
+    /// <summary>
+    /// Module this expression is in
+    /// </summary>
+    public Module Parent => Signals.First().Parent;
+
+    /// <summary>
+    /// Convert boolean to logic expression
+    /// </summary>
+    /// <param name="b"></param>
+    public static implicit operator LogicExpression(bool b) => new BooleanExpression(b);
+
+    /// <summary>
+    /// Convert signal to logical expression
+    /// </summary>
+    /// <param name="signal"></param>
+    public static implicit operator LogicExpression(SingleNodeSignal signal) => signal.ToLogicExpression;
 }
