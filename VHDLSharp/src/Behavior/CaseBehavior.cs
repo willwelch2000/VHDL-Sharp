@@ -73,9 +73,31 @@ public class CaseBehavior : DigitalBehavior
     }
 
     /// <summary>
+    /// Indexer for the logic expressions given a boolean case
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public LogicExpression? this[bool index]
+    {
+        get
+        {
+            if (Selector.Dimension != 1)
+                throw new Exception("Selector dimension must be 1 for boolean value");
+            return this[index ? 1 : 0];
+        }
+        set
+        {
+            if (Selector.Dimension != 1)
+                throw new Exception("Selector dimension must be 1 for boolean value");
+            this[index ? 1 : 0] = value;
+        }
+    }
+
+    /// <summary>
     /// Add a logic expression for a case
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">integer value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
     public void AddCase(int value, LogicExpression? logicExpression)
@@ -87,6 +109,20 @@ public class CaseBehavior : DigitalBehavior
 
         cases[value] = logicExpression;
         RaiseBehaviorChanged(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Add a logic expression for a case
+    /// Selector must have dimension of 1
+    /// </summary>
+    /// <param name="value">boolean value for selector</param>
+    /// <param name="logicExpression"></param>
+    /// <exception cref="Exception"></exception>
+    public void AddCase(bool value, LogicExpression? logicExpression)
+    {
+        if (Selector.Dimension != 1)
+            throw new Exception("Selector dimension must be 1 for boolean value");
+        AddCase(value ? 1 : 0, logicExpression);
     }
 
     /// <summary>

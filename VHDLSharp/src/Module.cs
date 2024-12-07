@@ -52,7 +52,7 @@ public class Module
     /// <summary>
     /// Name of the module
     /// </summary>
-    public required string Name { get; set; }
+    public string Name { get; set; } = "";
 
     /// <summary>
     /// All behaviors that define the module
