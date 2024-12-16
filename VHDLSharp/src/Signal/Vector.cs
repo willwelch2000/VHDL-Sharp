@@ -39,6 +39,9 @@ public class Vector : ISignal
     /// How many nodes are part of this signal (1 for base version)
     /// </summary>
     public int Dimension => dimension;
+
+    /// <inheritdoc/>
+    public string VhdlType => $"std_logic_vector({Dimension-1} downto 0)";
     
     /// <summary>
     /// Access individual node signals of vector

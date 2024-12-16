@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Text;
 
 namespace VHDLSharp;
 
@@ -87,10 +88,10 @@ public class Module
         .Union(EventMappings.SelectMany(e => e.Actions).SelectMany(a => a.InvolvedSignals));
 
     /// <summary>
-    /// Get all modules used by this module as instantiations
+    /// Get all modules (recursive) used by this module as instantiations
     /// </summary>
     public IEnumerable<Module> ModulesUsed =>
-        Instantiations.Select(i => i.Module).Distinct();
+        Instantiations.SelectMany(i => i.Module.ModulesUsed.Append(i.Module)).Distinct();
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -153,5 +154,50 @@ public class Module
     private void CheckValid()
     {
 
+    }
+
+    /// <summary>
+    /// Get the module as a VHDL string, including all modules used
+    /// </summary>
+    /// <returns></returns>
+    public string ToVhdl()
+    {
+        StringBuilder sb = new();
+
+        // Header
+        sb.AppendLine("library ieee");
+        sb.AppendLine("use ieee.std_logic_1164.all;\n");
+
+        // Submodules
+        foreach (var module in ModulesUsed)
+        {
+            sb.AppendLine(module.ToVhdlInner());
+            sb.AppendLine();
+        }
+
+        // Main module
+        sb.AppendLine(ToVhdlInner());
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Function that only generates this module without submodules or 
+    /// stuff that goes at the beginning of the file
+    /// </summary>
+    /// <returns></returns>
+    private string ToVhdlInner()
+    {
+        StringBuilder sb = new();
+
+        // Entity statement
+        sb.AppendLine($"entity {Name} is");
+        sb.AppendLine("\tport (");
+        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
+        sb.AppendLine(");");
+        sb.AppendLine($"end {Name};");
+
+
+        return sb.ToString();
     }
 }

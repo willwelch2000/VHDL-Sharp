@@ -39,4 +39,15 @@ public class Port
     /// </summary>
     /// <returns></returns>
     public override string ToString() => Signal.Name;
+
+    internal string ToVhdl() => $"{Signal.Name}\t {DirectionToVhdl(Direction)} :\t{Signal.VhdlType}";
+
+    private static string DirectionToVhdl(PortDirection direction) =>
+        direction switch
+        {
+            PortDirection.Input => "in",
+            PortDirection.Output => "out",
+            PortDirection.Bidirectional => "inout",
+            _ => "inout",
+        };
 }

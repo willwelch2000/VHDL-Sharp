@@ -18,4 +18,7 @@ public abstract class SingleNodeSignal : ISignal
     /// Convert to logical expression
     /// </summary>
     public LogicExpression ToLogicExpression => new SignalExpression(this);
+
+    /// <inheritdoc/>
+    public string VhdlType => "std_logic";
 }
