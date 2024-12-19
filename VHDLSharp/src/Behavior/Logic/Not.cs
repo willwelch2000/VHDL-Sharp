@@ -13,4 +13,7 @@ public class Not(LogicExpression input) : LogicExpression
 
     /// <inheritdoc/>
     public override IEnumerable<SingleNodeSignal> Signals => Input.Signals;
+
+    /// <inheritdoc/>
+    public override string ToVhdl => $"not ({Input.ToVhdl})";
 }

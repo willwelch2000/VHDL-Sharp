@@ -42,6 +42,9 @@ public class Vector : ISignal
 
     /// <inheritdoc/>
     public string VhdlType => $"std_logic_vector({Dimension-1} downto 0)";
+
+    /// <inheritdoc/>
+    public string ToVhdl => $"signal {Name}\t: {VhdlType}";
     
     /// <summary>
     /// Access individual node signals of vector

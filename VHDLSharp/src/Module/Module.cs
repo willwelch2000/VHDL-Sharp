@@ -193,10 +193,32 @@ public class Module
         // Entity statement
         sb.AppendLine($"entity {Name} is");
         sb.AppendLine("\tport (");
-        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
-        sb.AppendLine(");");
+        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl.AddIndentation(2)));
+        sb.AppendLine();
+        sb.AppendLine(");".AddIndentation(1));
         sb.AppendLine($"end {Name};");
 
+        // Architecture
+        sb.AppendLine();
+        sb.AppendLine($"architecture rtl of {Name} is");
+
+        // Signals
+        foreach(ISignal signal in Signals.Except(Ports.Select(p => p.Signal)))
+        {
+            sb.AppendLine($"signal {signal.ToVhdl}".AddIndentation(1));
+        }
+
+        // Begin
+        sb.AppendLine("begin");
+
+        // Behaviors
+        foreach (DigitalBehavior behavior in Behaviors)
+        {
+            sb.AppendLine(behavior.ToVhdl.AddIndentation(1));
+        }
+
+        // End
+        sb.AppendLine("end rtl;");
 
         return sb.ToString();
     }

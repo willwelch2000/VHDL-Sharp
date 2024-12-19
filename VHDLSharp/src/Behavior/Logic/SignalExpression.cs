@@ -14,6 +14,9 @@ public class SignalExpression(SingleNodeSignal signal) : LogicExpression
     /// <inheritdoc/>
     public override IEnumerable<SingleNodeSignal> Signals => [Signal];
 
+    /// <inheritdoc/>
+    public override string ToVhdl => Signal.ToVhdl;
+
     /// <summary>
     /// Convert to signal
     /// </summary>

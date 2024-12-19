@@ -11,6 +11,11 @@ public abstract class LogicExpression
     public abstract IEnumerable<SingleNodeSignal> Signals { get; }
 
     /// <summary>
+    /// Get in VHDL format
+    /// </summary>
+    public abstract string ToVhdl { get; }
+
+    /// <summary>
     /// Generate an And with this expression and another
     /// Used for chaining expressions (exp1.And(exp2))
     /// </summary>

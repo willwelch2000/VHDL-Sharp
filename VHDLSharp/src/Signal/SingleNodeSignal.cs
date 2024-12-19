@@ -21,4 +21,7 @@ public abstract class SingleNodeSignal : ISignal
 
     /// <inheritdoc/>
     public string VhdlType => "std_logic";
+
+    /// <inheritdoc/>
+    public string ToVhdl => $"signal {Name}\t: {VhdlType}";
 }

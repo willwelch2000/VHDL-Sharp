@@ -24,4 +24,10 @@ public interface ISignal
     /// Type of signal as VHDL
     /// </summary>
     public string VhdlType { get; }
+
+    /// <summary>
+    /// Get signal as VHDL
+    /// </summary>
+    /// <returns></returns>
+    public string ToVhdl { get; }
 }

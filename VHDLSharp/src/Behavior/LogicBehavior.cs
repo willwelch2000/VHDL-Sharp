@@ -22,4 +22,7 @@ public class LogicBehavior(SingleNodeSignal outputSignal, LogicExpression logicE
     /// The input signals used in this behavior
     /// </summary>
     public override IEnumerable<ISignal> InputSignals => LogicExpression.Signals;
+
+    /// <inheritdoc/>
+    public override string ToVhdl => $"{outputSignal} <= {LogicExpression.ToVhdl};";
 }

@@ -15,6 +15,9 @@ public class BooleanExpression(bool value) : LogicExpression
     /// <inheritdoc/>
     public override IEnumerable<SingleNodeSignal> Signals => [];
 
+    /// <inheritdoc/>
+    public override string ToVhdl => Value.ToString();
+
     /// <summary>
     /// Convert bool to <see cref="BooleanExpression"/>
     /// </summary>

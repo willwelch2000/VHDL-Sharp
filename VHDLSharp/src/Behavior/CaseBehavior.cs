@@ -55,6 +55,9 @@ public class CaseBehavior : DigitalBehavior
     /// <inheritdoc/>
     public override SingleNodeSignal OutputSignal => output;
 
+    /// <inheritdoc/>
+    public override string ToVhdl => throw new NotImplementedException();
+
     /// <summary>
     /// Indexer for the logic expression of each case
     /// </summary>

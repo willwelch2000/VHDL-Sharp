@@ -16,6 +16,11 @@ public abstract class DigitalBehavior
     public abstract ISignal OutputSignal { get; }
 
     /// <summary>
+    /// Get VHDL representation
+    /// </summary>
+    public abstract string ToVhdl { get; }
+
+    /// <summary>
     /// Event called when a property of the behavior is changed that could affect other objects
     /// </summary>
     public event EventHandler? BehaviorUpdated;
