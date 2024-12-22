@@ -18,5 +18,5 @@ public class And(params LogicExpression[] inputs) : LogicExpression
     public override IEnumerable<SingleNodeSignal> Signals => inputs.SelectMany(i => i.Signals);
 
     /// <inheritdoc/>
-    public override string ToVhdl => string.Join(" and ", $"({Inputs.Select(i => i.ToVhdl)})");
+    public override string ToVhdl => string.Join(" and ", Inputs.Select(i => $"({i.ToVhdl})"));
 }

@@ -18,5 +18,5 @@ public class Or(params LogicExpression[] inputs) : LogicExpression
     public override IEnumerable<SingleNodeSignal> Signals => inputs.SelectMany(i => i.Signals);
 
     /// <inheritdoc/>
-    public override string ToVhdl => string.Join(" or ", $"({Inputs.Select(i => i.ToVhdl)})");
+    public override string ToVhdl => string.Join(" or ", Inputs.Select(i => $"({i.ToVhdl})"));
 }
