@@ -63,4 +63,10 @@ public class Vector : ISignal
                 throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
         }
     }
+
+    /// <summary>
+    /// Convert signal to signal expression
+    /// </summary>
+    /// <param name="vector"></param>
+    public static implicit operator SignalExpression(Vector vector) => new(vector);
 }

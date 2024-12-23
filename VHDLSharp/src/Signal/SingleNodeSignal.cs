@@ -24,4 +24,10 @@ public abstract class SingleNodeSignal : ISignal
 
     /// <inheritdoc/>
     public string ToVhdl => $"signal {Name}\t: {VhdlType}";
+
+    /// <summary>
+    /// Convert signal to signal expression
+    /// </summary>
+    /// <param name="signal"></param>
+    public static implicit operator SignalExpression(SingleNodeSignal signal) => new(signal);
 }

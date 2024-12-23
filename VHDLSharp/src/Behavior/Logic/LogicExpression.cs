@@ -8,12 +8,18 @@ public abstract class LogicExpression
     /// <summary>
     /// Get all signals used in the expression
     /// </summary>
-    public abstract IEnumerable<SingleNodeSignal> Signals { get; }
+    public abstract IEnumerable<ISignal> Signals { get; }
 
     /// <summary>
     /// Get in VHDL format
     /// </summary>
     public abstract string ToVhdl { get; }
+
+    /// <summary>
+    /// Dimension of this signal--must be the same for all inputs
+    /// If null, then it can be any dimension (booleans)
+    /// </summary>
+    public abstract int? Dimension { get; }
 
     /// <summary>
     /// Generate an And with this expression and another
@@ -53,5 +59,5 @@ public abstract class LogicExpression
     /// Convert signal to logical expression
     /// </summary>
     /// <param name="signal"></param>
-    public static implicit operator LogicExpression(SingleNodeSignal signal) => signal.ToLogicExpression;
+    public static implicit operator LogicExpression(SingleNodeSignal signal) => (SignalExpression)signal;
 }

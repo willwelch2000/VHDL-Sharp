@@ -6,7 +6,7 @@ namespace VHDLSharp;
 /// </summary>
 /// <param name="outputSignal"></param>
 /// <param name="logicExpression"></param>
-public class LogicBehavior(SingleNodeSignal outputSignal, LogicExpression logicExpression) : DigitalBehavior
+public class LogicBehavior(ISignal outputSignal, LogicExpression logicExpression) : DigitalBehavior
 {
     /// <summary>
     /// Output signal

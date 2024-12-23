@@ -12,7 +12,10 @@ public class Not(LogicExpression input) : LogicExpression
     public LogicExpression Input { get; private init; } = input;
 
     /// <inheritdoc/>
-    public override IEnumerable<SingleNodeSignal> Signals => Input.Signals;
+    public override int? Dimension { get; } = input.Dimension;
+
+    /// <inheritdoc/>
+    public override IEnumerable<ISignal> Signals => Input.Signals;
 
     /// <inheritdoc/>
     public override string ToVhdl => $"not ({Input.ToVhdl})";

@@ -3,6 +3,7 @@ namespace VHDLSharp;
 
 /// <summary>
 /// Logic expression that is a constant boolean value
+/// TODO might get rid of this
 /// </summary>
 /// <param name="value"></param>
 public class BooleanExpression(bool value) : LogicExpression
@@ -13,7 +14,10 @@ public class BooleanExpression(bool value) : LogicExpression
     public bool Value => value;
 
     /// <inheritdoc/>
-    public override IEnumerable<SingleNodeSignal> Signals => [];
+    public override IEnumerable<ISignal> Signals => [];
+
+    /// <inheritdoc/>
+    public override int? Dimension => null;
 
     /// <inheritdoc/>
     public override string ToVhdl => Value.ToString();
