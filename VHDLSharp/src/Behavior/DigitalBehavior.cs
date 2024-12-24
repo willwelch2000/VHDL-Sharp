@@ -1,7 +1,7 @@
 namespace VHDLSharp;
 
 /// <summary>
-/// Interface defining a behavior that makes up a module
+/// Abstract class defining a behavior that makes up a module
 /// </summary>
 public abstract class DigitalBehavior
 {
