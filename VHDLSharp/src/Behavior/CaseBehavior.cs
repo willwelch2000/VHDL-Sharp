@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace VHDLSharp;
 
 /// <summary>
@@ -9,7 +11,7 @@ public class CaseBehavior : DigitalBehavior
 
     private readonly Module module;
 
-    private readonly SingleNodeSignal output;
+    private readonly ISignal outputSignal;
 
     private LogicExpression? defaultExpression;
 
@@ -17,16 +19,16 @@ public class CaseBehavior : DigitalBehavior
     /// Generate case behavior given selector and output signals
     /// </summary>
     /// <param name="selector"></param>
-    /// <param name="output"></param>
+    /// <param name="outputSignal"></param>
     /// <exception cref="Exception"></exception>
-    public CaseBehavior(ISignal selector, SingleNodeSignal output)
+    public CaseBehavior(ISignal selector, ISignal outputSignal)
     {
         Selector = selector;
-        this.output = output;
+        this.outputSignal = outputSignal;
         cases = new LogicExpression[1 << selector.Dimension];
         module = selector.Parent;
 
-        if (output.Parent != module)
+        if (outputSignal.Parent != module)
             throw new Exception("Output signal must be in same module as selector");
     }
 
@@ -43,20 +45,59 @@ public class CaseBehavior : DigitalBehavior
         get => defaultExpression;
         set
         {
-            if (value is not null && value.Parent != module)
-                throw new Exception("The logic expression must be in the same module.");
+            if (value is not null)
+            {
+                if (value.Parent != module)
+                    throw new Exception("The logic expression must be in the same module.");
+                if (value.Dimension != outputSignal.Dimension)
+                    throw new Exception("This logic expression must have the same dimension as the output signal.");
+            }
             defaultExpression = value;
         }
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals => cases.Where(c => c is not null).SelectMany(c => c?.Signals ?? []).Append(Selector);
+    public override IEnumerable<ISignal> InputSignals => cases.Where(c => c is not null).SelectMany(c => c?.Signals ?? []).Append(Selector).Distinct();
 
     /// <inheritdoc/>
-    public override SingleNodeSignal OutputSignal => output;
+    public override ISignal OutputSignal => outputSignal;
 
     /// <inheritdoc/>
-    public override string ToVhdl => throw new NotImplementedException();
+    public override string ToVhdl
+    {
+        get
+        {
+            if (!Complete())
+                throw new Exception("Case behavior must be complete to convert to VHDL");
+
+            StringBuilder sb = new();
+            sb.AppendLine($"process({string.Join(", ", InputSignals.Select(s => s.Name))}) is");
+            sb.AppendLine("begin");
+            sb.AppendLine($"\tcase {Selector.Name} is");
+
+            // Cases
+            for (int i = 0; i < cases.Length; i++)
+            {
+                LogicExpression? expression = cases[i];
+                if (expression is null)
+                    continue;
+                sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension)}\" =>");
+                sb.AppendLine($"\t\t\t{outputSignal} <= {expression.ToVhdl};");
+            }
+
+            // Default
+            if (defaultExpression is not null)
+            {
+                sb.AppendLine($"\t\twhen others =>");
+                sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.ToVhdl};");
+            }
+
+            sb.AppendLine("\tend case;");
+            sb.AppendLine("end process;");
+
+            return sb.ToString();
+        }
+    }
 
     /// <summary>
     /// Indexer for the logic expression of each case
@@ -69,7 +110,7 @@ public class CaseBehavior : DigitalBehavior
         get
         {
             if (index < 0 || index >= cases.Length)
-                throw new Exception($"Case value must be between 0 and {cases.Length-1}");
+                throw new ArgumentException($"Case value must be between 0 and {cases.Length-1}");
             return cases[index];
         }
         set => AddCase(index, value);
@@ -107,8 +148,13 @@ public class CaseBehavior : DigitalBehavior
     {
         if (value < 0 || value >= cases.Length)
             throw new Exception($"Case value must be between 0 and {cases.Length-1}");
-        if (logicExpression is not null && logicExpression.Parent != module)
-            throw new Exception("The logic expression must be in the same module.");
+        if (logicExpression is not null)
+        {
+            if (logicExpression.Parent != module)
+                throw new Exception("The logic expression must be in the same module.");
+            if (logicExpression.Dimension != outputSignal.Dimension)
+                throw new Exception("This logic expression must have the same dimension as the output signal.");
+        }
 
         cases[value] = logicExpression;
         RaiseBehaviorChanged(this, EventArgs.Empty);
