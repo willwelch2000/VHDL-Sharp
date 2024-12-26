@@ -17,7 +17,6 @@ public class Module
         Ports.CollectionChanged += InvokeModuleUpdated;
         Behaviors.CollectionChanged += InvokeModuleUpdated;
         Behaviors.CollectionChanged += BehaviorsListUpdated;
-        EventMappings.CollectionChanged += InvokeModuleUpdated;
         Instantiations.CollectionChanged += InvokeModuleUpdated;
     }
 
@@ -46,7 +45,8 @@ public class Module
 
 
     /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects
+    /// Event called when a property of the module is changed that could affect other objects,
+    /// such as port mapping
     /// </summary>
     public event EventHandler? ModuleUpdated;
 
@@ -59,11 +59,6 @@ public class Module
     /// All behaviors that define the module
     /// </summary>
     public ObservableCollection<DigitalBehavior> Behaviors { get; set; } = [];
-
-    /// <summary>
-    /// Mapping of events to the actions that happen with that event
-    /// </summary>
-    public ObservableCollection<(IDigitalEvent Event, IEnumerable<IDigitalAction> Actions)> EventMappings { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -84,8 +79,7 @@ public class Module
     public IEnumerable<ISignal> Signals =>
         Ports.Select(p => p.Signal)
         .Union(Behaviors.SelectMany(b => b.InputSignals))
-        .Union(Behaviors.Select(b => b.OutputSignal))
-        .Union(EventMappings.SelectMany(e => e.Actions).SelectMany(a => a.InvolvedSignals));
+        .Union(Behaviors.Select(b => b.OutputSignal));
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -153,7 +147,15 @@ public class Module
 
     private void CheckValid()
     {
-
+        // Check that behaviors are in correct place and no duplicate output signals
+        HashSet<ISignal> outputSignalSet = [];
+        foreach (DigitalBehavior behavior in Behaviors)
+        {
+            if (behavior.Module != this)
+                throw new Exception($"Behavior must have this module as parent");
+            if (!outputSignalSet.Add(behavior.OutputSignal))
+                throw new Exception("Multiple behaviors specified for the same output signal");
+        }
     }
 
     /// <summary>

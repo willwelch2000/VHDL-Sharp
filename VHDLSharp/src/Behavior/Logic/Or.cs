@@ -15,10 +15,9 @@ public class Or : LogicExpression
     /// <exception cref="Exception"></exception>
     public Or(params LogicExpression[] inputs)
     {
-        if (inputs.Select(i => i.Dimension).Where(i => i is not null).Distinct().Count() > 1)
-            throw new Exception("Inputs must all have the same dimension");
         this.inputs = inputs;
         Dimension = inputs.FirstOrDefault(i => i?.Dimension is not null, null)?.Dimension;
+        CheckValid();
     }
 
     /// <summary>

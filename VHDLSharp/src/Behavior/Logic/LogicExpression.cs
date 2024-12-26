@@ -50,6 +50,18 @@ public abstract class LogicExpression
     public Module Parent => Signals.First().Parent;
 
     /// <summary>
+    /// Confirm that the expression is valid and throw an exception otherwise
+    /// </summary>
+    /// <exception cref="Exception"></exception>
+    public void CheckValid()
+    {
+        if (Signals.Select(i => i.Dimension).Distinct().Count() > 1)
+            throw new Exception("All signals in an expression must have the same dimension");
+        if (Signals.Select(i => i.Parent).Distinct().Count() > 1)
+            throw new Exception("All signals in an expression must be in the same module");
+    }
+
+    /// <summary>
     /// Convert boolean to logic expression
     /// </summary>
     /// <param name="b"></param>

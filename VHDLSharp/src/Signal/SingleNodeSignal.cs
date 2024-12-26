@@ -25,6 +25,13 @@ public abstract class SingleNodeSignal : ISignal
     /// <inheritdoc/>
     public string ToVhdl => $"signal {Name}\t: {VhdlType}";
 
+    /// <inheritdoc/>
+    public bool CanCombine(ISignal other) =>
+        Dimension == other.Dimension && Parent == other.Parent;
+
+    /// <inheritdoc/>
+    public string ToLogicString() => Name;
+
     /// <summary>
     /// Convert signal to signal expression
     /// </summary>

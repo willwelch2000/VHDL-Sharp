@@ -64,6 +64,13 @@ public class Vector : ISignal
         }
     }
 
+    /// <inheritdoc/>
+    public bool CanCombine(ISignal other) =>
+        Dimension == other.Dimension && Parent == other.Parent;
+
+    /// <inheritdoc/>
+    public string ToLogicString() => Name;
+
     /// <summary>
     /// Convert signal to signal expression
     /// </summary>

@@ -3,9 +3,9 @@ using System.Text;
 namespace VHDLSharp;
 
 /// <summary>
-/// Behavior where an output signal is set based on a selector signal's value
+/// A behavior where an output signal is set based on a selector signal's value
 /// </summary>
-public class CaseBehavior : DigitalBehavior
+public class CaseBehavior : CombinationalBehavior
 {
     private readonly LogicExpression?[] cases;
 

@@ -1,9 +1,11 @@
+using VHDLSharp.LogicTree;
+
 namespace VHDLSharp;
 
 /// <summary>
 /// Single-node and vector signals
 /// </summary>
-public interface ISignal
+public interface ISignal : ILogicallyCombinable<ISignal>
 {
     /// <summary>
     /// Name of the signal
