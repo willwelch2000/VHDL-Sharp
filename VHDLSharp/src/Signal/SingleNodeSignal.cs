@@ -1,3 +1,5 @@
+using VHDLSharp.LogicTree;
+
 namespace VHDLSharp;
 
 /// <summary>
@@ -13,11 +15,6 @@ public abstract class SingleNodeSignal : ISignal
 
     /// <inheritdoc/>
     public int Dimension => 1;
-    
-    /// <summary>
-    /// Convert to logical expression
-    /// </summary>
-    public LogicExpression ToLogicExpression => new SignalExpression(this);
 
     /// <inheritdoc/>
     public string VhdlType => "std_logic";
@@ -26,15 +23,17 @@ public abstract class SingleNodeSignal : ISignal
     public string ToVhdl => $"signal {Name}\t: {VhdlType}";
 
     /// <inheritdoc/>
-    public bool CanCombine(ISignal other) =>
-        Dimension == other.Dimension && Parent == other.Parent;
+    public IEnumerable<ISignal> BaseObjects => [this];
+
+    /// <inheritdoc/>
+    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    {
+        ISignal? signal = other.BaseObjects.FirstOrDefault();
+        if (signal is null)
+            return true;
+        return Dimension == signal.Dimension && Parent == signal.Parent;
+    }
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
-
-    /// <summary>
-    /// Convert signal to signal expression
-    /// </summary>
-    /// <param name="signal"></param>
-    public static implicit operator SignalExpression(SingleNodeSignal signal) => new(signal);
 }

@@ -1,4 +1,6 @@
-namespace VHDLSharp;
+using VHDLSharp.LogicTree;
+
+namespace VHDLSharp.Utility;
 
 internal static class Utility
 {
@@ -18,4 +20,7 @@ internal static class Utility
 
         return conversion;
     }
+
+    // Works by getting dimension from first signal in expression
+    internal static int? GetDimension(this ILogicallyCombinable<ISignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension;
 }

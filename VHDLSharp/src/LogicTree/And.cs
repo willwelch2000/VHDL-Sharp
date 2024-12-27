@@ -24,18 +24,7 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     public override IEnumerable<ILogicallyCombinable<T>> Inputs => inputs;
 
     /// <inheritdoc/>
-    public override IEnumerable<T> AllBaseObjects
-    {
-        get
-        {
-            foreach (var input in inputs)
-                if (input is T inputAsT)
-                    yield return inputAsT;
-                else if (input is LogicTree<T> inputAsLogicTree)
-                    foreach (var subObject in inputAsLogicTree.AllBaseObjects)
-                        yield return subObject;
-        }
-    }
+    public override IEnumerable<T> BaseObjects => inputs.SelectMany(i => i.BaseObjects);
 
     /// <inheritdoc/>
     public override string ToLogicString() => string.Join(" and ", inputs.Select(i => $"{i.ToLogicString()}"));

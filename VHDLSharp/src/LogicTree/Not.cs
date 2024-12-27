@@ -14,17 +14,7 @@ public class Not<T>(ILogicallyCombinable<T> input) : LogicTree<T> where T : ILog
     public override IEnumerable<ILogicallyCombinable<T>> Inputs => [input];
 
     /// <inheritdoc/>
-    public override IEnumerable<T> AllBaseObjects
-    {
-        get
-        {
-            if (input is T inputAsT)
-                yield return inputAsT;
-            else if (input is LogicTree<T> inputAsLogicTree)
-                foreach (var subObject in inputAsLogicTree.AllBaseObjects)
-                    yield return subObject;
-        }
-    }
+    public override IEnumerable<T> BaseObjects => input.BaseObjects;
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"not ({input.ToLogicString()})";

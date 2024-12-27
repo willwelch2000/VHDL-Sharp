@@ -83,7 +83,11 @@ public class PortMapping : IDictionary<Port, ISignal>
     public ISignal this[Port port]
     {
         get => backendDictionary[port];
-        set => Add(port, value);
+        set
+        {
+            backendDictionary[port] = value;
+            CheckValid();
+        }
     }
 
     private void ModuleUpdated(object? sender, EventArgs eventArgs)

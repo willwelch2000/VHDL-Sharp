@@ -5,25 +5,35 @@ namespace VHDLSharp;
 /// </summary>
 public abstract class DigitalBehavior
 {
+    private EventHandler? behaviorUpdated;
+
     /// <summary>
     /// Get all of the input signals used in this behavior
     /// </summary>
     public abstract IEnumerable<ISignal> InputSignals { get; }
 
     /// <summary>
-    /// Get the output signal for this behavior
+    /// Get VHDL representation given the assigned output signal
     /// </summary>
-    public abstract ISignal OutputSignal { get; }
+    public abstract string ToVhdl(ISignal outputSignal);
 
     /// <summary>
-    /// Get VHDL representation
+    /// Dimension of behavior, or null if it has no set dimension
     /// </summary>
-    public abstract string ToVhdl { get; }
+    public abstract int? Dimension { get; }
 
     /// <summary>
     /// Event called when a property of the behavior is changed that could affect other objects
     /// </summary>
-    public event EventHandler? BehaviorUpdated;
+    public event EventHandler? BehaviorUpdated
+    {
+        add
+        {
+            behaviorUpdated -= value; // remove if already present
+            behaviorUpdated += value;
+        }
+        remove => behaviorUpdated -= value;
+    }
 
     /// <summary>
     /// Module this behavior refers to, found from the signals
@@ -33,19 +43,20 @@ public abstract class DigitalBehavior
         get
         {
             CheckValid();
-            return OutputSignal.Parent;
+            return InputSignals.First().Parent;
         }
     }
 
     /// <summary>
-    /// Checks that the behavior is valid given the input and output signals
+    /// Checks that the behavior is valid given the input signals
+    /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
     public virtual void CheckValid()
     {
-        var modules = InputSignals.Select(s => s.Parent).Append(OutputSignal.Parent).Distinct();
+        var modules = InputSignals.Select(s => s.Parent).Distinct();
         if (modules.Count() != 1)
-            throw new Exception("Input and output signals should come from the same module");
+            throw new Exception("Input signals should all come from the same module");
     }
 
     /// <summary>
@@ -55,6 +66,6 @@ public abstract class DigitalBehavior
     /// <param name="e"></param>
     protected void RaiseBehaviorChanged(object? sender, EventArgs e)
     {
-        BehaviorUpdated?.Invoke(sender, e);
+        behaviorUpdated?.Invoke(sender, e);
     }
 }

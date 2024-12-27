@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp;
 
@@ -15,8 +16,8 @@ public class Module
     public Module()
     {
         Ports.CollectionChanged += InvokeModuleUpdated;
-        Behaviors.CollectionChanged += InvokeModuleUpdated;
-        Behaviors.CollectionChanged += BehaviorsListUpdated;
+        SignalBehaviors.CollectionChanged += InvokeModuleUpdated;
+        SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InvokeModuleUpdated;
     }
 
@@ -39,8 +40,9 @@ public class Module
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.NewItems is not null)
-            foreach (DigitalBehavior behavior in e.NewItems)
-                behavior.BehaviorUpdated += InvokeModuleUpdated;
+            foreach (object newItem in e.NewItems)
+                if (newItem is (Condition condition, CombinationalBehavior behavior))
+                    behavior.BehaviorUpdated += InvokeModuleUpdated;
     }
 
 
@@ -56,9 +58,9 @@ public class Module
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// All behaviors that define the module
+    /// Mapping of output signal to behavior that defines it
     /// </summary>
-    public ObservableCollection<DigitalBehavior> Behaviors { get; set; } = [];
+    public ObservableDictionary<ISignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -74,12 +76,12 @@ public class Module
 
     /// <summary>
     /// Get all signals used in this module
-    /// Signals can come from ports, behaviors, or event mappings' actions
+    /// Signals can come from ports, behavior input signals, or output signals
     /// </summary>
     public IEnumerable<ISignal> Signals =>
         Ports.Select(p => p.Signal)
-        .Union(Behaviors.SelectMany(b => b.InputSignals))
-        .Union(Behaviors.Select(b => b.OutputSignal));
+        .Union(SignalBehaviors.Values.SelectMany(b => b.InputSignals))
+        .Union(SignalBehaviors.Keys);
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -147,14 +149,13 @@ public class Module
 
     private void CheckValid()
     {
-        // Check that behaviors are in correct place and no duplicate output signals
-        HashSet<ISignal> outputSignalSet = [];
-        foreach (DigitalBehavior behavior in Behaviors)
+        // Check that behaviors are in correct module/have correct dimension
+        foreach ((ISignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
             if (behavior.Module != this)
                 throw new Exception($"Behavior must have this module as parent");
-            if (!outputSignalSet.Add(behavior.OutputSignal))
-                throw new Exception("Multiple behaviors specified for the same output signal");
+            if (behavior.Dimension != outputSignal.Dimension)
+                throw new Exception("Behavior must have same dimension as assigned output signal");
         }
     }
 
@@ -214,9 +215,9 @@ public class Module
         sb.AppendLine("begin");
 
         // Behaviors
-        foreach (DigitalBehavior behavior in Behaviors)
+        foreach ((ISignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
-            sb.AppendLine(behavior.ToVhdl.AddIndentation(1));
+            sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(1));
         }
 
         // End

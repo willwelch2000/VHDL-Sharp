@@ -15,16 +15,16 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     /// <summary>
     /// Get (recursively) all base objects used in the tree
     /// </summary>
-    public abstract IEnumerable<T> AllBaseObjects { get; }
+    public abstract IEnumerable<T> BaseObjects { get; }
 
     /// <summary>
     /// Get first base object to use for accessing a representative example
     /// For example, to access the dimension of the logic tree
     /// </summary>
-    public T? FirstBaseObject => AllBaseObjects.FirstOrDefault();
+    public T? FirstBaseObject => BaseObjects.FirstOrDefault();
 
     /// <inheritdoc/>
-    public bool CanCombine(T other) => !AllBaseObjects.Any() || AllBaseObjects.First().CanCombine(other);
+    public bool CanCombine(ILogicallyCombinable<T> other) => !BaseObjects.Any() || BaseObjects.First().CanCombine(other);
 
     /// <summary>
     /// Generate an And with this logic tree and another <see cref="ILogicallyCombinable{T}"/>

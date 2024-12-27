@@ -1,3 +1,5 @@
+using VHDLSharp.LogicTree;
+
 namespace VHDLSharp;
 
 /// <summary>
@@ -65,15 +67,17 @@ public class Vector : ISignal
     }
 
     /// <inheritdoc/>
-    public bool CanCombine(ISignal other) =>
-        Dimension == other.Dimension && Parent == other.Parent;
+    public IEnumerable<ISignal> BaseObjects => [this];
+
+    /// <inheritdoc/>
+    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    {
+        ISignal? signal = other.BaseObjects.FirstOrDefault();
+        if (signal is null)
+            return true;
+        return Dimension == signal.Dimension && Parent == signal.Parent;
+    }
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
-
-    /// <summary>
-    /// Convert signal to signal expression
-    /// </summary>
-    /// <param name="vector"></param>
-    public static implicit operator SignalExpression(Vector vector) => new(vector);
 }

@@ -6,50 +6,23 @@ namespace VHDLSharp;
 /// <summary>
 /// A behavior that uses logical expressions
 /// </summary>
-public class LogicBehavior : CombinationalBehavior
+/// <param name="logicExpression"></param>
+/// <exception cref="Exception"></exception>
+public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
 {
-    private readonly ISignal outputSignal;
-
-    /// <summary>
-    /// Generate logic behavior
-    /// </summary>
-    /// <param name="outputSignal"></param>
-    /// <param name="logicExpression"></param>
-    /// <exception cref="Exception"></exception>
-    public LogicBehavior(ISignal outputSignal, ILogicallyCombinable<ISignal> logicExpression)
-    {
-        // First object can be used because they all must have same dimension
-        if (!logicExpression.CanCombine(outputSignal))
-            throw new Exception("Output signal not compatible with logic expression");
-        this.outputSignal = outputSignal;
-        this.LogicExpression = logicExpression;
-    }
-
-    /// <summary>
-    /// Output signal
-    /// </summary>
-    public override ISignal OutputSignal => outputSignal;
-
     /// <summary>
     /// The logical expression that this refers to
     /// </summary>
-    public ILogicallyCombinable<ISignal> LogicExpression { get; }
+    public ILogicallyCombinable<ISignal> LogicExpression { get; } = logicExpression;
 
     /// <summary>
-    /// The input signals used in this behavior
+    /// The input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<ISignal> InputSignals
-    {
-        get
-        {
-            if (LogicExpression is ISignal signal)
-                return [signal];
-            if (LogicExpression is LogicTree<ISignal> tree)
-                return tree.AllBaseObjects;
-            return [];
-        }
-    }
+    public override IEnumerable<ISignal> InputSignals => LogicExpression.BaseObjects;
 
     /// <inheritdoc/>
-    public override string ToVhdl => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+    public override int? Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension; // Works by getting dimension from first internal signal--they should all have the same dimension
+
+    /// <inheritdoc/>
+    public override string ToVhdl(ISignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
 }
