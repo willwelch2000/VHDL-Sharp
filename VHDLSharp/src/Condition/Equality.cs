@@ -1,3 +1,4 @@
+using VHDLSharp.Utility;
 
 namespace VHDLSharp;
 
@@ -52,7 +53,14 @@ public class Equality : Condition
     /// <inheritdoc/>
     public override string ToLogicString()
     {
-        throw new NotImplementedException();
+        if (ComparisonSignal is not null)
+        {
+            return $"{MainSignal.Name} = {ComparisonSignal.Name}";
+        }
+        else
+        {
+            return $"{MainSignal.Name} = \"{ComparisonValue?.ToBinaryString(MainSignal.Dimension.NonNullValue) ?? throw new("Should be impossible")}\"";
+        }
     }
 
     /// <summary>

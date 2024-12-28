@@ -1,3 +1,4 @@
+using VHDLSharp.Utility;
 
 namespace VHDLSharp;
 
@@ -37,8 +38,5 @@ public class ValueBehavior : CombinationalBehavior
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string ToVhdl(ISignal outputSignal)
-    {
-        throw new NotImplementedException();
-    }
+    public override string ToVhdl(ISignal outputSignal) => $"{outputSignal} <= {Value.ToBinaryString(outputSignal.Dimension.NonNullValue)};";
 }

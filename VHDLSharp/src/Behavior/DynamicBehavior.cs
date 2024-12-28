@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Linq.Expressions;
+using System.Text;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp;
 
@@ -16,34 +17,59 @@ public class DynamicBehavior : DigitalBehavior
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private readonly ObservableCollection<(ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior)> conditionMappings = [];
+    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, CombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
     /// </summary>
     public DynamicBehavior()
     {
-        conditionMappings.CollectionChanged += CasesListUpdated;
+        ConditionMappings.CollectionChanged += CasesListUpdated;
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals => conditionMappings.SelectMany(c => c.behavior.InputSignals.Union(c.condition.BaseObjects.SelectMany(c => c.InputSignals))).Distinct();
+    public override IEnumerable<ISignal> InputSignals => ConditionMappings.SelectMany(c => c.Behavior.InputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals))).Distinct();
 
     /// <inheritdoc/>
-    public override Dimension Dimension => conditionMappings.Any() ? conditionMappings.First().behavior.Dimension : new();
+    public override Dimension Dimension => ConditionMappings.Any() ? ConditionMappings.First().Behavior.Dimension : new();
 
     /// <inheritdoc/>
-    public override string ToVhdl(ISignal outputSignal) => throw new NotImplementedException();
+    public override string ToVhdl(ISignal outputSignal)
+    {
+        if (ConditionMappings.Count == 0)
+            throw new Exception("Must have at least one condition mapping");
+        
+        StringBuilder sb = new();
+        sb.AppendLine($"process({string.Join(", ", InputSignals.Select(s => s.Name))}) is");
+        sb.AppendLine("begin");
+
+        // First condition
+        (ILogicallyCombinable<Condition> firstCondition, CombinationalBehavior firstBehavior) = ConditionMappings.First();
+        sb.AppendLine($"\tif ({firstCondition.ToLogicString()}) then");
+        sb.AppendLine(firstBehavior.ToVhdl(outputSignal).AddIndentation(2));
+
+        // Remaining conditions
+        foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
+        {
+            sb.AppendLine($"\telse if ({condition.ToLogicString()}) then");
+            sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(2));
+        }
+
+        sb.AppendLine("\tend if;");
+        sb.AppendLine("end process;");
+
+        return sb.ToString();
+    }
 
     /// <inheritdoc/>
     public override void CheckValid()
     {
         base.CheckValid(); // Checks that everything is in just one module
         // Go through all after first and test compatibility with first
-        if (conditionMappings.Count > 1)
+        if (ConditionMappings.Count > 1)
         {
-            (ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) first = conditionMappings.First();
-            foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in conditionMappings.Skip(1))
+            (ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) first = ConditionMappings.First();
+            foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
                 if (!first.behavior.Dimension.Compatible(behavior.Dimension))
                     throw new Exception("Expressions are incompatible. Must have same dimension");
         }
