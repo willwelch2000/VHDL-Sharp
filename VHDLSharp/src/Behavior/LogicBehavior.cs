@@ -4,7 +4,7 @@ using VHDLSharp.LogicTree;
 namespace VHDLSharp;
 
 /// <summary>
-/// A behavior that uses logical expressions
+/// A behavior that uses logical expressions on signals
 /// </summary>
 /// <param name="logicExpression"></param>
 /// <exception cref="Exception"></exception>
@@ -21,7 +21,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override IEnumerable<ISignal> InputSignals => LogicExpression.BaseObjects;
 
     /// <inheritdoc/>
-    public override int? Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension; // Works by getting dimension from first internal signal--they should all have the same dimension
+    public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension(); // Works by getting dimension from first internal signal--they should all have the same dimension
 
     /// <inheritdoc/>
     public override string ToVhdl(ISignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";

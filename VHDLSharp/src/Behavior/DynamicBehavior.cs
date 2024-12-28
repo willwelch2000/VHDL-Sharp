@@ -27,10 +27,10 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals => conditionMappings.SelectMany(c => c.behavior.InputSignals).Distinct();
+    public override IEnumerable<ISignal> InputSignals => conditionMappings.SelectMany(c => c.behavior.InputSignals.Union(c.condition.BaseObjects.SelectMany(c => c.InputSignals))).Distinct();
 
     /// <inheritdoc/>
-    public override int? Dimension => conditionMappings.Any() ? conditionMappings.First().behavior.Dimension : null;
+    public override Dimension Dimension => conditionMappings.Any() ? conditionMappings.First().behavior.Dimension : new();
 
     /// <inheritdoc/>
     public override string ToVhdl(ISignal outputSignal) => throw new NotImplementedException();
@@ -44,7 +44,7 @@ public class DynamicBehavior : DigitalBehavior
         {
             (ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) first = conditionMappings.First();
             foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in conditionMappings.Skip(1))
-                if (first.behavior.Dimension is not null && first.behavior.Dimension != behavior.Dimension)
+                if (!first.behavior.Dimension.Compatible(behavior.Dimension))
                     throw new Exception("Expressions are incompatible. Must have same dimension");
         }
     }

@@ -40,10 +40,10 @@ public class Vector : ISignal
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)
     /// </summary>
-    public int Dimension => dimension;
+    public DefiniteDimension Dimension => new(dimension);
 
     /// <inheritdoc/>
-    public string VhdlType => $"std_logic_vector({Dimension-1} downto 0)";
+    public string VhdlType => $"std_logic_vector({dimension-1} downto 0)";
 
     /// <inheritdoc/>
     public string ToVhdl => $"signal {Name}\t: {VhdlType}";
@@ -75,7 +75,7 @@ public class Vector : ISignal
         ISignal? signal = other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
-        return Dimension == signal.Dimension && Parent == signal.Parent;
+        return Dimension.Compatible(signal.Dimension) && Parent == signal.Parent;
     }
 
     /// <inheritdoc/>

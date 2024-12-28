@@ -152,9 +152,9 @@ public class Module
         // Check that behaviors are in correct module/have correct dimension
         foreach ((ISignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
-            if (behavior.Module != this)
+            if (behavior.Module is not null && behavior.Module != this)
                 throw new Exception($"Behavior must have this module as parent");
-            if (behavior.Dimension != outputSignal.Dimension)
+            if (!behavior.Dimension.Compatible(outputSignal.Dimension))
                 throw new Exception("Behavior must have same dimension as assigned output signal");
         }
     }

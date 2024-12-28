@@ -10,7 +10,7 @@ namespace VHDLSharp;
 /// <param name="selector"></param>
 public class CaseBehavior(ISignal selector) : CombinationalBehavior
 {
-    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.Dimension];
+    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.Dimension.NonNullValue];
 
     private ILogicallyCombinable<ISignal>? defaultExpression;
 
@@ -36,14 +36,14 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     public override IEnumerable<ISignal> InputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects ?? []).Append(Selector).Distinct();
 
     /// <inheritdoc/>
-    public override int? Dimension
+    public override Dimension Dimension
     {
         get
         {
             CheckValid();
             ILogicallyCombinable<ISignal>? nonNullCase = caseExpressions.Where(c => c is not null).FirstOrDefault();
             if (nonNullCase is null)
-                return null;
+                return new();
             return nonNullCase.GetDimension();
         }
     }
@@ -65,7 +65,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
             ILogicallyCombinable<ISignal>? expression = caseExpressions[i];
             if (expression is null)
                 continue;
-            sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension)}\" =>");
+            sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
             sb.AppendLine($"\t\t\t{outputSignal} <= {expression.ToLogicString()};");
         }
 
@@ -109,13 +109,13 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     {
         get
         {
-            if (Selector.Dimension != 1)
+            if (Selector.Dimension.NonNullValue != 1)
                 throw new Exception("Selector dimension must be 1 for boolean value");
             return this[index ? 1 : 0];
         }
         set
         {
-            if (Selector.Dimension != 1)
+            if (Selector.Dimension.NonNullValue != 1)
                 throw new Exception("Selector dimension must be 1 for boolean value");
             this[index ? 1 : 0] = value;
         }
@@ -162,7 +162,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <exception cref="Exception"></exception>
     public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
     {
-        if (Selector.Dimension != 1)
+        if (Selector.Dimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
         AddCase(value ? 1 : 0, logicExpression);
     }

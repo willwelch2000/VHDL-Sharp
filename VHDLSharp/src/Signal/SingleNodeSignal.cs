@@ -14,7 +14,7 @@ public abstract class SingleNodeSignal : ISignal
     public abstract Module Parent { get; }
 
     /// <inheritdoc/>
-    public int Dimension => 1;
+    public DefiniteDimension Dimension => new(1);
 
     /// <inheritdoc/>
     public string VhdlType => "std_logic";
@@ -31,7 +31,7 @@ public abstract class SingleNodeSignal : ISignal
         ISignal? signal = other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
-        return Dimension == signal.Dimension && Parent == signal.Parent;
+        return Dimension.Compatible(signal.Dimension) && Parent == signal.Parent;
     }
 
     /// <inheritdoc/>

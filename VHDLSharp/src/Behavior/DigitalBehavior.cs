@@ -20,7 +20,7 @@ public abstract class DigitalBehavior
     /// <summary>
     /// Dimension of behavior, or null if it has no set dimension
     /// </summary>
-    public abstract int? Dimension { get; }
+    public abstract Dimension Dimension { get; }
 
     /// <summary>
     /// Event called when a property of the behavior is changed that could affect other objects
@@ -37,13 +37,14 @@ public abstract class DigitalBehavior
 
     /// <summary>
     /// Module this behavior refers to, found from the signals
+    /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public Module Module
+    public Module? Module
     {
         get
         {
             CheckValid();
-            return InputSignals.First().Parent;
+            return InputSignals.FirstOrDefault()?.Parent;
         }
     }
 

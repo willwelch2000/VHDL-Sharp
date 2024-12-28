@@ -20,7 +20,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)
     /// </summary>
-    public int Dimension { get; }
+    public DefiniteDimension Dimension { get; }
 
     /// <summary>
     /// Type of signal as VHDL
