@@ -36,4 +36,7 @@ public abstract class SingleNodeSignal : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
+
+    /// <inheritdoc/>
+    public string ToLogicString(LogicStringOptions options) => ToLogicString();
 }

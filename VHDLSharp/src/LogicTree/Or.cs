@@ -28,4 +28,7 @@ public class Or<T> : LogicTree<T> where T : ILogicallyCombinable<T>
 
     /// <inheritdoc/>
     public override string ToLogicString() => string.Join(" or ", inputs.Select(i => $"{i.ToLogicString()}"));
+
+    /// <inheritdoc/>
+    public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 }

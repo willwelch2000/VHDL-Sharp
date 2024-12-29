@@ -1,3 +1,4 @@
+using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp;
@@ -62,6 +63,9 @@ public class Equality : ConstantCondition
             return $"{MainSignal.Name} = \"{ComparisonValue?.ToBinaryString(MainSignal.Dimension.NonNullValue) ?? throw new("Should be impossible")}\"";
         }
     }
+
+    /// <inheritdoc/>
+    public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <summary>
     /// Called after construction

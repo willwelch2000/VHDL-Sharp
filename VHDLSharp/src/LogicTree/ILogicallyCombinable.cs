@@ -21,6 +21,12 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     public string ToLogicString();
 
     /// <summary>
+    /// Convert to string given options
+    /// </summary>
+    /// <returns></returns>
+    public string ToLogicString(LogicStringOptions options);
+
+    /// <summary>
     /// Get all base objects
     /// If this is just a single thing, then it should return itself
     /// If this is a collection of T, then it should return that whole collection

@@ -1,4 +1,6 @@
 
+using VHDLSharp.LogicTree;
+
 namespace VHDLSharp;
 
 /// <summary>
@@ -16,4 +18,7 @@ public class RisingEdge(SingleNodeSignal signal) : EventDrivenCondition
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"rising_edge({Signal.Name})";
+
+    /// <inheritdoc/>
+    public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 }

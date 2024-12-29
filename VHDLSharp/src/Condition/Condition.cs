@@ -19,6 +19,9 @@ public abstract class Condition : ILogicallyCombinable<Condition>
     /// <inheritdoc/>
     public abstract string ToLogicString();
 
+    /// <inheritdoc/>
+    public abstract string ToLogicString(LogicStringOptions options);
+
     /// <summary>
     /// Get parent module based on input signals
     /// </summary>

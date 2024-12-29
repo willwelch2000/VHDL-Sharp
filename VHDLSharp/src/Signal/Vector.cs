@@ -80,4 +80,7 @@ public class Vector : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
+
+    /// <inheritdoc/>
+    public string ToLogicString(LogicStringOptions options) => ToLogicString();
 }
