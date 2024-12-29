@@ -5,7 +5,7 @@ namespace VHDLSharp;
 /// <summary>
 /// Single-node and vector signals
 /// </summary>
-public interface ISignal : ILogicallyCombinable<ISignal>
+public interface ISignal : ILogicallyCombinable<ISignal, SignalLogicStringOptions>
 {
     /// <summary>
     /// Name of the signal

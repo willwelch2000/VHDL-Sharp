@@ -26,7 +26,7 @@ public abstract class SingleNodeSignal : ISignal
     public IEnumerable<ISignal> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    public bool CanCombine(ILogicallyCombinable<ISignal, SignalLogicStringOptions> other)
     {
         ISignal? signal = other.BaseObjects.FirstOrDefault();
         if (signal is null)
@@ -36,4 +36,7 @@ public abstract class SingleNodeSignal : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
+
+    /// <inheritdoc/>
+    public string ToLogicString(SignalLogicStringOptions options) => Name;
 }

@@ -17,7 +17,7 @@ public class DynamicBehavior : DigitalBehavior
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, CombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+    private ObservableCollection<(ILogicallyCombinable<Condition, ConditionLogicStringOptions> Condition, CombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
@@ -44,12 +44,12 @@ public class DynamicBehavior : DigitalBehavior
         sb.AppendLine("begin");
 
         // First condition
-        (ILogicallyCombinable<Condition> firstCondition, CombinationalBehavior firstBehavior) = ConditionMappings.First();
+        (ILogicallyCombinable<Condition, ConditionLogicStringOptions> firstCondition, CombinationalBehavior firstBehavior) = ConditionMappings.First();
         sb.AppendLine($"\tif ({firstCondition.ToLogicString()}) then");
         sb.AppendLine(firstBehavior.ToVhdl(outputSignal).AddIndentation(2));
 
         // Remaining conditions
-        foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
+        foreach ((ILogicallyCombinable<Condition, ConditionLogicStringOptions> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
         {
             sb.AppendLine($"\telse if ({condition.ToLogicString()}) then");
             sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(2));
@@ -68,8 +68,8 @@ public class DynamicBehavior : DigitalBehavior
         // Go through all after first and test compatibility with first
         if (ConditionMappings.Count > 1)
         {
-            (ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) first = ConditionMappings.First();
-            foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
+            (ILogicallyCombinable<Condition, ConditionLogicStringOptions> condition, CombinationalBehavior behavior) first = ConditionMappings.First();
+            foreach ((ILogicallyCombinable<Condition, ConditionLogicStringOptions> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
                 if (!first.behavior.Dimension.Compatible(behavior.Dimension))
                     throw new Exception("Expressions are incompatible. Must have same dimension");
         }

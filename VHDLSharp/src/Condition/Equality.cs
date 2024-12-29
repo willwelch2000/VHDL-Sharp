@@ -63,6 +63,9 @@ public class Equality : ConstantCondition
         }
     }
 
+    /// <inheritdoc/>
+    public override string ToLogicString(ConditionLogicStringOptions options) => ToLogicString();
+
     /// <summary>
     /// Called after construction
     /// </summary>

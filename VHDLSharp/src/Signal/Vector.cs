@@ -70,7 +70,7 @@ public class Vector : ISignal
     public IEnumerable<ISignal> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    public bool CanCombine(ILogicallyCombinable<ISignal, SignalLogicStringOptions> other)
     {
         ISignal? signal = other.BaseObjects.FirstOrDefault();
         if (signal is null)
@@ -80,4 +80,7 @@ public class Vector : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString() => Name;
+
+    /// <inheritdoc/>
+    public string ToLogicString(SignalLogicStringOptions options) => Name;
 }

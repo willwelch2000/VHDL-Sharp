@@ -10,9 +10,9 @@ namespace VHDLSharp;
 /// <param name="selector"></param>
 public class CaseBehavior(ISignal selector) : CombinationalBehavior
 {
-    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.Dimension.NonNullValue];
+    private readonly ILogicallyCombinable<ISignal, SignalLogicStringOptions>?[] caseExpressions = new ILogicallyCombinable<ISignal, SignalLogicStringOptions>[1 << selector.Dimension.NonNullValue];
 
-    private ILogicallyCombinable<ISignal>? defaultExpression;
+    private ILogicallyCombinable<ISignal, SignalLogicStringOptions>? defaultExpression;
 
     /// <summary>
     /// Selector signal
@@ -22,7 +22,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <summary>
     /// Expression for default case
     /// </summary>
-    public ILogicallyCombinable<ISignal>? DefaultExpression
+    public ILogicallyCombinable<ISignal, SignalLogicStringOptions>? DefaultExpression
     {
         get => defaultExpression;
         set
@@ -41,7 +41,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
         get
         {
             CheckValid();
-            ILogicallyCombinable<ISignal>? nonNullCase = caseExpressions.Where(c => c is not null).FirstOrDefault();
+            ILogicallyCombinable<ISignal, SignalLogicStringOptions>? nonNullCase = caseExpressions.Where(c => c is not null).FirstOrDefault();
             if (nonNullCase is null)
                 return new();
             return nonNullCase.GetDimension();
@@ -62,7 +62,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
         // Cases
         for (int i = 0; i < caseExpressions.Length; i++)
         {
-            ILogicallyCombinable<ISignal>? expression = caseExpressions[i];
+            ILogicallyCombinable<ISignal, SignalLogicStringOptions>? expression = caseExpressions[i];
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
@@ -88,7 +88,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<ISignal>? this[int index]
+    public ILogicallyCombinable<ISignal, SignalLogicStringOptions>? this[int index]
     {
         get
         {
@@ -105,7 +105,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<ISignal>? this[bool index]
+    public ILogicallyCombinable<ISignal, SignalLogicStringOptions>? this[bool index]
     {
         get
         {
@@ -126,13 +126,13 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     {
         base.CheckValid();
         // Get all non-null expressions
-        List<ILogicallyCombinable<ISignal>> nonNullCases = [];
-        foreach (ILogicallyCombinable<ISignal>? expression in caseExpressions.Append(DefaultExpression))
+        List<ILogicallyCombinable<ISignal, SignalLogicStringOptions>> nonNullCases = [];
+        foreach (ILogicallyCombinable<ISignal, SignalLogicStringOptions>? expression in caseExpressions.Append(DefaultExpression))
             if (expression is not null)
                 nonNullCases.Add(expression);
         // Go through all after first and test compatibility with first
         if (nonNullCases.Count > 1)
-            foreach (ILogicallyCombinable<ISignal> expression in nonNullCases.Skip(1))
+            foreach (ILogicallyCombinable<ISignal, SignalLogicStringOptions> expression in nonNullCases.Skip(1))
                 // CanCombine function can be used to test compatibility
                 if (!nonNullCases[0].CanCombine(expression))
                     throw new Exception("Expressions are incompatible");
@@ -144,7 +144,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <param name="value">integer value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
+    public void AddCase(int value, ILogicallyCombinable<ISignal, SignalLogicStringOptions>? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
@@ -160,7 +160,7 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// <param name="value">boolean value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
+    public void AddCase(bool value, ILogicallyCombinable<ISignal, SignalLogicStringOptions>? logicExpression)
     {
         if (Selector.Dimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
@@ -178,12 +178,12 @@ public class CaseBehavior(ISignal selector) : CombinationalBehavior
     /// </summary>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    private void CheckCompatible(ILogicallyCombinable<ISignal>? logicExpression)
+    private void CheckCompatible(ILogicallyCombinable<ISignal, SignalLogicStringOptions>? logicExpression)
     {
         // Fine if new one is null
         if (logicExpression is null)
             return;
-        ILogicallyCombinable<ISignal>? nonNullCase = caseExpressions.Append(DefaultExpression).Where(c => c is not null).FirstOrDefault();
+        ILogicallyCombinable<ISignal, SignalLogicStringOptions>? nonNullCase = caseExpressions.Append(DefaultExpression).Where(c => c is not null).FirstOrDefault();
         // Fine if none have yet been assigned
         if (nonNullCase is null)
             return;

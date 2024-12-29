@@ -4,7 +4,8 @@ namespace VHDLSharp.LogicTree;
 /// Interface for anything that can be used as the end type of a logic tree
 /// </summary>
 /// <typeparam name="T">For outside use, this should be the implementing type itself</typeparam>
-public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
+/// <typeparam name="V">The type to use for logic string options</typeparam>
+public interface ILogicallyCombinable<T, V> where T : ILogicallyCombinable<T, V> where V : LogicStringOptions
 {
     /// <summary>
     /// Given another thing of type T, this is true if they are compatible for a logic tree
@@ -12,10 +13,16 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public bool CanCombine(ILogicallyCombinable<T> other);
+    public bool CanCombine(ILogicallyCombinable<T, V> other);
 
     /// <summary>
     /// Convert to string
+    /// </summary>
+    /// <returns></returns>
+    public string ToLogicString(V options);
+
+    /// <summary>
+    /// Convert to string using default options
     /// </summary>
     /// <returns></returns>
     public string ToLogicString();

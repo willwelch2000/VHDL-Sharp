@@ -22,5 +22,5 @@ internal static class Utility
     }
 
     // Works by getting dimension from first signal in expression
-    internal static Dimension GetDimension(this ILogicallyCombinable<ISignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
+    internal static Dimension GetDimension(this ILogicallyCombinable<ISignal, SignalLogicStringOptions> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
 }
