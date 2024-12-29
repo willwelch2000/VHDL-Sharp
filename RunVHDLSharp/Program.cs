@@ -17,7 +17,7 @@ Port p1 = new()
     Direction = PortDirection.Input,
 };
 module1.Ports.Add(p1);
-KeyValuePair<Port, Signal> kvp = new(p1, s2);
+KeyValuePair<Port, ISignal> kvp = new(p1, s2);
 portMapping.Add(kvp);
 portMapping.Remove(kvp);
 var a = 5;

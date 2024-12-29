@@ -16,7 +16,4 @@ public class RisingEdge(SingleNodeSignal signal) : EventDrivenCondition
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"rising_edge({Signal.Name})";
-
-    /// <inheritdoc/>
-    public override string ToLogicString(ConditionLogicStringOptions options) => $"rising_edge({Signal.Name})";
 }
