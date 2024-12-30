@@ -17,8 +17,8 @@ Port p1 = new()
     Signal = s1, 
     Direction = PortDirection.Input,
 };
-LogicTree<IBaseSignal> expression1 = new And<IBaseSignal>(s1, new Not<IBaseSignal>(s2));
-expression1.And(new Or<IBaseSignal>(s1, s2));
+LogicTree<ISignal> expression1 = new And<ISignal>(s1, new Not<ISignal>(s2));
+expression1.And(new Or<ISignal>(s1, s2));
 // LogicExpression expression2 = s1.ToLogicExpression.And(((LogicExpression)s2).Not());
 module1.Ports.Add(p1);
 module1.SignalBehaviors[s1] = new LogicBehavior(expression1);

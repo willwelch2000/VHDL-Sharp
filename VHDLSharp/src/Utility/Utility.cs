@@ -22,7 +22,7 @@ internal static class Utility
     }
 
     // Works by getting dimension from first signal in expression
-    internal static Dimension GetDimension(this ILogicallyCombinable<IBaseSignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
+    internal static Dimension GetDimension(this ILogicallyCombinable<ISignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
 
     internal static bool CanCombine<T>(this IEnumerable<ILogicallyCombinable<T>?> expressions) where T : ILogicallyCombinable<T>
     {

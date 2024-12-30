@@ -67,13 +67,13 @@ public class Vector : NamedSignal
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IBaseSignal> BaseObjects => [this];
+    public override IEnumerable<ISignal> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public override bool CanCombine(ILogicallyCombinable<IBaseSignal> other)
+    public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a named signal (with a parent), check that one--otherwise, get the first available
-        IBaseSignal? signal = other.BaseObjects.FirstOrDefault(e => e is NamedSignal) ?? other.BaseObjects.FirstOrDefault();
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is NamedSignal) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible

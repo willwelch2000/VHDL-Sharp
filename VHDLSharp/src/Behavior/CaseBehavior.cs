@@ -10,9 +10,9 @@ namespace VHDLSharp;
 /// <param name="selector"></param>
 public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 {
-    private readonly ILogicallyCombinable<IBaseSignal>?[] caseExpressions = new ILogicallyCombinable<IBaseSignal>[1 << selector.DefiniteDimension.NonNullValue];
+    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.DefiniteDimension.NonNullValue];
 
-    private ILogicallyCombinable<IBaseSignal>? defaultExpression;
+    private ILogicallyCombinable<ISignal>? defaultExpression;
 
     /// <summary>
     /// Selector signal
@@ -22,7 +22,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <summary>
     /// Expression for default case
     /// </summary>
-    public ILogicallyCombinable<IBaseSignal>? DefaultExpression
+    public ILogicallyCombinable<ISignal>? DefaultExpression
     {
         get => defaultExpression;
         set
@@ -52,7 +52,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         // Cases
         for (int i = 0; i < caseExpressions.Length; i++)
         {
-            ILogicallyCombinable<IBaseSignal>? expression = caseExpressions[i];
+            ILogicallyCombinable<ISignal>? expression = caseExpressions[i];
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.DefiniteDimension.NonNullValue)}\" =>");
@@ -78,7 +78,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<IBaseSignal>? this[int index]
+    public ILogicallyCombinable<ISignal>? this[int index]
     {
         get
         {
@@ -95,7 +95,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<IBaseSignal>? this[bool index]
+    public ILogicallyCombinable<ISignal>? this[bool index]
     {
         get
         {
@@ -129,7 +129,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">integer value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(int value, ILogicallyCombinable<IBaseSignal>? logicExpression)
+    public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
@@ -145,7 +145,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">boolean value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(bool value, ILogicallyCombinable<IBaseSignal>? logicExpression)
+    public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (Selector.DefiniteDimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
@@ -163,13 +163,13 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// </summary>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    private void CheckCompatible(ILogicallyCombinable<IBaseSignal>? logicExpression)
+    private void CheckCompatible(ILogicallyCombinable<ISignal>? logicExpression)
     {
         // Fine if new one is null
         if (logicExpression is null)
             return;
 
-        foreach (ILogicallyCombinable<IBaseSignal>? expression in caseExpressions.Append(DefaultExpression))
+        foreach (ILogicallyCombinable<ISignal>? expression in caseExpressions.Append(DefaultExpression))
         {
             // The CanCombine function can be used to see if this expression is compatible with pre-existing expressions
             if (!(expression?.CanCombine(logicExpression) ?? true))

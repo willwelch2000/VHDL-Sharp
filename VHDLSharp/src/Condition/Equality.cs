@@ -13,7 +13,7 @@ public class Equality : ConstantCondition
     /// </summary>
     /// <param name="mainSignal"></param>
     /// <param name="comparison">Signal to compare against</param>
-    public Equality(NamedSignal mainSignal, IBaseSignal comparison)
+    public Equality(NamedSignal mainSignal, ISignal comparison)
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
@@ -29,7 +29,7 @@ public class Equality : ConstantCondition
     /// If specified, the main signal is compared against this
     /// If null, the integer value is used instead
     /// </summary>
-    public IBaseSignal ComparisonSignal { get; }
+    public ISignal ComparisonSignal { get; }
 
     /// <inheritdoc/>
     public override IEnumerable<NamedSignal> InputSignals => ComparisonSignal is NamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];

@@ -5,7 +5,7 @@ namespace VHDLSharp;
 /// <summary>
 /// Single-node and vector signals that are contained in a module and have a name
 /// </summary>
-public abstract class NamedSignal : IBaseSignal
+public abstract class NamedSignal : ISignal
 {
     /// <summary>
     /// Name of the module the signal is in
@@ -42,10 +42,10 @@ public abstract class NamedSignal : IBaseSignal
     public abstract DefiniteDimension DefiniteDimension { get; }
 
     /// <inheritdoc/>
-    public abstract IEnumerable<IBaseSignal> BaseObjects { get; }
+    public abstract IEnumerable<ISignal> BaseObjects { get; }
 
     /// <inheritdoc/>
-    public abstract bool CanCombine(ILogicallyCombinable<IBaseSignal> other);
+    public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);
 
     /// <inheritdoc/>
     public abstract string ToLogicString();

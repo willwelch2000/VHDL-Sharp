@@ -31,5 +31,5 @@ public abstract class Condition : ILogicallyCombinable<Condition>
     /// <summary>
     /// Input signals to condition
     /// </summary>
-    public abstract IEnumerable<IBaseSignal> InputSignals { get; }
+    public abstract IEnumerable<ISignal> InputSignals { get; }
 }

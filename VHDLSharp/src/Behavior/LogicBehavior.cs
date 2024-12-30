@@ -8,12 +8,12 @@ namespace VHDLSharp;
 /// </summary>
 /// <param name="logicExpression"></param>
 /// <exception cref="Exception"></exception>
-public class LogicBehavior(ILogicallyCombinable<IBaseSignal> logicExpression) : CombinationalBehavior
+public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
 {
     /// <summary>
     /// The logical expression that this refers to
     /// </summary>
-    public ILogicallyCombinable<IBaseSignal> LogicExpression { get; } = logicExpression;
+    public ILogicallyCombinable<ISignal> LogicExpression { get; } = logicExpression;
 
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects
