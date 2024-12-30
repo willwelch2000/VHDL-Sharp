@@ -10,7 +10,7 @@ namespace VHDLSharp;
 /// <param name="selector"></param>
 public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 {
-    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.DefiniteDimension.NonNullValue];
+    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.Dimension.NonNullValue];
 
     private ILogicallyCombinable<ISignal>? defaultExpression;
 
@@ -55,7 +55,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
             ILogicallyCombinable<ISignal>? expression = caseExpressions[i];
             if (expression is null)
                 continue;
-            sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.DefiniteDimension.NonNullValue)}\" =>");
+            sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
             sb.AppendLine($"\t\t\t{outputSignal} <= {expression.ToLogicString()};");
         }
 
@@ -99,13 +99,13 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     {
         get
         {
-            if (Selector.DefiniteDimension.NonNullValue != 1)
+            if (Selector.Dimension.NonNullValue != 1)
                 throw new Exception("Selector dimension must be 1 for boolean value");
             return this[index ? 1 : 0];
         }
         set
         {
-            if (Selector.DefiniteDimension.NonNullValue != 1)
+            if (Selector.Dimension.NonNullValue != 1)
                 throw new Exception("Selector dimension must be 1 for boolean value");
             this[index ? 1 : 0] = value;
         }
@@ -147,7 +147,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <exception cref="Exception"></exception>
     public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
     {
-        if (Selector.DefiniteDimension.NonNullValue != 1)
+        if (Selector.Dimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
         AddCase(value ? 1 : 0, logicExpression);
     }

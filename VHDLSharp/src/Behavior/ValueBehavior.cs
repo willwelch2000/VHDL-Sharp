@@ -38,5 +38,5 @@ public class ValueBehavior : CombinationalBehavior
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {Value.ToBinaryString(outputSignal.DefiniteDimension.NonNullValue)};";
+    public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
 }

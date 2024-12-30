@@ -98,7 +98,12 @@ public class Dimension(int? value, int? minimum, int? maximum)
     {
         if (!AreCompatible(dimensions))
             throw new Exception("Dimensions are incompatible");
+            
+        return CombineWithoutCheck(dimensions);
+    }
 
+    internal static Dimension CombineWithoutCheck(IEnumerable<Dimension> dimensions)
+    {
         // Value, if present
         if (dimensions.FirstOrDefault(d => d.Value is not null) is Dimension dimension)
             return new(dimension.Value);

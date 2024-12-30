@@ -11,7 +11,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <summary>
     /// Object explaining many nodes are (or can be) part of this signal (1 for normal signal)
     /// </summary>
-    public Dimension Dimension { get; }
+    public DefiniteDimension Dimension { get; }
     
     /// <summary>
     /// Representation of signal in expression given dimension to match

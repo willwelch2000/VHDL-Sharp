@@ -37,7 +37,7 @@ public class Equality : ConstantCondition
     /// <inheritdoc/>
     public override string ToLogicString()
     {
-        return $"{MainSignal.Name} = {ComparisonSignal.ToVhdlInExpression(MainSignal.DefiniteDimension)}";
+        return $"{MainSignal.Name} = {ComparisonSignal.ToVhdlInExpression(MainSignal.Dimension)}";
     }
 
     /// <inheritdoc/>

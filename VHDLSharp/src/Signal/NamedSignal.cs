@@ -30,16 +30,10 @@ public abstract class NamedSignal : ISignal
     public abstract string ToVhdl { get; }
 
     /// <summary>
-    /// Dimension of signal
-    /// Of type <see cref="Dimension"/>
-    /// </summary>
-    public Dimension Dimension => DefiniteDimension;
-
-    /// <summary>
     /// Dimension of signal with definite value
     /// Of type <see cref="DefiniteDimension"/>
     /// </summary>
-    public abstract DefiniteDimension DefiniteDimension { get; }
+    public abstract DefiniteDimension Dimension { get; }
 
     /// <inheritdoc/>
     public abstract IEnumerable<ISignal> BaseObjects { get; }

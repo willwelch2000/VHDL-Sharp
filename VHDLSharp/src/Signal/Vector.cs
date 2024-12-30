@@ -40,7 +40,7 @@ public class Vector : NamedSignal
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)
     /// </summary>
-    public override DefiniteDimension DefiniteDimension => new(dimension);
+    public override DefiniteDimension Dimension => new(dimension);
 
     /// <inheritdoc/>
     public override string VhdlType => $"std_logic_vector({dimension-1} downto 0)";

@@ -14,7 +14,7 @@ public abstract class SingleNodeSignal : NamedSignal
     public override abstract Module ParentModule { get; }
 
     /// <inheritdoc/>
-    public override DefiniteDimension DefiniteDimension => new(1);
+    public override DefiniteDimension Dimension => new(1);
 
     /// <inheritdoc/>
     public override string VhdlType => "std_logic";
