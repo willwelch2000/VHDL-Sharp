@@ -27,7 +27,7 @@ public class Port
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required ISignal Signal { get; set; }
+    public required NamedSignal Signal { get; set; }
 
     /// <summary>
     /// The direction that this port is with respect to the module

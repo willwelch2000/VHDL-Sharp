@@ -21,8 +21,8 @@ public class ValueBehavior : CombinationalBehavior
             Dimension = new(1, null);
         else
         {
-            double max = Math.Floor(Math.Log2(value)) + 1;
-            Dimension = new((int)max, null);
+            double min = Math.Floor(Math.Log2(value)) + 1;
+            Dimension = new((int)min, null);
         }
     }
 
@@ -32,11 +32,11 @@ public class ValueBehavior : CombinationalBehavior
     public int Value { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals { get; } = [];
+    public override IEnumerable<NamedSignal> NamedInputSignals { get; } = [];
 
     /// <inheritdoc/>
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string ToVhdl(ISignal outputSignal) => $"{outputSignal} <= {Value.ToBinaryString(outputSignal.Dimension.NonNullValue)};";
+    public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {Value.ToBinaryString(outputSignal.DefiniteDimension.NonNullValue)};";
 }

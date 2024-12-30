@@ -36,15 +36,15 @@ public class PortMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to the signals its connected to in an instantiation
 /// </summary>
-public class PortMapping : IDictionary<Port, ISignal>
+public class PortMapping : IDictionary<Port, NamedSignal>
 {
     private readonly Module module;
 
     private readonly Module parent;
     
-    private readonly Dictionary<Port, ISignal> backendDictionary = [];
+    private readonly Dictionary<Port, NamedSignal> backendDictionary = [];
 
-    private ICollection<KeyValuePair<Port, ISignal>> BackendDictionaryAsCollection => backendDictionary;
+    private ICollection<KeyValuePair<Port, NamedSignal>> BackendDictionaryAsCollection => backendDictionary;
 
     /// <summary>
     /// Construct port mapping given instantiated module and parent module
@@ -67,7 +67,7 @@ public class PortMapping : IDictionary<Port, ISignal>
     public ICollection<Port> Keys => backendDictionary.Keys;
 
     /// <inheritdoc/>
-    public ICollection<ISignal> Values => backendDictionary.Values;
+    public ICollection<NamedSignal> Values => backendDictionary.Values;
 
     /// <inheritdoc/>
     public int Count => backendDictionary.Count;
@@ -80,7 +80,7 @@ public class PortMapping : IDictionary<Port, ISignal>
     /// </summary>
     /// <param name="port"></param>
     /// <returns></returns>
-    public ISignal this[Port port]
+    public NamedSignal this[Port port]
     {
         get => backendDictionary[port];
         set
@@ -97,7 +97,7 @@ public class PortMapping : IDictionary<Port, ISignal>
 
     private void CheckValid()
     {
-        foreach ((Port port, ISignal signal) in backendDictionary)
+        foreach ((Port port, NamedSignal signal) in backendDictionary)
         {
             if (port.Signal.Dimension != signal.Dimension)
                 throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
@@ -117,14 +117,14 @@ public class PortMapping : IDictionary<Port, ISignal>
     public bool Complete() => module.Ports.All(backendDictionary.ContainsKey);
 
     /// <inheritdoc/>
-    public void Add(Port port, ISignal signal)
+    public void Add(Port port, NamedSignal signal)
     {
         backendDictionary.Add(port, signal);
         CheckValid();
     }
 
     /// <inheritdoc/>
-    public void Add(KeyValuePair<Port, ISignal> item) => Add(item.Key, item.Value);
+    public void Add(KeyValuePair<Port, NamedSignal> item) => Add(item.Key, item.Value);
 
     /// <inheritdoc/>
     public bool ContainsKey(Port port) => backendDictionary.ContainsKey(port);
@@ -133,23 +133,23 @@ public class PortMapping : IDictionary<Port, ISignal>
     public bool Remove(Port port) => backendDictionary.Remove(port);
 
     /// <inheritdoc/>
-    public bool TryGetValue(Port port, [MaybeNullWhen(false)] out ISignal signal) =>
+    public bool TryGetValue(Port port, [MaybeNullWhen(false)] out NamedSignal signal) =>
         backendDictionary.TryGetValue(port, out signal);
 
     /// <inheritdoc/>
     public void Clear() => backendDictionary.Clear();
 
     /// <inheritdoc/>
-    public bool Contains(KeyValuePair<Port, ISignal> item) => backendDictionary.Contains(item);
+    public bool Contains(KeyValuePair<Port, NamedSignal> item) => backendDictionary.Contains(item);
 
     /// <inheritdoc/>
-    public void CopyTo(KeyValuePair<Port, ISignal>[] array, int arrayIndex) => BackendDictionaryAsCollection.CopyTo(array, arrayIndex);
+    public void CopyTo(KeyValuePair<Port, NamedSignal>[] array, int arrayIndex) => BackendDictionaryAsCollection.CopyTo(array, arrayIndex);
 
     /// <inheritdoc/>
-    public bool Remove(KeyValuePair<Port, ISignal> item) => BackendDictionaryAsCollection.Remove(item);
+    public bool Remove(KeyValuePair<Port, NamedSignal> item) => BackendDictionaryAsCollection.Remove(item);
 
     /// <inheritdoc/>
-    public IEnumerator<KeyValuePair<Port, ISignal>> GetEnumerator() => backendDictionary.GetEnumerator();
+    public IEnumerator<KeyValuePair<Port, NamedSignal>> GetEnumerator() => backendDictionary.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
     {

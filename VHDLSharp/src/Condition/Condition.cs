@@ -13,7 +13,8 @@ public abstract class Condition : ILogicallyCombinable<Condition>
     /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<Condition> other)
     {
-        return other.BaseObjects.First().Module == Module;
+        Condition? otherCondition = other.BaseObjects.FirstOrDefault(c => c.Parent is not null);
+        return otherCondition is null || otherCondition.Parent == Parent;
     }
 
     /// <inheritdoc/>
@@ -23,10 +24,12 @@ public abstract class Condition : ILogicallyCombinable<Condition>
     public abstract string ToLogicString(LogicStringOptions options);
 
     /// <summary>
-    /// Get parent module based on input signals
+    /// Get parent module based on named input signals
     /// </summary>
-    public Module Module => InputSignals.First().Parent;
+    public Module? Parent => (InputSignals.FirstOrDefault(s => s is NamedSignal) as NamedSignal)?.Parent;
 
-    /// <inheritdoc/>
-    public abstract IEnumerable<ISignal> InputSignals { get; }
+    /// <summary>
+    /// Input signals to condition
+    /// </summary>
+    public abstract IEnumerable<IBaseSignal> InputSignals { get; }
 }

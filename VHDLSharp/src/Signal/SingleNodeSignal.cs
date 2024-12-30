@@ -5,38 +5,43 @@ namespace VHDLSharp;
 /// <summary>
 /// Base class for any signal that contains just a single node (not a vector)
 /// </summary>
-public abstract class SingleNodeSignal : ISignal
+public abstract class SingleNodeSignal : NamedSignal
 {
     /// <inheritdoc/>
-    public abstract string Name { get; }
+    public override abstract string Name { get; }
 
     /// <inheritdoc/>
-    public abstract Module Parent { get; }
+    public override abstract Module Parent { get; }
 
     /// <inheritdoc/>
-    public DefiniteDimension Dimension => new(1);
+    public override DefiniteDimension DefiniteDimension => new(1);
 
     /// <inheritdoc/>
-    public string VhdlType => "std_logic";
+    public override string VhdlType => "std_logic";
 
     /// <inheritdoc/>
-    public string ToVhdl => $"signal {Name}\t: {VhdlType}";
+    public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
 
     /// <inheritdoc/>
-    public IEnumerable<ISignal> BaseObjects => [this];
+    public override IEnumerable<IBaseSignal> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    public override bool CanCombine(ILogicallyCombinable<IBaseSignal> other)
     {
-        ISignal? signal = other.BaseObjects.FirstOrDefault();
+        // If there's a named signal (with a parent), check that one--otherwise, get the first available
+        IBaseSignal? signal = other.BaseObjects.FirstOrDefault(e => e is NamedSignal) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
-        return Dimension.Compatible(signal.Dimension) && Parent == signal.Parent;
+        // Fine if dimension is compatible and parent is null or compatible
+        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || Parent == namedSignal.Parent);
     }
 
     /// <inheritdoc/>
-    public string ToLogicString() => Name;
+    public override string ToLogicString() => Name;
 
     /// <inheritdoc/>
-    public string ToLogicString(LogicStringOptions options) => ToLogicString();
+    public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override string ToVhdlInExpression(DefiniteDimension dimension) => Name;
 }

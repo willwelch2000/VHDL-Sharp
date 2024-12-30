@@ -60,7 +60,7 @@ public class Module
     /// <summary>
     /// Mapping of output signal to behavior that defines it
     /// </summary>
-    public ObservableDictionary<ISignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
+    public ObservableDictionary<NamedSignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -75,12 +75,12 @@ public class Module
     
 
     /// <summary>
-    /// Get all signals used in this module
+    /// Get all named signals used in this module
     /// Signals can come from ports, behavior input signals, or output signals
     /// </summary>
-    public IEnumerable<ISignal> Signals =>
+    public IEnumerable<NamedSignal> NamedSignals =>
         Ports.Select(p => p.Signal)
-        .Union(SignalBehaviors.Values.SelectMany(b => b.InputSignals))
+        .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
         .Union(SignalBehaviors.Keys);
 
     /// <summary>
@@ -97,7 +97,7 @@ public class Module
     public Signal GenerateSignal(string name) => new(name, this);
 
     /// <summary>
-    /// Generate a signal with this module as the parent
+    /// Generate a vector signal with this module as the parent
     /// </summary>
     /// <param name="name">name of the vector</param>
     /// <param name="dimension">dimension of the vector</param>
@@ -127,7 +127,7 @@ public class Module
     /// <param name="signal"></param>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public Port AddNewPort(ISignal signal, PortDirection direction)
+    public Port AddNewPort(NamedSignal signal, PortDirection direction)
     {
         if (signal.Parent != this)
             throw new ArgumentException("Signal must have this module as parent");
@@ -150,8 +150,10 @@ public class Module
     private void CheckValid()
     {
         // Check that behaviors are in correct module/have correct dimension
-        foreach ((ISignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
+            if (outputSignal.Parent != this)
+                throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.Module is not null && behavior.Module != this)
                 throw new Exception($"Behavior must have this module as parent");
             if (!behavior.Dimension.Compatible(outputSignal.Dimension))
@@ -206,7 +208,7 @@ public class Module
         sb.AppendLine($"architecture rtl of {Name} is");
 
         // Signals
-        foreach(ISignal signal in Signals.Except(Ports.Select(p => p.Signal)))
+        foreach(NamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
         {
             sb.AppendLine($"signal {signal.ToVhdl}".AddIndentation(1));
         }
@@ -215,7 +217,7 @@ public class Module
         sb.AppendLine("begin");
 
         // Behaviors
-        foreach ((ISignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
             sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(1));
         }

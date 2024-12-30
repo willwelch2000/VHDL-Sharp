@@ -14,7 +14,7 @@ public class FallingEdge(SingleNodeSignal signal) : EventDrivenCondition
     public SingleNodeSignal Signal { get; } = signal;
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals => [Signal];
+    public override IEnumerable<NamedSignal> InputSignals => [Signal];
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"falling_edge({Signal.Name})";

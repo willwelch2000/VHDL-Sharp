@@ -5,7 +5,7 @@ namespace VHDLSharp;
 /// <summary>
 /// Signal with multiple nodes inside of it (array)
 /// </summary>
-public class Vector : ISignal
+public class Vector : NamedSignal
 {
     private readonly int dimension;
 
@@ -30,23 +30,23 @@ public class Vector : ISignal
     /// <summary>
     /// Name of the signal
     /// </summary>
-    public string Name { get; private init; }
+    public override string Name { get; }
 
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public Module Parent { get; private init; }
+    public override Module Parent { get; }
 
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)
     /// </summary>
-    public DefiniteDimension Dimension => new(dimension);
+    public override DefiniteDimension DefiniteDimension => new(dimension);
 
     /// <inheritdoc/>
-    public string VhdlType => $"std_logic_vector({dimension-1} downto 0)";
+    public override string VhdlType => $"std_logic_vector({dimension-1} downto 0)";
 
     /// <inheritdoc/>
-    public string ToVhdl => $"signal {Name}\t: {VhdlType}";
+    public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
     
     /// <summary>
     /// Access individual node signals of vector
@@ -67,20 +67,25 @@ public class Vector : ISignal
     }
 
     /// <inheritdoc/>
-    public IEnumerable<ISignal> BaseObjects => [this];
+    public override IEnumerable<IBaseSignal> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    public override bool CanCombine(ILogicallyCombinable<IBaseSignal> other)
     {
-        ISignal? signal = other.BaseObjects.FirstOrDefault();
+        // If there's a named signal (with a parent), check that one--otherwise, get the first available
+        IBaseSignal? signal = other.BaseObjects.FirstOrDefault(e => e is NamedSignal) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
-        return Dimension.Compatible(signal.Dimension) && Parent == signal.Parent;
+        // Fine if dimension is compatible and parent is null or compatible
+        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || Parent == namedSignal.Parent);
     }
 
     /// <inheritdoc/>
-    public string ToLogicString() => Name;
+    public override string ToLogicString() => Name;
 
     /// <inheritdoc/>
-    public string ToLogicString(LogicStringOptions options) => ToLogicString();
+    public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override string ToVhdlInExpression(DefiniteDimension dimension) => Name;
 }

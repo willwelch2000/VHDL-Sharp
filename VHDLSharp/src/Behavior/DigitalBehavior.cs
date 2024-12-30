@@ -8,14 +8,14 @@ public abstract class DigitalBehavior
     private EventHandler? behaviorUpdated;
 
     /// <summary>
-    /// Get all of the input signals used in this behavior
+    /// Get all of the named input signals used in this behavior
     /// </summary>
-    public abstract IEnumerable<ISignal> InputSignals { get; }
+    public abstract IEnumerable<NamedSignal> NamedInputSignals { get; }
 
     /// <summary>
     /// Get VHDL representation given the assigned output signal
     /// </summary>
-    public abstract string ToVhdl(ISignal outputSignal);
+    public abstract string ToVhdl(NamedSignal outputSignal);
 
     /// <summary>
     /// Dimension of behavior, or null if it has no set dimension
@@ -44,7 +44,7 @@ public abstract class DigitalBehavior
         get
         {
             CheckValid();
-            return InputSignals.FirstOrDefault()?.Parent;
+            return NamedInputSignals.FirstOrDefault()?.Parent;
         }
     }
 
@@ -55,8 +55,8 @@ public abstract class DigitalBehavior
     /// <exception cref="Exception"></exception>
     public virtual void CheckValid()
     {
-        var modules = InputSignals.Select(s => s.Parent).Distinct();
-        if (modules.Count() != 1)
+        var modules = NamedInputSignals.Select(s => s.Parent).Distinct();
+        if (modules.Count() > 1)
             throw new Exception("Input signals should all come from the same module");
     }
 

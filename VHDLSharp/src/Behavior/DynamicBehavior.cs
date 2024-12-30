@@ -28,19 +28,19 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> InputSignals => ConditionMappings.SelectMany(c => c.Behavior.InputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals))).Distinct();
+    public override IEnumerable<NamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is NamedSignal).Select(s => (NamedSignal)s))).Distinct();
 
     /// <inheritdoc/>
-    public override Dimension Dimension => ConditionMappings.Any() ? ConditionMappings.First().Behavior.Dimension : new();
+    public override Dimension Dimension => Dimension.Combine(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
-    public override string ToVhdl(ISignal outputSignal)
+    public override string ToVhdl(NamedSignal outputSignal)
     {
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
         
         StringBuilder sb = new();
-        sb.AppendLine($"process({string.Join(", ", InputSignals.Select(s => s.Name))}) is");
+        sb.AppendLine($"process({string.Join(", ", NamedInputSignals.Select(s => s.Name))}) is");
         sb.AppendLine("begin");
 
         // First condition
@@ -64,15 +64,11 @@ public class DynamicBehavior : DigitalBehavior
     /// <inheritdoc/>
     public override void CheckValid()
     {
-        base.CheckValid(); // Checks that everything is in just one module
-        // Go through all after first and test compatibility with first
-        if (ConditionMappings.Count > 1)
-        {
-            (ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) first = ConditionMappings.First();
-            foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
-                if (!first.behavior.Dimension.Compatible(behavior.Dimension))
-                    throw new Exception("Expressions are incompatible. Must have same dimension");
-        }
+        // Check parent modules
+        base.CheckValid();
+        // Check that dimensions of all behaviors are compatible
+        if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
+            throw new Exception("Expressions are incompatible. Must have same dimension");
     }
 
     private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)

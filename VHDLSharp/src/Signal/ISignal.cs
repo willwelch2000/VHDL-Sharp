@@ -3,33 +3,21 @@ using VHDLSharp.LogicTree;
 namespace VHDLSharp;
 
 /// <summary>
-/// Single-node and vector signals
+/// Interface for any type of signal that can be used in an expression
+/// Defined by a dimension and a string expression of the signal
 /// </summary>
-public interface ISignal : ILogicallyCombinable<ISignal>
+public interface IBaseSignal : ILogicallyCombinable<IBaseSignal>
 {
     /// <summary>
-    /// Name of the signal
+    /// Object explaining many nodes are (or can be) part of this signal (1 for normal signal)
     /// </summary>
-    public string Name { get; }
-
+    public Dimension Dimension { get; }
+    
     /// <summary>
-    /// Name of the module the signal is in
+    /// Representation of signal in expression given dimension to match
+    /// Dimension is needed for flexible signals, such as literals
     /// </summary>
-    public Module Parent { get; }
-
-    /// <summary>
-    /// How many nodes are part of this signal (1 for base version)
-    /// </summary>
-    public DefiniteDimension Dimension { get; }
-
-    /// <summary>
-    /// Type of signal as VHDL
-    /// </summary>
-    public string VhdlType { get; }
-
-    /// <summary>
-    /// Get signal as VHDL
-    /// </summary>
+    /// <param name="dimension"></param>
     /// <returns></returns>
-    public string ToVhdl { get; }
+    public string ToVhdlInExpression(DefiniteDimension dimension);
 }

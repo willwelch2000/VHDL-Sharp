@@ -87,4 +87,59 @@ public class Dimension(int? value, int? minimum, int? maximum)
             return false;
         return true;
     }
+
+    /// <summary>
+    /// Generate a single dimension object by combining many
+    /// Checks for validity
+    /// </summary>
+    /// <param name="dimensions"></param>
+    /// <returns></returns>
+    public static Dimension Combine(IEnumerable<Dimension> dimensions)
+    {
+        if (!AreCompatible(dimensions))
+            throw new Exception("Dimensions are incompatible");
+
+        // Value, if present
+        if (dimensions.FirstOrDefault(d => d.Value is not null) is Dimension dimension)
+            return new(dimension.Value);
+
+        // Minimum
+        IEnumerable<int?> minimums = dimensions.Select(d => d.Minimum).Where(m => m is not null);
+        int? minimum = null;
+        if (minimums.Any())
+            minimum = minimums.Max();
+
+        // Maximum
+        IEnumerable<int?> maximums = dimensions.Select(d => d.Maximum).Where(m => m is not null);
+        int? maximum = null;
+        if (maximums.Any())
+            maximum = maximums.Max();
+
+        return new(minimum, maximum);
+    }
+
+    /// <summary>
+    /// Check if many dimensions are compatible together
+    /// </summary>
+    /// <param name="dimensions"></param>
+    /// <returns></returns>
+    public static bool AreCompatible(IEnumerable<Dimension> dimensions)
+    {
+        if (dimensions.Count() < 2)
+            return true;
+
+        Dimension[] array = dimensions.ToArray();
+        for (int i = 0; i < array.Length-1; i++)
+        {
+            Dimension first = array[i];
+            for (int j = i+1; j < array.Length; j++)
+            {
+                Dimension second = array[j];
+                if (!first.Compatible(second))
+                    return false;
+            }
+        }
+
+        return true;
+    }
 }

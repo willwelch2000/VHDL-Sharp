@@ -8,21 +8,21 @@ namespace VHDLSharp;
 /// </summary>
 /// <param name="logicExpression"></param>
 /// <exception cref="Exception"></exception>
-public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
+public class LogicBehavior(ILogicallyCombinable<IBaseSignal> logicExpression) : CombinationalBehavior
 {
     /// <summary>
     /// The logical expression that this refers to
     /// </summary>
-    public ILogicallyCombinable<ISignal> LogicExpression { get; } = logicExpression;
+    public ILogicallyCombinable<IBaseSignal> LogicExpression { get; } = logicExpression;
 
     /// <summary>
-    /// The input signals used in this behavior. Gotten from logic expression's base objects
+    /// The named input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<ISignal> InputSignals => LogicExpression.BaseObjects;
+    public override IEnumerable<NamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is NamedSignal).Select(o => (NamedSignal)o).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension(); // Works by getting dimension from first internal signal--they should all have the same dimension
 
     /// <inheritdoc/>
-    public override string ToVhdl(ISignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+    public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
 }
