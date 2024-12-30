@@ -48,7 +48,7 @@ public class Equality : ConstantCondition
     /// </summary>
     private void CheckValid()
     {
-        if (!MainSignal.CanCombine(ComparisonSignal))
+        if (!MainSignal.CanCombine(ComparisonSignal) || !ComparisonSignal.CanCombine(MainSignal))
             throw new Exception("Main signal is not compatible with comparison signal");
     }
 }

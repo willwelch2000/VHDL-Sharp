@@ -36,7 +36,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     public override IEnumerable<NamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is NamedSignal) ?? []).Select(o => (NamedSignal)o).Append(Selector).Distinct();
 
     /// <inheritdoc/>
-    public override Dimension Dimension => Dimension.Combine(caseExpressions.Where(c => c is not null).Append(DefaultExpression).SelectMany(c => c?.BaseObjects?.Select(o => o.Dimension) ?? []));
+    public override Dimension Dimension => Dimension.CombineWithoutCheck(caseExpressions.Where(c => c is not null).Append(DefaultExpression).SelectMany(c => c?.BaseObjects?.Select(o => o.Dimension) ?? []));
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
@@ -117,9 +117,8 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         // Check parent modules
         base.CheckValid();
         // Combine dimensions of individual expressions
-        IEnumerable<Dimension> expressionDimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => Dimension.Combine(c?.BaseObjects?.Select(o => o.Dimension) ?? []));
-        // Check dimensions
-        if (!Dimension.AreCompatible(expressionDimensions))
+        IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.GetDimension());
+        if (dimensions.Select(d => d?.NonNullValue).Where(v => v is not null).Distinct().Count() > 1)
             throw new Exception("Expressions are incompatible");
     }
 
@@ -171,8 +170,8 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 
         foreach (ILogicallyCombinable<ISignal>? expression in caseExpressions.Append(DefaultExpression))
         {
-            // The CanCombine function can be used to see if this expression is compatible with pre-existing expressions
-            if (!(expression?.CanCombine(logicExpression) ?? true))
+            // Check ability to combine in both directions
+            if (expression is not null && !(expression.CanCombine(logicExpression) && logicExpression.CanCombine(expression)))
                 throw new Exception($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
     }

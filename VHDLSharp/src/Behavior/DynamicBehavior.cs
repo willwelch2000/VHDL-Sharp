@@ -31,7 +31,7 @@ public class DynamicBehavior : DigitalBehavior
     public override IEnumerable<NamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is NamedSignal).Select(s => (NamedSignal)s))).Distinct();
 
     /// <inheritdoc/>
-    public override Dimension Dimension => Dimension.Combine(ConditionMappings.Select(c => c.Behavior.Dimension));
+    public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
@@ -68,7 +68,7 @@ public class DynamicBehavior : DigitalBehavior
         base.CheckValid();
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
-            throw new Exception("Expressions are incompatible. Must have same dimension");
+            throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
     }
 
     private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)

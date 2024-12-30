@@ -23,8 +23,12 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     /// </summary>
     public T? FirstBaseObject => BaseObjects.FirstOrDefault();
 
-    /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<T> other) => !BaseObjects.Any() || BaseObjects.First().CanCombine(other);
+    /// <summary>
+    /// Check ability to combine in boht directions
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public bool CanCombine(ILogicallyCombinable<T> other) => !BaseObjects.Any() || BaseObjects.All(o => o.CanCombine(other) && other.CanCombine(o));
 
     /// <summary>
     /// Generate an And with this logic tree and another <see cref="ILogicallyCombinable{T}"/>

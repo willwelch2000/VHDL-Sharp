@@ -9,7 +9,7 @@ namespace VHDLSharp;
 public interface ISignal : ILogicallyCombinable<ISignal>
 {
     /// <summary>
-    /// Object explaining many nodes are (or can be) part of this signal (1 for normal signal)
+    /// Object explaining many nodes are part of this signal (1 for normal signal)
     /// </summary>
     public DefiniteDimension Dimension { get; }
     

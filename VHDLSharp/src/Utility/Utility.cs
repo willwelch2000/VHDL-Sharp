@@ -21,8 +21,13 @@ internal static class Utility
         return conversion;
     }
 
-    // Works by getting dimension from first signal in expression
-    internal static Dimension GetDimension(this ILogicallyCombinable<ISignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
+    /// <summary>
+    /// Works by getting dimension from first signal in expression
+    /// Valid because signals have definite dimensions
+    /// </summary>
+    /// <param name="expression"></param>
+    /// <returns></returns>
+    internal static DefiniteDimension? GetDimension(this ILogicallyCombinable<ISignal> expression) => expression.BaseObjects.FirstOrDefault()?.Dimension;
 
     internal static bool CanCombine<T>(this IEnumerable<ILogicallyCombinable<T>?> expressions) where T : ILogicallyCombinable<T>
     {
@@ -36,7 +41,7 @@ internal static class Utility
             for (int j = i+1; j < array.Length; j++)
             {
                 ILogicallyCombinable<T> second = array[j];
-                if (!first.CanCombine(second))
+                if (!first.CanCombine(second) || !second.CanCombine(first))
                     return false;
             }
         }

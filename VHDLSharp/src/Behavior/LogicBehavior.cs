@@ -20,8 +20,11 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     /// </summary>
     public override IEnumerable<NamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is NamedSignal).Select(o => (NamedSignal)o).Distinct();
 
-    /// <inheritdoc/>
-    public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension(); // Works by getting dimension from first internal signal--they should all have the same dimension
+    /// <summary>
+    /// Works by getting dimension from first internal signal--they should all have the same dimension
+    /// This is a definite dimension unless there are no signals added
+    /// </summary>
+    public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
