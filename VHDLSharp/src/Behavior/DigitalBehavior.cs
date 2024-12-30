@@ -39,12 +39,12 @@ public abstract class DigitalBehavior
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public Module? Module
+    public Module? ParentModule
     {
         get
         {
             CheckValid();
-            return NamedInputSignals.FirstOrDefault()?.Parent;
+            return NamedInputSignals.FirstOrDefault()?.ParentModule;
         }
     }
 
@@ -55,7 +55,7 @@ public abstract class DigitalBehavior
     /// <exception cref="Exception"></exception>
     public virtual void CheckValid()
     {
-        var modules = NamedInputSignals.Select(s => s.Parent).Distinct();
+        var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
             throw new Exception("Input signals should all come from the same module");
     }

@@ -10,7 +10,7 @@ public abstract class NamedSignal : ISignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public abstract Module Parent { get; }
+    public abstract Module ParentModule { get; }
 
     /// <summary>
     /// Name of the signal

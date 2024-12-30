@@ -11,7 +11,7 @@ public abstract class SingleNodeSignal : NamedSignal
     public override abstract string Name { get; }
 
     /// <inheritdoc/>
-    public override abstract Module Parent { get; }
+    public override abstract Module ParentModule { get; }
 
     /// <inheritdoc/>
     public override DefiniteDimension DefiniteDimension => new(1);
@@ -33,7 +33,7 @@ public abstract class SingleNodeSignal : NamedSignal
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || Parent == namedSignal.Parent);
+        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
     }
 
     /// <inheritdoc/>

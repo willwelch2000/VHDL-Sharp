@@ -12,18 +12,18 @@ public class Vector : NamedSignal
     private readonly VectorNode[] vectorNodes;
 
     /// <summary>
-    /// Create a vector given name, parent, and dimension
+    /// Create a vector given name, parent module, and dimension
     /// </summary>
     /// <param name="name">name of signal</param>
-    /// <param name="parent">module to which this signal belongs</param>
+    /// <param name="parentModule">module to which this signal belongs</param>
     /// <param name="dimension">length of vector</param>
-    public Vector(string name, Module parent, int dimension)
+    public Vector(string name, Module parentModule, int dimension)
     {
         if (dimension < 2)
             throw new ArgumentException("Dimension should be > 1");
         this.dimension = dimension;
         Name = name;
-        Parent = parent;
+        ParentModule = parentModule;
         vectorNodes = Enumerable.Range(0, dimension).Select(i => new VectorNode(this, i)).ToArray();
     }
 
@@ -35,7 +35,7 @@ public class Vector : NamedSignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public override Module Parent { get; }
+    public override Module ParentModule { get; }
 
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)
@@ -77,7 +77,7 @@ public class Vector : NamedSignal
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || Parent == namedSignal.Parent);
+        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
     }
 
     /// <inheritdoc/>

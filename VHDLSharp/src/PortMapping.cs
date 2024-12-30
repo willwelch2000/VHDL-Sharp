@@ -40,7 +40,7 @@ public class PortMapping : IDictionary<Port, NamedSignal>
 {
     private readonly Module module;
 
-    private readonly Module parent;
+    private readonly Module parentModule;
     
     private readonly Dictionary<Port, NamedSignal> backendDictionary = [];
 
@@ -50,12 +50,12 @@ public class PortMapping : IDictionary<Port, NamedSignal>
     /// Construct port mapping given instantiated module and parent module
     /// </summary>
     /// <param name="module">module that is instantiated</param>
-    /// <param name="parent">module that contains instantiated module</param>
-    public PortMapping(Module module, Module parent)
+    /// <param name="parentModule">module that contains instantiated module</param>
+    public PortMapping(Module module, Module parentModule)
     {
         this.module = module;
         this.module.ModuleUpdated += ModuleUpdated;
-        this.parent = parent;
+        this.parentModule = parentModule;
     }
 
     /// <summary>
@@ -101,12 +101,12 @@ public class PortMapping : IDictionary<Port, NamedSignal>
         {
             if (port.Signal.Dimension != signal.Dimension)
                 throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
-            if (port.Signal.Parent != module)
+            if (port.Signal.ParentModule != module)
                 throw new PortMappingException($"Ports must have the specified module {module} as parent");
             if (!module.Ports.Contains(port))
                 throw new PortMappingException($"Port {port} must be in the list of ports of specified module {module}");
-            if (signal.Parent != parent)
-                throw new PortMappingException($"Signal must have module {parent} as parent");
+            if (signal.ParentModule != parentModule)
+                throw new PortMappingException($"Signal must have module {parentModule} as parent");
         }
     }
 

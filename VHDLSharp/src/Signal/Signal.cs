@@ -15,7 +15,7 @@ public class Signal(string name, Module parent) : SingleNodeSignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public override Module Parent => parent;
+    public override Module ParentModule => parent;
 
     /// <summary>
     /// Convert to string

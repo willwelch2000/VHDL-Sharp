@@ -173,7 +173,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         {
             // The CanCombine function can be used to see if this expression is compatible with pre-existing expressions
             if (!(expression?.CanCombine(logicExpression) ?? true))
-                throw new Exception($"Given expression is incompatible with pre-existing expression (must have parent {Module} and dimension must be {Dimension?.ToString() ?? "N/A"})");
+                throw new Exception($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
     }
 }

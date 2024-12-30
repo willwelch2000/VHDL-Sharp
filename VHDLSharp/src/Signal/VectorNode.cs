@@ -17,5 +17,5 @@ public class VectorNode(Vector vector, int node) : SingleNodeSignal
     public override string Name => $"{Vector.Name}[{Node}]";
 
     /// <inheritdoc/>
-    public override Module Parent => Vector.Parent;
+    public override Module ParentModule => Vector.ParentModule;
 }

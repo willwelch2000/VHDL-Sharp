@@ -129,7 +129,7 @@ public class Module
     /// <returns></returns>
     public Port AddNewPort(NamedSignal signal, PortDirection direction)
     {
-        if (signal.Parent != this)
+        if (signal.ParentModule != this)
             throw new ArgumentException("Signal must have this module as parent");
         
         Port result = new()
@@ -152,9 +152,9 @@ public class Module
         // Check that behaviors are in correct module/have correct dimension
         foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
-            if (outputSignal.Parent != this)
+            if (outputSignal.ParentModule != this)
                 throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
-            if (behavior.Module is not null && behavior.Module != this)
+            if (behavior.ParentModule is not null && behavior.ParentModule != this)
                 throw new Exception($"Behavior must have this module as parent");
             if (!behavior.Dimension.Compatible(outputSignal.Dimension))
                 throw new Exception("Behavior must have same dimension as assigned output signal");
