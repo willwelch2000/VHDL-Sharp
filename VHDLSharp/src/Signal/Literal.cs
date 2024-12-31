@@ -49,6 +49,13 @@ public class Literal : ISignal
     public IEnumerable<ISignal> BaseObjects => [];
 
     /// <inheritdoc/>
+    public Module? ParentModule => null;
+
+    /// <summary>
+    /// Just check dimension since this has no parent module
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
     public bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         return Dimension.Compatible(VHDLSharp.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));

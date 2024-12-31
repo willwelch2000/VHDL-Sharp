@@ -26,7 +26,7 @@ public abstract class Condition : ILogicallyCombinable<Condition>
     /// <summary>
     /// Get parent module based on named input signals
     /// </summary>
-    public Module? ParentModule => (InputSignals.FirstOrDefault(s => s is NamedSignal) as NamedSignal)?.ParentModule;
+    public Module? ParentModule => InputSignals.FirstOrDefault(s => s.ParentModule is not null)?.ParentModule;
 
     /// <summary>
     /// Input signals to condition

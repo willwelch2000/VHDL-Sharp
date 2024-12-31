@@ -28,12 +28,12 @@ public abstract class SingleNodeSignal : NamedSignal
     /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
-        // If there's a named signal (with a parent), check that one--otherwise, get the first available
-        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is NamedSignal) ?? other.BaseObjects.FirstOrDefault();
+        // If there's a signal with a parent, check that one--otherwise, get the first available
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e.ParentModule is not null) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not NamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
+        return Dimension.Compatible(signal.Dimension) && (signal.ParentModule is null || ParentModule == signal.ParentModule);
     }
 
     /// <inheritdoc/>
