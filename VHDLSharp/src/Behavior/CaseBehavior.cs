@@ -35,8 +35,10 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <inheritdoc/>
     public override IEnumerable<NamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is NamedSignal) ?? []).Select(o => (NamedSignal)o).Append(Selector).Distinct();
 
-    /// <inheritdoc/>
-    public override Dimension Dimension => Dimension.CombineWithoutCheck(caseExpressions.Where(c => c is not null).Append(DefaultExpression).SelectMany(c => c?.BaseObjects?.Select(o => o.Dimension) ?? []));
+    /// <summary>
+    /// Since signals have definite dimensions, the first non-null expression can be used
+    /// </summary>
+    public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.GetDimension() ?? new Dimension();
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
