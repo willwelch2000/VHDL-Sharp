@@ -1,7 +1,7 @@
 using VHDLSharp.LogicTree;
-using VHDLSharp.Utility;
+using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Conditions;
 
 /// <summary>
 /// Comparison between signal and either another signal or a value

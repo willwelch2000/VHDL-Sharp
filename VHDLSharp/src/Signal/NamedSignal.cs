@@ -1,6 +1,7 @@
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Single-node and vector signals that are contained in a module and have a name

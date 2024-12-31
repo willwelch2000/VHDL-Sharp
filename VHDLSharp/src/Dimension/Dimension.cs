@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Dimensions;
 
 /// <summary>
 /// Dimension specification for signals, etc.

@@ -1,6 +1,7 @@
 using VHDLSharp.LogicTree;
+using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Conditions;
 
 /// <summary>
 /// Condition that can be used in an if statement

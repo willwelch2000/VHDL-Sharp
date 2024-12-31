@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Conditions;
 
 /// <summary>
 /// A <see cref="Condition"/> that can only be true instantaneously

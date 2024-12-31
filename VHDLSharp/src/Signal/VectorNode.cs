@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Node in a vector

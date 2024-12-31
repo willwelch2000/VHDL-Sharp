@@ -1,7 +1,8 @@
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Literal value that can be used in expressions
@@ -58,7 +59,7 @@ public class Literal : ISignal
     /// <returns></returns>
     public bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
-        return Dimension.Compatible(VHDLSharp.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
+        return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
     }
 
     /// <inheritdoc/>

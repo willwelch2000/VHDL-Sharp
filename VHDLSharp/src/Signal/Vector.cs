@@ -1,6 +1,7 @@
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Signal with multiple nodes inside of it (array)

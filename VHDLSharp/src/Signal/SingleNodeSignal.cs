@@ -1,6 +1,7 @@
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Base class for any signal that contains just a single node (not a vector)

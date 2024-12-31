@@ -1,8 +1,10 @@
 using System.Text;
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// A behavior where an output signal is set based on a selector signal's value

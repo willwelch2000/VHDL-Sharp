@@ -1,6 +1,7 @@
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Interface for any type of signal that can be used in an expression

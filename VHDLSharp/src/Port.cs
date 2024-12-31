@@ -1,3 +1,5 @@
+using VHDLSharp.Signals;
+
 namespace VHDLSharp;
 
 /// <summary>

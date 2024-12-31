@@ -1,7 +1,9 @@
 
+using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// A behavior that uses logical expressions on signals

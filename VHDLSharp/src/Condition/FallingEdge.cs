@@ -1,7 +1,8 @@
 
 using VHDLSharp.LogicTree;
+using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Conditions;
 
 /// <summary>
 /// A <see cref="EventDrivenCondition"/> that is true on a signal's falling edge

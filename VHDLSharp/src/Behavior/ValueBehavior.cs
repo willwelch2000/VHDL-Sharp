@@ -1,6 +1,8 @@
+using VHDLSharp.Dimensions;
+using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Behavior where a direct value is assigned to the signal

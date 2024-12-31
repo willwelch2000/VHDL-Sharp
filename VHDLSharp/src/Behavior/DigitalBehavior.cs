@@ -1,4 +1,7 @@
-namespace VHDLSharp;
+using VHDLSharp.Dimensions;
+using VHDLSharp.Signals;
+
+namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Abstract class defining a behavior that makes up a module

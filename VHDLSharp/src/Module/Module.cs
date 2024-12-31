@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text;
+using VHDLSharp.Behaviors;
+using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp;
@@ -41,7 +43,7 @@ public class Module
     {
         if (e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is (Condition condition, CombinationalBehavior behavior))
+                if (newItem is (NamedSignal outputSignal, CombinationalBehavior behavior))
                     behavior.BehaviorUpdated += InvokeModuleUpdated;
     }
 

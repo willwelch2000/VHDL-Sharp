@@ -1,5 +1,7 @@
 ﻿using VHDLSharp;
+using VHDLSharp.Behaviors;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Signals;
 
 Module module1 = new()
 {

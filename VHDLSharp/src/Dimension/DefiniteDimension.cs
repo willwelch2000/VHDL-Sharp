@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Dimensions;
 
 /// <summary>
 /// Dimension object that has well-defined dimension

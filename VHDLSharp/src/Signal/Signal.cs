@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Signals;
 
 /// <summary>
 /// A signal used in a module

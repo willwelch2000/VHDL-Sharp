@@ -3,8 +3,11 @@ using System.Collections.Specialized;
 using System.Text;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
+using VHDLSharp.Conditions;
+using VHDLSharp.Signals;
+using VHDLSharp.Dimensions;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Behavior that uses sequential rather than combinational logic
