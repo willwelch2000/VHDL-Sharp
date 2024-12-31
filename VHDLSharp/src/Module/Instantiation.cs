@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Instantiation of one module inside of another (parent)

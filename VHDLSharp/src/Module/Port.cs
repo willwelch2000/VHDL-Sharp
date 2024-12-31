@@ -1,6 +1,6 @@
 using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Directions that a port can have with respect to a module

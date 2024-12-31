@@ -1,6 +1,7 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
+using VHDLSharp.Modules;
 
 namespace VHDLSharp.Signals;
 

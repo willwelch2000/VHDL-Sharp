@@ -1,4 +1,4 @@
-namespace VHDLSharp;
+namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Class that should be used to access predfined modules

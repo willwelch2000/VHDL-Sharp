@@ -5,7 +5,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Modules;
 
 /// <summary>
 /// A digital module--a circuit that has some functionality

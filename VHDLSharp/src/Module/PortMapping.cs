@@ -2,7 +2,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Signals;
 
-namespace VHDLSharp;
+namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Exception related to mapping ports

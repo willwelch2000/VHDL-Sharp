@@ -1,5 +1,6 @@
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Modules;
 
 namespace VHDLSharp.Conditions;
 
