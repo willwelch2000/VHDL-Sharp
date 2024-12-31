@@ -41,7 +41,4 @@ public abstract class SingleNodeSignal : NamedSignal
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
-
-    /// <inheritdoc/>
-    public override string ToVhdlInExpression(DefiniteDimension dimension) => Name;
 }

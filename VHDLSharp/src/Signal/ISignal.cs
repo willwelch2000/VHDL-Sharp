@@ -12,12 +12,4 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// Object explaining many nodes are part of this signal (1 for normal signal)
     /// </summary>
     public DefiniteDimension Dimension { get; }
-    
-    /// <summary>
-    /// Representation of signal in expression given dimension to match
-    /// Dimension is needed for flexible signals, such as literals
-    /// </summary>
-    /// <param name="dimension"></param>
-    /// <returns></returns>
-    public string ToVhdlInExpression(DefiniteDimension dimension);
 }

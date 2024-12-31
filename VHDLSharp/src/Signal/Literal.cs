@@ -59,7 +59,4 @@ public class Literal : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
-
-    /// <inheritdoc/>
-    public string ToVhdlInExpression(DefiniteDimension dimension) => ToLogicString();
 }

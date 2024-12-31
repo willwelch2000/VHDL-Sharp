@@ -46,7 +46,4 @@ public abstract class NamedSignal : ISignal
 
     /// <inheritdoc/>
     public abstract string ToLogicString(LogicStringOptions options);
-
-    /// <inheritdoc/>
-    public abstract string ToVhdlInExpression(DefiniteDimension dimension);
 }

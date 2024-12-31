@@ -35,10 +35,7 @@ public class Equality : ConstantCondition
     public override IEnumerable<NamedSignal> InputSignals => ComparisonSignal is NamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
-    public override string ToLogicString()
-    {
-        return $"{MainSignal.Name} = {ComparisonSignal.ToVhdlInExpression(MainSignal.Dimension)}";
-    }
+    public override string ToLogicString() => $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
