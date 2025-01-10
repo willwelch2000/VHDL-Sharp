@@ -55,4 +55,7 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
 
     /// <inheritdoc/>
     public abstract string ToLogicString(LogicStringOptions options);
+
+    /// <inheritdoc/>
+    public abstract string ToLogicString(CustomLogicStringOptions<T> options);
 }

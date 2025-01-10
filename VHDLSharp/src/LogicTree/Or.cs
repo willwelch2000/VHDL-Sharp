@@ -31,4 +31,7 @@ public class Or<T> : LogicTree<T> where T : ILogicallyCombinable<T>
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override string ToLogicString(CustomLogicStringOptions<T> options) => options.OrFunction(inputs);
 }
