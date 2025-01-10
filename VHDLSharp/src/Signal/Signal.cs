@@ -24,4 +24,7 @@ public class Signal(string name, Module parent) : SingleNodeSignal
     /// </summary>
     /// <returns></returns>
     public override string ToString() => Name;
+
+    /// <inheritdoc/>
+    public override string ToSpice() => Name;
 }

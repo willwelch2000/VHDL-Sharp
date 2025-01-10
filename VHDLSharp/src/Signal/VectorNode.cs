@@ -20,4 +20,7 @@ public class VectorNode(Vector vector, int node) : SingleNodeSignal
 
     /// <inheritdoc/>
     public override Module ParentModule => Vector.ParentModule;
+
+    /// <inheritdoc/>
+    public override string ToSpice() => $"{Vector.Name}_{Node}";
 }

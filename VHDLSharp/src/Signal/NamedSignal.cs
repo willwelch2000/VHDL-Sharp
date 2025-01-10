@@ -48,4 +48,9 @@ public abstract class NamedSignal : ISignal
 
     /// <inheritdoc/>
     public abstract string ToLogicString(LogicStringOptions options);
+
+    /// <summary>
+    /// If this has a dimension > 1, convert to a list of things with dimension 1
+    /// </summary>
+    public abstract IEnumerable<SingleNodeSignal> ToSingleNodeSignals { get; }
 }

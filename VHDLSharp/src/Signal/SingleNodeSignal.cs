@@ -43,4 +43,13 @@ public abstract class SingleNodeSignal : NamedSignal
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override IEnumerable<SingleNodeSignal> ToSingleNodeSignals => [this];
+
+    /// <summary>
+    /// Get representation in SPICE
+    /// </summary>
+    /// <returns></returns>
+    public abstract string ToSpice();
 }

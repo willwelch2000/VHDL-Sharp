@@ -92,6 +92,20 @@ public class Module
         Instantiations.SelectMany(i => i.Module.ModulesUsed.Append(i.Module)).Distinct();
 
     /// <summary>
+    /// True if module is ready to be used
+    /// </summary>
+    public bool Complete
+    {
+        get
+        {
+            // If any output signal hasn't been assigned
+            if (Ports.Where(p => p.Direction == PortDirection.Output).Any(p => SignalBehaviors.Select(kvp => kvp.Key).Contains(p.Signal)))
+                return false;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Generate a signal with this module as the parent
     /// </summary>
     /// <param name="name">name of the signal</param>
@@ -151,7 +165,7 @@ public class Module
 
     private void CheckValid()
     {
-        // Check that behaviors are in correct module/have correct dimension
+        // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
             if (outputSignal.ParentModule != this)
@@ -160,6 +174,8 @@ public class Module
                 throw new Exception($"Behavior must have this module as parent");
             if (!behavior.Dimension.Compatible(outputSignal.Dimension))
                 throw new Exception("Behavior must have same dimension as assigned output signal");
+            if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
+                throw new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
     }
 
@@ -195,6 +211,9 @@ public class Module
     /// <returns></returns>
     private string ToVhdlInner()
     {
+        if (!Complete)
+            throw new Exception("Module not yet complete");
+
         StringBuilder sb = new();
 
         // Entity statement
@@ -226,6 +245,26 @@ public class Module
 
         // End
         sb.AppendLine("end rtl;");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Convert module to spice subcircuit
+    /// </summary>
+    /// <returns></returns>
+    public string ToSpice()
+    {
+        if (!Complete)
+            throw new Exception("Module not yet complete");
+
+        StringBuilder sb = new();
+        
+        // Start subcircuit
+        sb.AppendLine($".subckt {Name} {string.Join(' ', Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice()))}");
+
+        // End subcircuit
+        sb.AppendLine($".ends {Name}");
 
         return sb.ToString();
     }

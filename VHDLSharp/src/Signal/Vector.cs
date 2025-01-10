@@ -87,4 +87,7 @@ public class Vector : NamedSignal
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override IEnumerable<SingleNodeSignal> ToSingleNodeSignals => [..vectorNodes];
 }
