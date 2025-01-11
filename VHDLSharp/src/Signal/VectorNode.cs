@@ -7,13 +7,17 @@ namespace VHDLSharp.Signals;
 /// </summary>
 /// <param name="vector">The vector it's a part of</param>
 /// <param name="node">The index in that vector</param>
-public class VectorNode(Vector vector, int node) : SingleNodeSignal
+public class VectorNode(Vector vector, int node) : SingleNodeNamedSignal
 {
-    /// <inheritdoc/>
-    public Vector Vector { get; private init; } = vector;
+    /// <summary>
+    /// The vector it's a part of
+    /// </summary>
+    public Vector Vector { get; } = vector;
 
-    /// <inheritdoc/>
-    public int Node { get; private init; } = node;
+    /// <summary>
+    /// The index in the vector
+    /// </summary>
+    public int Node { get; } = node;
     
     /// <inheritdoc/>
     public override string Name => $"{Vector.Name}[{Node}]";

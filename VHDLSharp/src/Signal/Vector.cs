@@ -57,14 +57,13 @@ public class Vector : NamedSignal
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public VectorNode this[int index]
+    public override VectorNode this[int index]
     {
         get
         {
             if (index < dimension && index >= 0)
                 return vectorNodes[index];
-            else
-                throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
+            throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
         }
     }
 
@@ -89,5 +88,5 @@ public class Vector : NamedSignal
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <inheritdoc/>
-    public override IEnumerable<SingleNodeSignal> ToSingleNodeSignals => [..vectorNodes];
+    public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals => [..vectorNodes];
 }

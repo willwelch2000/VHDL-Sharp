@@ -10,6 +10,8 @@ namespace VHDLSharp.Signals;
 /// </summary>
 public class Literal : ISignal
 {
+    private readonly LiteralNode[] bits;
+
     /// <summary>
     /// Generate new literal given value
     /// </summary>
@@ -37,6 +39,8 @@ public class Literal : ISignal
         }
 
         Dimension = new(dimension);
+
+        bits = Enumerable.Range(0, dimension).Select(i => new LiteralNode(this, i)).ToArray();
     }
 
     /// <summary>
@@ -68,4 +72,28 @@ public class Literal : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <summary>
+    /// Access individual node signals of literal
+    /// These can be used as single-node signals
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public LiteralNode this[int index]
+    {
+        get
+        {
+            if (index < Dimension.NonNullValue && index >= 0)
+                return bits[index];
+            throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+        }
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<LiteralNode> ToSingleNodeSignals => [..bits];
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    ISingleNodeSignal ISignal.this[int index] => this[index];
 }

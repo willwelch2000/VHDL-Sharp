@@ -49,8 +49,31 @@ public abstract class NamedSignal : ISignal
     /// <inheritdoc/>
     public abstract string ToLogicString(LogicStringOptions options);
 
+    /// <inheritdoc/>
+    public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals => ToSingleNodeNamedSignals;
+
     /// <summary>
-    /// If this has a dimension > 1, convert to a list of things with dimension 1
+    /// If this has a dimension > 1, convert to a list of named signals with dimension 1
+    /// If it is dimension 1, then return itself
+    /// More type-specific version of <see cref="ToSingleNodeSignals"/>
     /// </summary>
-    public abstract IEnumerable<SingleNodeSignal> ToSingleNodeSignals { get; }
+    public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals { get; }
+
+    ISingleNodeSignal ISignal.this[int index] => this[index];
+
+    /// <summary>
+    /// Indexer for multi-dimensional signals
+    /// A single-dimensional signal will just return itself for the first item
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public virtual SingleNodeNamedSignal this[int index]
+    {
+        get
+        {
+            if (index < 0 || index >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Must be between 0 and dimension ({Dimension.NonNullValue})");
+            return ToSingleNodeNamedSignals.ElementAt(index);
+        }
+    }
 }

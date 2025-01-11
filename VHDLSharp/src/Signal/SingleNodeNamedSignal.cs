@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Base class for any signal that contains just a single node (not a vector)
 /// </summary>
-public abstract class SingleNodeSignal : NamedSignal
+public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
 {
     /// <inheritdoc/>
     public override abstract string Name { get; }
@@ -45,11 +45,8 @@ public abstract class SingleNodeSignal : NamedSignal
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <inheritdoc/>
-    public override IEnumerable<SingleNodeSignal> ToSingleNodeSignals => [this];
-
-    /// <summary>
-    /// Get representation in SPICE
-    /// </summary>
-    /// <returns></returns>
     public abstract string ToSpice();
+
+    /// <inheritdoc/>
+    public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals => [this];
 }
