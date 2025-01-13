@@ -1,3 +1,5 @@
+using VHDLSharp.Signals;
+
 namespace VHDLSharp.Modules;
 
 /// <summary>
@@ -21,4 +23,12 @@ public class Instantiation(Module module, Module parent)
     /// Module inside which the module is instantiated
     /// </summary>
     public Module Parent { get; private init; } = parent;
+
+    /// <summary>
+    /// Convert to spice
+    /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
+    /// </summary>
+    /// <param name="index">Unique int provided to this instantiation so that it can have a unique name</param>
+    /// <returns></returns>
+    public string ToSpice(int index) => $"X{index} " + string.Join(' ', Module.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSingleNodeSignals));
 }

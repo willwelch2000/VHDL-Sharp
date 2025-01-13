@@ -78,9 +78,9 @@ public class LiteralNode : ISingleNodeSignal
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
 
-    /// <inheritdoc/>
-    public string ToSpice()
-    {
-        throw new NotImplementedException();
-    }
+    /// <summary>
+    /// Power (VDD) if high bit, ground otherwise
+    /// </summary>
+    /// <returns></returns>
+    public string ToSpice() => Value ? "VDD" : "0";
 }

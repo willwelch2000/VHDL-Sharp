@@ -10,5 +10,5 @@ public interface ISingleNodeSignal : ISignal
     /// Get representation in SPICE
     /// </summary>
     /// <returns></returns>
-    public abstract string ToSpice();
+    public string ToSpice();
 }
