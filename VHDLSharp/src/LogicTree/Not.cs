@@ -23,5 +23,5 @@ public class Not<T>(ILogicallyCombinable<T> input) : LogicTree<T> where T : ILog
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <inheritdoc/>
-    public override string ToLogicString(CustomLogicStringOptions<T> options) => options.NotFunction(input);
+    public override (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<T, TIn, TOut> options, TIn additionalInput) => options.NotFunction(input, additionalInput);
 }

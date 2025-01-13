@@ -27,11 +27,17 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     public string ToLogicString(LogicStringOptions options);
 
     /// <summary>
-    /// Convert to string given custom options
+    /// Convert to string + additional values given custom options
     /// </summary>
     /// <param name="options"></param>
+    /// <param name="additionalInput"></param>
     /// <returns></returns>
-    public string ToLogicString(CustomLogicStringOptions<T> options) => options.BaseFunction(this);
+    public (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new()
+    {
+        if (this is T t)
+            return options.BaseFunction(t, additionalInput);
+        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(ToLogicString)}");
+    }
 
     /// <summary>
     /// Get all base objects
