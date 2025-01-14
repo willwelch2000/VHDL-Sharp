@@ -7,12 +7,12 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// A <see cref="EventDrivenCondition"/> that is true on a signal's falling edge
 /// </summary>
-public class FallingEdge(SingleNodeSignal signal) : EventDrivenCondition
+public class FallingEdge(SingleNodeNamedSignal signal) : EventDrivenCondition
 {
     /// <summary>
     /// Signal used for the condition
     /// </summary>
-    public SingleNodeSignal Signal { get; } = signal;
+    public SingleNodeNamedSignal Signal { get; } = signal;
 
     /// <inheritdoc/>
     public override IEnumerable<NamedSignal> InputSignals => [Signal];
