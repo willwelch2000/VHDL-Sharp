@@ -65,6 +65,14 @@ public abstract class DigitalBehavior
     }
 
     /// <summary>
+    /// Convert to spice
+    /// </summary>
+    /// <param name="outputSignal">Output signal for this behavior</param>
+    /// <param name="index">Unique int provided to this instantiation so that it can have a unique name</param>
+    /// <returns></returns>
+    public abstract string ToSpice(NamedSignal outputSignal, int index);
+
+    /// <summary>
     /// Call this method to raise the <see cref="BehaviorUpdated"/> event
     /// </summary>
     /// <param name="sender"></param>

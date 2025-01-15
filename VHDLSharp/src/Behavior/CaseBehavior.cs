@@ -179,4 +179,10 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
                 throw new Exception($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
     }
+
+    /// <inheritdoc/>
+    public override string ToSpice(NamedSignal outputSignal, int index)
+    {
+        throw new NotImplementedException();
+    }
 }

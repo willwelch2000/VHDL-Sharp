@@ -85,7 +85,7 @@ internal static class Utility
                     {
                         UniqueId = innerUniqueId,
                     });
-                    returnVal += val + "\n";
+                    returnVal += val;
 
                     // Set dimension first time through
                     if (i == 0)
@@ -110,17 +110,19 @@ internal static class Utility
                         // NMOSs go in series from nandSignal to ground
                         string nDrain = j == 0 ? nandSignalNames[i] : GetSpiceName(uniqueId, i, $"nand{j}");
                         string nSource = j == dimension - 1 ? "0" : GetSpiceName(uniqueId, i, $"nand{j+1}");
-                        returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, $"nnand{j}"), nDrain, inputSignal, nSource, true);
+                        returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, $"nnand{j}"), nDrain, inputSignal, nSource, false);
                     }
 
                     // Add PMOS and NMOS to form NOT gate going from nand signal name to output signal name
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "pnot"), outputSignalNames[i], nandSignalNames[i], "VDD", true);
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "nnot"), outputSignalNames[i], nandSignalNames[i], "0", false);
+                    returnVal += "\n";
                 }
 
                 return (returnVal, new()
                 {
                     Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
                 });
             }
 
@@ -144,7 +146,7 @@ internal static class Utility
                     {
                         UniqueId = innerUniqueId,
                     });
-                    returnVal += val + "\n";
+                    returnVal += val;
 
                     // Set dimension first time through
                     if (i == 0)
@@ -169,17 +171,19 @@ internal static class Utility
                         string pSource = j == dimension - 1 ? "VDD" : GetSpiceName(uniqueId, i, $"nor{j+1}");
                         returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, $"pnor{j}"), pDrain, inputSignal, pSource, true);
                         // NMOSs go in parallel from norSignal to ground
-                        returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, $"nnor{j}"), norSignalNames[i], inputSignal, "0", true);
+                        returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, $"nnor{j}"), norSignalNames[i], inputSignal, "0", false);
                     }
 
                     // Add PMOS and NMOS to form NOT gate going from nor signal name to output signal name
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "pnot"), outputSignalNames[i], norSignalNames[i], "VDD", true);
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "nnot"), outputSignalNames[i], norSignalNames[i], "0", false);
+                    returnVal += "\n";
                 }
 
                 return (returnVal, new()
                 {
                     Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
                 });
             }
 
@@ -196,24 +200,26 @@ internal static class Utility
                 int dimension = innerAdditionalOutput.Dimension; // Get dimension from inner
 
                 // Generate output signal names (1 per dimension)
-                string[] outputSignalNames = Enumerable.Range(0, dimension).Select(i => GetSpiceName(uniqueId, i, "out")).ToArray();
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => GetSpiceName(uniqueId, i, "out"))];
 
                 // For each dimension, add PMOS and NMOS to form NOT gate going from inner output signal name to output signal name
                 for (int i = 0; i < dimension; i++)
                 {
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "p"), outputSignalNames[i], innerAdditionalOutput.OutputSignalNames[i], "VDD", true);
                     returnVal += GetMosfetSpiceLine(GetSpiceName(uniqueId, i, "n"), outputSignalNames[i], innerAdditionalOutput.OutputSignalNames[i], "0", false);
+                    returnVal += "\n";
                 }
 
                 return (returnVal, new()
                 {
                     Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
                 });
             }
 
             (string, SignalCustomLogicStringOutput) BaseFunction(ISignal innerExpression, SignalCustomLogicStringInput additionalInput)
             {
-                string[] signals = innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice()).ToArray();
+                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
                 return ("", new()
                 {
                     Dimension = signals.Length,
@@ -245,7 +251,7 @@ internal static class Utility
             UniqueId = uniqueId,
         });
 
-        SingleNodeNamedSignal[] singleNodeSignals = outputSignal.ToSingleNodeNamedSignals.ToArray();
+        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeNamedSignals];
         if (additional.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 

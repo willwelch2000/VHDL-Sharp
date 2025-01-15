@@ -78,4 +78,10 @@ public class DynamicBehavior : DigitalBehavior
     {
         CheckValid();
     }
+
+    /// <inheritdoc/>
+    public override string ToSpice(NamedSignal outputSignal, int index)
+    {
+        throw new NotImplementedException();
+    }
 }

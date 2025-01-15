@@ -99,7 +99,7 @@ public class Module
         get
         {
             // If any output signal hasn't been assigned
-            if (Ports.Where(p => p.Direction == PortDirection.Output).Any(p => SignalBehaviors.Select(kvp => kvp.Key).Contains(p.Signal)))
+            if (Ports.Where(p => p.Direction == PortDirection.Output).Any(p => !SignalBehaviors.ContainsKey(p.Signal)))
                 return false;
             return true;
         }
@@ -261,7 +261,28 @@ public class Module
         StringBuilder sb = new();
         
         // Start subcircuit
-        sb.AppendLine($".subckt {Name} {string.Join(' ', Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice()))}");
+        sb.AppendLine($".subckt {Name} {string.Join(' ', Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice()))}\n");
+
+        // Add VDD node and PMOS/NMOS models
+        sb.AppendLine("V_VDD VDD 0 5V".AddIndentation(1));
+        sb.AppendLine(".MODEL NmosMod NMOS".AddIndentation(1));
+        sb.AppendLine(".MODEL PmosMod PMOS".AddIndentation(1));
+
+        // Add all inner modules' subcircuit declarations
+        foreach (Module submodule in Instantiations.Select(i => i.Module).Distinct())
+            sb.AppendLine(submodule.ToSpice().AddIndentation(1) + "\n");
+
+        // Add all instantiations
+        int i = 0;
+        foreach (Instantiation instantiation in Instantiations)
+            sb.AppendLine(instantiation.ToSpice(i++).AddIndentation(1));
+        sb.AppendLine();
+
+        // Add behaviors
+        foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+        {
+            sb.AppendLine(behavior.ToSpice(signal, i++).AddIndentation(1));
+        }
 
         // End subcircuit
         sb.AppendLine($".ends {Name}");
