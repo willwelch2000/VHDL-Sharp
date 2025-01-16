@@ -20,8 +20,8 @@ Port p3 = new()
     Signal = s3, 
     Direction = PortDirection.Output,
 };
-LogicTree<ISignal> expression1 = new And<ISignal>(s1, new Not<ISignal>(s2));
-LogicTree<ISignal> expression2 = expression1.And(new Or<ISignal>(s1, s2));
+LogicExpression expression1 = new(new And<ISignal>(s1, new Not<ISignal>(s2)));
+LogicTree<ISignal> expression2 = new And<ISignal>(expression1, new Or<ISignal>(s1, s2));
 module1.AddNewPort(s1, PortDirection.Input);
 module1.AddNewPort(s2, PortDirection.Input);
 module1.Ports.Add(p3);

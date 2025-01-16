@@ -9,14 +9,14 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// A behavior that uses logical expressions on signals
 /// </summary>
-/// <param name="logicExpression"></param>
+/// <param name="logicExpression">The logical expression that this refers to, as a <see cref="LogicExpression"/> or <see cref="ILogicallyCombinable{ISignal}"/></param>
 /// <exception cref="Exception"></exception>
 public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
 {
     /// <summary>
-    /// The logical expression that this refers to
+    /// The logical expression that this refers to, as a <see cref="LogicExpression"/>
     /// </summary>
-    public ILogicallyCombinable<ISignal> LogicExpression { get; } = logicExpression;
+    public LogicExpression LogicExpression { get; } = LogicExpression.ToLogicExpression(logicExpression);
 
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects

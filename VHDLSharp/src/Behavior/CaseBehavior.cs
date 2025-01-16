@@ -1,6 +1,5 @@
 using System.Text;
 using VHDLSharp.Dimensions;
-using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
@@ -12,9 +11,9 @@ namespace VHDLSharp.Behaviors;
 /// <param name="selector"></param>
 public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 {
-    private readonly ILogicallyCombinable<ISignal>?[] caseExpressions = new ILogicallyCombinable<ISignal>[1 << selector.Dimension.NonNullValue];
+    private readonly LogicExpression?[] caseExpressions = new LogicExpression[1 << selector.Dimension.NonNullValue];
 
-    private ILogicallyCombinable<ISignal>? defaultExpression;
+    private LogicExpression? defaultExpression;
 
     /// <summary>
     /// Selector signal
@@ -24,7 +23,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <summary>
     /// Expression for default case
     /// </summary>
-    public ILogicallyCombinable<ISignal>? DefaultExpression
+    public LogicExpression? DefaultExpression
     {
         get => defaultExpression;
         set
@@ -56,7 +55,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         // Cases
         for (int i = 0; i < caseExpressions.Length; i++)
         {
-            ILogicallyCombinable<ISignal>? expression = caseExpressions[i];
+            LogicExpression? expression = caseExpressions[i];
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
@@ -82,7 +81,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<ISignal>? this[int index]
+    public LogicExpression? this[int index]
     {
         get
         {
@@ -99,7 +98,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public ILogicallyCombinable<ISignal>? this[bool index]
+    public LogicExpression? this[bool index]
     {
         get
         {
@@ -132,7 +131,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">integer value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
+    public void AddCase(int value, LogicExpression? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
@@ -148,7 +147,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">boolean value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
+    public void AddCase(bool value, LogicExpression? logicExpression)
     {
         if (Selector.Dimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
@@ -166,13 +165,13 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// </summary>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    private void CheckCompatible(ILogicallyCombinable<ISignal>? logicExpression)
+    private void CheckCompatible(LogicExpression? logicExpression)
     {
         // Fine if new one is null
         if (logicExpression is null)
             return;
 
-        foreach (ILogicallyCombinable<ISignal>? expression in caseExpressions.Append(DefaultExpression))
+        foreach (LogicExpression? expression in caseExpressions.Append(DefaultExpression))
         {
             // Check ability to combine in both directions
             if (expression is not null && !(expression.CanCombine(logicExpression) && logicExpression.CanCombine(expression)))
