@@ -1,5 +1,6 @@
 using System.Text;
 using VHDLSharp.Dimensions;
+using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
@@ -26,11 +27,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     public LogicExpression? DefaultExpression
     {
         get => defaultExpression;
-        set
-        {
-            CheckCompatible(value);
-            defaultExpression = value;
-        }
+        set => SetDefault(value);
     }
 
     /// <inheritdoc/>
@@ -131,12 +128,12 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">integer value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(int value, LogicExpression? logicExpression)
+    public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
         CheckCompatible(logicExpression);
-        caseExpressions[value] = logicExpression;
+        caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
         RaiseBehaviorChanged(this, EventArgs.Empty);
     }
 
@@ -147,11 +144,21 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="value">boolean value for selector</param>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    public void AddCase(bool value, LogicExpression? logicExpression)
+    public void AddCase(bool value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (Selector.Dimension.NonNullValue != 1)
             throw new Exception("Selector dimension must be 1 for boolean value");
         AddCase(value ? 1 : 0, logicExpression);
+    }
+
+    /// <summary>
+    /// Set expression for default case
+    /// </summary>
+    /// <param name="logicExpression"></param>
+    public void SetDefault(ILogicallyCombinable<ISignal>? logicExpression)
+    {
+        CheckCompatible(logicExpression);
+        defaultExpression = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
     }
 
     /// <summary>
@@ -165,7 +172,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// </summary>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    private void CheckCompatible(LogicExpression? logicExpression)
+    private void CheckCompatible(ILogicallyCombinable<ISignal>? logicExpression)
     {
         // Fine if new one is null
         if (logicExpression is null)
