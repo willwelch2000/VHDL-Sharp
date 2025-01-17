@@ -222,7 +222,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 string uniqueId = additionalInput.UniqueId;
 
                 // Run function for inner expression to get gate input signals (1 per dimension)
-                string innerUniqueId = uniqueId + "_1";
+                string innerUniqueId = uniqueId + "_0";
                 (string returnVal, SignalCustomLogicStringOutput innerAdditionalOutput) = innerExpression.ToLogicString(options, new()
                 {
                     UniqueId = innerUniqueId,
@@ -249,11 +249,20 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
             (string, SignalCustomLogicStringOutput) BaseFunction(ISignal innerExpression, SignalCustomLogicStringInput additionalInput)
             {
+
+                // Get signals as strings and generate output signal names
                 string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
-                return ("", new()
+                string uniqueId = additionalInput.UniqueId;
+                string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "out"))];
+                
+                // Add 1m resistors between signals and output signals
+                string toReturn = string.Join("\n", Enumerable.Range(0, signals.Length).Select(i => 
+                    $"R{Util.GetSpiceName(uniqueId, i, "res")} {signals[i]} {outputSignals[i]} 1m\n"));
+
+                return (toReturn, new()
                 {
                     Dimension = signals.Length,
-                    OutputSignalNames = signals,
+                    OutputSignalNames = outputSignals,
                 });
             }
 

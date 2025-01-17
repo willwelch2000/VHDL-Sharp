@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Signals;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.Modules;
 
@@ -37,16 +36,12 @@ public class PortMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to the signals its connected to in an instantiation
 /// </summary>
-public class PortMapping : IDictionary<Port, NamedSignal>
+public class PortMapping : ObservableDictionary<Port, NamedSignal>
 {
     private readonly Module module;
 
     private readonly Module parentModule;
     
-    private readonly Dictionary<Port, NamedSignal> backendDictionary = [];
-
-    private ICollection<KeyValuePair<Port, NamedSignal>> BackendDictionaryAsCollection => backendDictionary;
-
     /// <summary>
     /// Construct port mapping given instantiated module and parent module
     /// </summary>
@@ -64,29 +59,17 @@ public class PortMapping : IDictionary<Port, NamedSignal>
     /// </summary>
     public IEnumerable<Port> PortsToAssign => module.Ports.Except(Keys);
 
-    /// <inheritdoc/>
-    public ICollection<Port> Keys => backendDictionary.Keys;
-
-    /// <inheritdoc/>
-    public ICollection<NamedSignal> Values => backendDictionary.Values;
-
-    /// <inheritdoc/>
-    public int Count => backendDictionary.Count;
-
-    /// <inheritdoc/>
-    public bool IsReadOnly => false;
-
     /// <summary>
     /// Indexer for port mapping
     /// </summary>
     /// <param name="port"></param>
     /// <returns></returns>
-    public NamedSignal this[Port port]
+    public override NamedSignal this[Port port]
     {
-        get => backendDictionary[port];
+        get => base[port];
         set
         {
-            backendDictionary[port] = value;
+            base[port] = value;
             CheckValid();
         }
     }
@@ -98,9 +81,9 @@ public class PortMapping : IDictionary<Port, NamedSignal>
 
     private void CheckValid()
     {
-        foreach ((Port port, NamedSignal signal) in backendDictionary)
+        foreach ((Port port, NamedSignal signal) in this)
         {
-            if (port.Signal.Dimension != signal.Dimension)
+            if (!port.Signal.Dimension.Compatible(signal.Dimension))
                 throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
             if (port.Signal.ParentModule != module)
                 throw new PortMappingException($"Ports must have the specified module {module} as parent");
@@ -115,46 +98,12 @@ public class PortMapping : IDictionary<Port, NamedSignal>
     /// True if port mapping is complete (all ports are assigned)
     /// </summary>
     /// <returns></returns>
-    public bool Complete() => module.Ports.All(backendDictionary.ContainsKey);
+    public bool Complete() => module.Ports.All(ContainsKey);
 
     /// <inheritdoc/>
-    public void Add(Port port, NamedSignal signal)
+    public override void Add(Port port, NamedSignal signal)
     {
-        backendDictionary.Add(port, signal);
+        base.Add(port, signal);
         CheckValid();
-    }
-
-    /// <inheritdoc/>
-    public void Add(KeyValuePair<Port, NamedSignal> item) => Add(item.Key, item.Value);
-
-    /// <inheritdoc/>
-    public bool ContainsKey(Port port) => backendDictionary.ContainsKey(port);
-
-    /// <inheritdoc/>
-    public bool Remove(Port port) => backendDictionary.Remove(port);
-
-    /// <inheritdoc/>
-    public bool TryGetValue(Port port, [MaybeNullWhen(false)] out NamedSignal signal) =>
-        backendDictionary.TryGetValue(port, out signal);
-
-    /// <inheritdoc/>
-    public void Clear() => backendDictionary.Clear();
-
-    /// <inheritdoc/>
-    public bool Contains(KeyValuePair<Port, NamedSignal> item) => backendDictionary.Contains(item);
-
-    /// <inheritdoc/>
-    public void CopyTo(KeyValuePair<Port, NamedSignal>[] array, int arrayIndex) => BackendDictionaryAsCollection.CopyTo(array, arrayIndex);
-
-    /// <inheritdoc/>
-    public bool Remove(KeyValuePair<Port, NamedSignal> item) => BackendDictionaryAsCollection.Remove(item);
-
-    /// <inheritdoc/>
-    public IEnumerator<KeyValuePair<Port, NamedSignal>> GetEnumerator() => backendDictionary.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        IEnumerable enumerable = backendDictionary;
-        return enumerable.GetEnumerator();
     }
 }

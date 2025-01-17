@@ -41,7 +41,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     public bool IsReadOnly => false;
 
     /// <inheritdoc/>
-    public TValue this[TKey key]
+    public virtual TValue this[TKey key]
     {
         get => backendDictionary[key];
         set
@@ -57,7 +57,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     }
 
     /// <inheritdoc/>
-    public void Add(TKey key, TValue value)
+    public virtual void Add(TKey key, TValue value)
     {
         backendDictionary.Add(key, value);
         collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value)));

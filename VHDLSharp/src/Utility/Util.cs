@@ -45,10 +45,10 @@ internal static class Util
     /// Method to generate Spice node name
     /// </summary>
     /// <param name="uniqueId">Unique id for portion of the circuit</param>
-    /// <param name="indexInCircuitPortion">Number given to differentiate duplicates for multi-dimensional signals</param>
+    /// <param name="dimensionIndex">Number given to differentiate duplicates for multi-dimensional signals</param>
     /// <param name="ending">Name given to node to differentiate within portion</param>
     /// <returns></returns>
-    internal static string GetSpiceName(string uniqueId, int indexInCircuitPortion, string ending) => $"n{uniqueId}x{indexInCircuitPortion}_{ending}";
+    internal static string GetSpiceName(string uniqueId, int dimensionIndex, string ending) => $"n{uniqueId}x{dimensionIndex}_{ending}";
 
     internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? "PmosMod" : "NmosMod")} W=100u L=1u\n";
 }
