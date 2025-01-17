@@ -30,7 +30,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, int index) => LogicExpression.ToSpice(outputSignal, index.ToString());
+    public override string ToSpice(NamedSignal outputSignal, string uniqueId) => LogicExpression.ToSpice(outputSignal, uniqueId);
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";

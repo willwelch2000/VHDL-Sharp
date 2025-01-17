@@ -80,7 +80,7 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, int index)
+    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

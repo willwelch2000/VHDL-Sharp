@@ -43,7 +43,7 @@ public class ValueBehavior : CombinationalBehavior
     public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, int index)
+    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

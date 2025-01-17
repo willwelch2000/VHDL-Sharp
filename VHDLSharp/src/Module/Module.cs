@@ -281,7 +281,7 @@ public class Module
         // Add behaviors
         foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
         {
-            sb.AppendLine(behavior.ToSpice(signal, i++).AddIndentation(1));
+            sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(1));
         }
 
         // End subcircuit
