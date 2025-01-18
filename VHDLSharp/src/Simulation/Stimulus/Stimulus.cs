@@ -30,8 +30,8 @@ public abstract class Stimulus : IStimulus
     /// <returns></returns>
     public string ToSpice(NamedSignal signal, string uniqueId)
     {
-        if (signal is SingleNodeNamedSignal singleNodeSignal)
-            return ToSpiceGivenSingleNodeSignal(singleNodeSignal, uniqueId);
+        if (signal.Dimension.NonNullValue == 1)
+            return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeNamedSignals.First(), uniqueId);
             
         throw new Exception("Input signal must have dimension of 1");
     }

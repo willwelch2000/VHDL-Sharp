@@ -264,7 +264,7 @@ public class Module
         sb.AppendLine($".subckt {Name} {string.Join(' ', Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice()))}\n");
 
         // Add VDD node and PMOS/NMOS models
-        sb.AppendLine("V_VDD VDD 0 5V".AddIndentation(1));
+        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(1));
         sb.AppendLine(".MODEL NmosMod NMOS".AddIndentation(1));
         sb.AppendLine(".MODEL PmosMod PMOS".AddIndentation(1));
 

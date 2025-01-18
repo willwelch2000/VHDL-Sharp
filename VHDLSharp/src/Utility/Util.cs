@@ -4,6 +4,10 @@ namespace VHDLSharp.Utility;
 
 internal static class Util
 {
+    internal static double VDD => 5.0;
+
+    internal static double RiseFall => 1e-9;
+
     internal static string AddIndentation(this string s, int indents)
     {
         return string.Concat(Enumerable.Repeat("\t", indents)) + s.ReplaceLineEndings($"\n{string.Concat(Enumerable.Repeat("\t", indents))}");
