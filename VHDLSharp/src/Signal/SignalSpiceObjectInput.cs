@@ -3,9 +3,9 @@ namespace VHDLSharp.Signals;
 using VHDLSharp.LogicTree;
 
 /// <summary>
-/// Class used as additional input for <see cref="CustomLogicStringOptions{T, TIn, TOut}"/>
+/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice
 /// </summary>
-public class SignalCustomLogicStringInput
+public class SignalSpiceObjectInput
 {
     /// <summary>
     /// Unique id that this portion can use

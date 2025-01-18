@@ -57,5 +57,5 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     public abstract string ToLogicString(LogicStringOptions options);
 
     /// <inheritdoc/>
-    public abstract (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new();
+    public abstract TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new();
 }

@@ -27,12 +27,15 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     public string ToLogicString(LogicStringOptions options);
 
     /// <summary>
-    /// Convert to string + additional values given custom options
+    /// Convert to a custom logical object given custom options
     /// </summary>
+    /// <typeparam name="TIn">Input type to functions</typeparam>
+    /// <typeparam name="TOut">Output type</typeparam>
     /// <param name="options"></param>
     /// <param name="additionalInput"></param>
     /// <returns></returns>
-    public (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new()
+    /// <exception cref="Exception"></exception>
+    public TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new()
     {
         if (this is T t)
             return options.BaseFunction(t, additionalInput);

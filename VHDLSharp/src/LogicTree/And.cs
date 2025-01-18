@@ -33,5 +33,5 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <inheritdoc/>
-    public override (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<T, TIn, TOut> options, TIn additionalInput) => options.AndFunction(inputs, additionalInput);
+    public override TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) => options.AndFunction(inputs, additionalInput);
 }

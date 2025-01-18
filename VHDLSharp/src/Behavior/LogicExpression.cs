@@ -28,9 +28,9 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     public string ToLogicString(LogicStringOptions options) => expression.ToLogicString(options);
 
     /// <inheritdoc/>
-    public (string Value, TOut Additional) ToLogicString<TIn, TOut>(CustomLogicStringOptions<ISignal, TIn, TOut> options, TIn additionalInput) where TOut : new()
+    public TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<ISignal, TIn, TOut> options, TIn additionalInput) where TOut : new()
     {
-        return expression.ToLogicString(options, additionalInput);
+        return expression.GenerateLogicalObject(options, additionalInput);
     }
 
     /// <summary>
@@ -41,20 +41,21 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
-        (string value, SignalCustomLogicStringOutput additional) = expression.ToLogicString(SignalCustomLogicStringOptions, new()
+        SignalSpiceObjectOutput output = expression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
         {
             UniqueId = uniqueId,
         });
 
         SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeNamedSignals];
-        if (additional.Dimension != singleNodeSignals.Length)
+        if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 
-        // Convert final output signals from additional into correct output signals
-        for (int i = 0; i < additional.Dimension; i++)
+        // Convert final output signals from output into correct output signals
+        string value = output.SpiceString;
+        for (int i = 0; i < output.Dimension; i++)
         {
             string newSignalName = singleNodeSignals[i].ToSpice();
-            string oldSignalName = additional.OutputSignalNames[i];
+            string oldSignalName = output.OutputSignalNames[i];
 
             value = Regex.Replace(value, $@"\b{oldSignalName}\b", newSignalName);
         }
@@ -82,20 +83,20 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public LogicExpression Not() => new(new Not<ISignal>(expression));
 
-    private static CustomLogicStringOptions<ISignal, SignalCustomLogicStringInput, SignalCustomLogicStringOutput>? signalCustomLogicStringOptions;
+    private static CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput>? signalSpiceObjectOptions;
 
-    private static CustomLogicStringOptions<ISignal, SignalCustomLogicStringInput, SignalCustomLogicStringOutput> SignalCustomLogicStringOptions 
+    private static CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput> SignalSpiceObjectOptions 
     {
         get
         {
-            if (signalCustomLogicStringOptions is not null)
-                return signalCustomLogicStringOptions;
+            if (signalSpiceObjectOptions is not null)
+                return signalSpiceObjectOptions;
 
-            CustomLogicStringOptions<ISignal, SignalCustomLogicStringInput, SignalCustomLogicStringOutput> options = new();
+            CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput> options = new();
 
             // In each of the following functions, the functionality is done once per dimension in parallel
 
-            (string, SignalCustomLogicStringOutput) AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalCustomLogicStringInput additionalInput)
+            SignalSpiceObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalSpiceObjectInput additionalInput)
             {
                 if (!innerExpressions.Any())
                     throw new Exception("Must be at least 1 inner expression for And Function");
@@ -111,18 +112,18 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 {
                     // Run function for inner expression to get gate input signal
                     string innerUniqueId = uniqueId + $"_{i}";
-                    (string val, SignalCustomLogicStringOutput innerAdditionalOutput) = innerExpression.ToLogicString(options, new()
+                    SignalSpiceObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
                     {
                         UniqueId = innerUniqueId,
                     });
-                    returnVal += val;
+                    returnVal += innerOutput.SpiceString;
 
                     // Set dimension first time through
                     if (i == 0)
-                        dimension = innerAdditionalOutput.Dimension;
+                        dimension = innerOutput.Dimension;
 
                     // Add inner output signal names to list
-                    inputSignalNames.Add(innerAdditionalOutput.OutputSignalNames);
+                    inputSignalNames.Add(innerOutput.OutputSignalNames);
                 }
 
                 // Generate nand output signal names and final output signal names (1 per dimension)
@@ -149,14 +150,15 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     returnVal += "\n";
                 }
 
-                return (returnVal, new()
+                return new()
                 {
+                    SpiceString = returnVal,
                     Dimension = dimension,
                     OutputSignalNames = outputSignalNames,
-                });
+                };
             }
 
-            (string, SignalCustomLogicStringOutput) OrFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalCustomLogicStringInput additionalInput)
+            SignalSpiceObjectOutput OrFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalSpiceObjectInput additionalInput)
             {
                 if (!innerExpressions.Any())
                     throw new Exception("Must be at least 1 inner expression for Or Function");
@@ -172,18 +174,18 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 {
                     // Run function for inner expression to get gate input signal
                     string innerUniqueId = uniqueId + $"_{i}";
-                    (string val, SignalCustomLogicStringOutput innerAdditionalOutput) = innerExpression.ToLogicString(options, new()
+                    SignalSpiceObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
                     {
                         UniqueId = innerUniqueId,
                     });
-                    returnVal += val;
+                    returnVal += innerOutput.SpiceString;
 
                     // Set dimension first time through
                     if (i == 0)
-                        dimension = innerAdditionalOutput.Dimension;
+                        dimension = innerOutput.Dimension;
 
                     // Add inner output signal names to list
-                    inputSignalNames.Add(innerAdditionalOutput.OutputSignalNames);
+                    inputSignalNames.Add(innerOutput.OutputSignalNames);
                 }
 
                 // Generate nor output signal names and final output signal names (1 per dimension)
@@ -210,44 +212,47 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     returnVal += "\n";
                 }
 
-                return (returnVal, new()
+                return new()
                 {
+                    SpiceString = returnVal,
                     Dimension = dimension,
                     OutputSignalNames = outputSignalNames,
-                });
+                };
             }
 
-            (string, SignalCustomLogicStringOutput) NotFunction(ILogicallyCombinable<ISignal> innerExpression, SignalCustomLogicStringInput additionalInput)
+            SignalSpiceObjectOutput NotFunction(ILogicallyCombinable<ISignal> innerExpression, SignalSpiceObjectInput additionalInput)
             {
                 string uniqueId = additionalInput.UniqueId;
 
                 // Run function for inner expression to get gate input signals (1 per dimension)
                 string innerUniqueId = uniqueId + "_0";
-                (string returnVal, SignalCustomLogicStringOutput innerAdditionalOutput) = innerExpression.ToLogicString(options, new()
+                SignalSpiceObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
                 {
                     UniqueId = innerUniqueId,
                 });
-                int dimension = innerAdditionalOutput.Dimension; // Get dimension from inner
+                int dimension = innerOutput.Dimension; // Get dimension from inner
 
                 // Generate output signal names (1 per dimension)
                 string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "out"))];
 
                 // For each dimension, add PMOS and NMOS to form NOT gate going from inner output signal name to output signal name
+                string returnVal = innerOutput.SpiceString;
                 for (int i = 0; i < dimension; i++)
                 {
-                    returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, "p"), outputSignalNames[i], innerAdditionalOutput.OutputSignalNames[i], "VDD", true);
-                    returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, "n"), outputSignalNames[i], innerAdditionalOutput.OutputSignalNames[i], "0", false);
+                    returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, "p"), outputSignalNames[i], innerOutput.OutputSignalNames[i], "VDD", true);
+                    returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, "n"), outputSignalNames[i], innerOutput.OutputSignalNames[i], "0", false);
                     returnVal += "\n";
                 }
 
-                return (returnVal, new()
+                return new()
                 {
+                    SpiceString = returnVal,
                     Dimension = dimension,
                     OutputSignalNames = outputSignalNames,
-                });
+                };
             }
 
-            (string, SignalCustomLogicStringOutput) BaseFunction(ISignal innerExpression, SignalCustomLogicStringInput additionalInput)
+            SignalSpiceObjectOutput BaseFunction(ISignal innerExpression, SignalSpiceObjectInput additionalInput)
             {
 
                 // Get signals as strings and generate output signal names
@@ -259,11 +264,12 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 string toReturn = string.Join("\n", Enumerable.Range(0, signals.Length).Select(i => 
                     $"R{Util.GetSpiceName(uniqueId, i, "res")} {signals[i]} {outputSignals[i]} 1m\n"));
 
-                return (toReturn, new()
+                return new()
                 {
+                    SpiceString = toReturn,
                     Dimension = signals.Length,
                     OutputSignalNames = outputSignals,
-                });
+                };
             }
 
             options.AndFunction = AndFunction;
@@ -271,7 +277,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             options.NotFunction = NotFunction;
             options.BaseFunction = BaseFunction;
 
-            signalCustomLogicStringOptions = options;
+            signalSpiceObjectOptions = options;
             return options;
         }
     }
