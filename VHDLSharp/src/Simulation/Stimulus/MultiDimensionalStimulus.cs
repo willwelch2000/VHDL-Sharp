@@ -4,10 +4,10 @@ using VHDLSharp.Signals;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Multi-dimensional stimulus
+/// Multi-dimensional stimulus set
 /// Made up of multiple <see cref="Stimulus"/> objects
 /// </summary>
-public class MultiDimensionalStimulus : IStimulus
+public class MultiDimensionalStimulus : IStimulusSet
 {
     /// <summary>
     /// Default constructor
@@ -31,7 +31,7 @@ public class MultiDimensionalStimulus : IStimulus
     /// </summary>
     public List<Stimulus> Stimuli { get; } = [];
 
-    IEnumerable<Stimulus> IStimulus.Stimuli => Stimuli;
+    IEnumerable<Stimulus> IStimulusSet.Stimuli => Stimuli;
 
     /// <inheritdoc/>
     public string ToSpice(NamedSignal signal, string uniqueId)

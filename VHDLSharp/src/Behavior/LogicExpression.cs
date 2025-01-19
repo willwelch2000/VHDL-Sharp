@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
@@ -64,6 +66,37 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     }
 
     /// <summary>
+    /// Get expression as list of entities for Spice#
+    /// </summary>
+    /// <param name="outputSignal">Output signal for this expression</param>
+    /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
+    public IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    {
+        SignalSpiceSharpObjectOutput output = expression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
+        {
+            UniqueId = uniqueId,
+        });
+
+        List<IEntity> entities = [.. output.SpiceSharpEntities];
+
+        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeNamedSignals];
+        if (output.Dimension != singleNodeSignals.Length)
+            throw new Exception("Expression dimension didn't match output signal dimension");
+
+        // Convert final output signals from output into correct output signals
+        for (int i = 0; i < output.Dimension; i++)
+        {
+            string newSignalName = singleNodeSignals[i].ToSpice();
+            string oldSignalName = output.OutputSignalNames[i];
+            
+            // Connect oldSignalName to newSignalName via 1m resistor
+            entities.Add(new Resistor("R" + Util.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
+        }
+
+        return entities;
+    }
+
+    /// <summary>
     /// Generate an And with this expression and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
     /// <param name="other"></param>
@@ -116,6 +149,8 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     {
                         UniqueId = innerUniqueId,
                     });
+                    
+                    // Add inner entities
                     returnVal += innerOutput.SpiceString;
 
                     // Set dimension first time through
@@ -127,8 +162,8 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 }
 
                 // Generate nand output signal names and final output signal names (1 per dimension)
-                string[] nandSignalNames = Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "nandout")).ToArray();
-                string[] outputSignalNames = Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "out")).ToArray();
+                string[] nandSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "nandout"))];
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "andout"))];
 
                 // For each dimension...
                 for (int i = 0; i < dimension; i++)
@@ -178,6 +213,8 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     {
                         UniqueId = innerUniqueId,
                     });
+                    
+                    // Add inner entities
                     returnVal += innerOutput.SpiceString;
 
                     // Set dimension first time through
@@ -189,8 +226,8 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 }
 
                 // Generate nor output signal names and final output signal names (1 per dimension)
-                string[] norSignalNames = Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "nandout")).ToArray();
-                string[] outputSignalNames = Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "out")).ToArray();
+                string[] norSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "norout"))];
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "orout"))];
 
                 // For each dimension...
                 for (int i = 0; i < dimension; i++)
@@ -233,7 +270,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                 int dimension = innerOutput.Dimension; // Get dimension from inner
 
                 // Generate output signal names (1 per dimension)
-                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "out"))];
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "notout"))];
 
                 // For each dimension, add PMOS and NMOS to form NOT gate going from inner output signal name to output signal name
                 string returnVal = innerOutput.SpiceString;
@@ -254,11 +291,10 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
             SignalSpiceObjectOutput BaseFunction(ISignal innerExpression, SignalSpiceObjectInput additionalInput)
             {
-
                 // Get signals as strings and generate output signal names
                 string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
                 string uniqueId = additionalInput.UniqueId;
-                string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "out"))];
+                string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "baseout"))];
                 
                 // Add 1m resistors between signals and output signals
                 string toReturn = string.Join("\n", Enumerable.Range(0, signals.Length).Select(i => 
@@ -278,6 +314,203 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             options.BaseFunction = BaseFunction;
 
             signalSpiceObjectOptions = options;
+            return options;
+        }
+    }
+
+    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
+
+    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
+    {
+        get
+        {
+            if (signalSpiceSharpObjectOptions is not null)
+                return signalSpiceSharpObjectOptions;
+
+            CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> options = new();
+
+            SignalSpiceSharpObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalSpiceSharpObjectInput additionalInput)
+            {
+                if (!innerExpressions.Any())
+                    throw new Exception("Must be at least 1 inner expression for And Function");
+
+                string uniqueId = additionalInput.UniqueId;
+                int dimension = 0; // Set first time through loop
+                List<IEntity> entities = [];
+                // Each entry is an array of 1-per-dimension signals from an inner expression--in a 1-d signal, each entry would just have 1 string
+                List<string[]> inputSignalNames = [];
+
+                // Loop through each inner expression--these each correspond to a PMOS and NMOS per dimension
+                foreach ((ILogicallyCombinable<ISignal> innerExpression, int i) in innerExpressions.Select((item, i) => (item, i)))
+                {
+                    // Run function for inner expression to get gate input signal
+                    string innerUniqueId = uniqueId + $"_{i}";
+                    SignalSpiceSharpObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
+                    {
+                        UniqueId = innerUniqueId,
+                    });
+
+                    // Add inner entities
+                    entities.AddRange(innerOutput.SpiceSharpEntities);
+
+                    // Set dimension first time through
+                    if (i == 0)
+                        dimension = innerOutput.Dimension;
+
+                    // Add inner output signal names to list
+                    inputSignalNames.Add(innerOutput.OutputSignalNames);
+                }
+
+                // Generate nand output signal names and final output signal names (1 per dimension)
+                string[] nandSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "nandout"))];
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "andout"))];
+
+                // For each dimension...
+                for (int i = 0; i < dimension; i++)
+                {
+                    // Add a PMOS and NMOS for each input signal
+                    foreach ((string inputSignal, int j) in inputSignalNames.Select((s, j) => (s[i], j)))
+                    {
+                        // PMOSs go in parallel from VDD to nandSignal
+                        entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnand{j}")}", nandSignalNames[i], inputSignal, "VDD", "VDD", Util.PmosModelName));
+                        // NMOSs go in series from nandSignal to ground
+                        string nDrain = j == 0 ? nandSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nand{j}");
+                        string nSource = j == dimension - 1 ? "0" : Util.GetSpiceName(uniqueId, i, $"nand{j+1}");
+                        entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnand{j}")}", nDrain, inputSignal, nSource, nSource, Util.NmosModelName));
+                    }
+
+                    // Add PMOS and NMOS to form NOT gate going from nand signal name to output signal name
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnot")}", outputSignalNames[i], nandSignalNames[i], "VDD", "VDD", Util.PmosModelName));
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], nandSignalNames[i], "0", "0", Util.PmosModelName));
+                }
+
+                return new()
+                {
+                    SpiceSharpEntities = entities,
+                    Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
+                };
+            }
+
+            SignalSpiceSharpObjectOutput OrFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalSpiceSharpObjectInput additionalInput)
+            {
+                if (!innerExpressions.Any())
+                    throw new Exception("Must be at least 1 inner expression for Or Function");
+
+                string uniqueId = additionalInput.UniqueId;
+                int dimension = 0; // Set first time through loop
+                List<IEntity> entities = [];
+                // Each entry is an array of 1-per-dimension signals from an inner expression--in a 1-d signal, each entry would just have 1 string
+                List<string[]> inputSignalNames = [];
+
+                // Loop through each inner expression--these each correspond to a PMOS and NMOS per dimension
+                foreach ((ILogicallyCombinable<ISignal> innerExpression, int i) in innerExpressions.Select((item, i) => (item, i)))
+                {
+                    // Run function for inner expression to get gate input signal
+                    string innerUniqueId = uniqueId + $"_{i}";
+                    SignalSpiceSharpObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
+                    {
+                        UniqueId = innerUniqueId,
+                    });
+
+                    // Add inner entities
+                    entities.AddRange(innerOutput.SpiceSharpEntities);
+
+                    // Set dimension first time through
+                    if (i == 0)
+                        dimension = innerOutput.Dimension;
+
+                    // Add inner output signal names to list
+                    inputSignalNames.Add(innerOutput.OutputSignalNames);
+                }
+
+                // Generate nor output signal names and final output signal names (1 per dimension)
+                string[] norSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "norout"))];
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "orout"))];
+
+                // For each dimension...
+                for (int i = 0; i < dimension; i++)
+                {
+                    // Add a PMOS and NMOS for each input signal
+                    foreach ((string inputSignal, int j) in inputSignalNames.Select((s, j) => (s[i], j)))
+                    {
+                        // PMOSs go in series from VDD to norSignal
+                        string pDrain = j == 0 ? norSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nor{j}");
+                        string pSource = j == dimension - 1 ? "VDD" : Util.GetSpiceName(uniqueId, i, $"nor{j+1}");
+                        entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnor{j}")}", pDrain, inputSignal, pSource, pSource, Util.PmosModelName));
+                        // NMOSs go in parallel from norSignal to ground
+                        entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnor{j}")}", norSignalNames[i], inputSignal, "0", "0", Util.NmosModelName));
+                    }
+
+                    // Add PMOS and NMOS to form NOT gate going from nor signal name to output signal name
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnot")}", outputSignalNames[i], norSignalNames[i], "VDD", "VDD", Util.PmosModelName));
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], norSignalNames[i], "0", "0", Util.NmosModelName));
+                }
+
+                return new()
+                {
+                    SpiceSharpEntities = entities,
+                    Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
+                };
+            }
+
+            SignalSpiceSharpObjectOutput NotFunction(ILogicallyCombinable<ISignal> innerExpression, SignalSpiceSharpObjectInput additionalInput)
+            {
+                string uniqueId = additionalInput.UniqueId;
+
+                // Run function for inner expression to get gate input signals (1 per dimension)
+                string innerUniqueId = uniqueId + "_0";
+                SignalSpiceSharpObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new()
+                {
+                    UniqueId = innerUniqueId,
+                });
+                int dimension = innerOutput.Dimension; // Get dimension from inner
+
+                // Generate output signal names (1 per dimension)
+                string[] outputSignalNames = [.. Enumerable.Range(0, dimension).Select(i => Util.GetSpiceName(uniqueId, i, "notout"))];
+
+                // For each dimension, add PMOS and NMOS to form NOT gate going from inner output signal name to output signal name
+                List<IEntity> entities = [.. innerOutput.SpiceSharpEntities];
+                for (int i = 0; i < dimension; i++)
+                {
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, "p")}", outputSignalNames[i], innerOutput.OutputSignalNames[i], "VDD", "VDD", Util.PmosModelName));
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, "n")}", outputSignalNames[i], innerOutput.OutputSignalNames[i], "0", "0", Util.NmosModelName));
+                }
+
+                return new()
+                {
+                    SpiceSharpEntities = entities,
+                    Dimension = dimension,
+                    OutputSignalNames = outputSignalNames,
+                };
+            }
+
+            SignalSpiceSharpObjectOutput BaseFunction(ISignal innerExpression, SignalSpiceSharpObjectInput additionalInput)
+            {
+                // Get signals as strings and generate output signal names
+                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
+                string uniqueId = additionalInput.UniqueId;
+                string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "baseout"))];
+                
+                // Add 1m resistors between signals and output signals
+                IEnumerable<IEntity> entities = Enumerable.Range(0, signals.Length).Select(i =>
+                    new Resistor($"R{Util.GetSpiceName(uniqueId, i, "res")}", signals[i], outputSignals[i], 1e-3));
+
+                return new()
+                {
+                    SpiceSharpEntities = entities,
+                    Dimension = signals.Length,
+                    OutputSignalNames = outputSignals,
+                };
+            }
+
+            options.AndFunction = AndFunction;
+            options.OrFunction = OrFunction;
+            options.NotFunction = NotFunction;
+            options.BaseFunction = BaseFunction;
+
+            signalSpiceSharpObjectOptions = options;
             return options;
         }
     }

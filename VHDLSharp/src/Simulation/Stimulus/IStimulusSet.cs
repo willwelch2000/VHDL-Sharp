@@ -1,3 +1,4 @@
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
@@ -7,7 +8,7 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Class for a set of stimuli to be applied on a <see cref="Port"/>
 /// </summary>
-public interface IStimulus
+public interface IStimulusSet
 {
     /// <summary>
     /// Dimension of stimulus

@@ -1,3 +1,4 @@
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -44,6 +45,12 @@ public class ValueBehavior : CombinationalBehavior
 
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

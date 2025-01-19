@@ -1,4 +1,5 @@
 using System.Text;
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
@@ -188,6 +189,13 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    {
+        // Create internal NamedSignals that can be passed to LogicExpressions but that aren't considered input signals
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

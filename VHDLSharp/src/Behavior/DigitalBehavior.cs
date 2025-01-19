@@ -1,6 +1,7 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
+using SpiceSharp.Entities;
 
 namespace VHDLSharp.Behaviors;
 
@@ -71,6 +72,14 @@ public abstract class DigitalBehavior
     /// <param name="uniqueId">Unique string provided to this instantiation so that it can have a unique name</param>
     /// <returns></returns>
     public abstract string ToSpice(NamedSignal outputSignal, string uniqueId);
+
+    /// <summary>
+    /// Get behavior as list of entities for Spice#
+    /// </summary>
+    /// <param name="outputSignal">Output signal for this behavior</param>
+    /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
+    /// <returns></returns>
+    public abstract IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Call this method to raise the <see cref="BehaviorUpdated"/> event

@@ -6,6 +6,7 @@ using VHDLSharp.Utility;
 using VHDLSharp.Conditions;
 using VHDLSharp.Signals;
 using VHDLSharp.Dimensions;
+using SpiceSharp.Entities;
 
 namespace VHDLSharp.Behaviors;
 
@@ -81,6 +82,12 @@ public class DynamicBehavior : DigitalBehavior
 
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

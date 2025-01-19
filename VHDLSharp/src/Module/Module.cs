@@ -1,6 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text;
+using SpiceSharp;
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -73,8 +76,6 @@ public class Module
     /// List of module instantiations inside of this module
     /// </summary>
     public ObservableCollection<Instantiation> Instantiations { get; set; } = [];
-
-    
 
     /// <summary>
     /// Get all named signals used in this module
@@ -261,16 +262,16 @@ public class Module
         StringBuilder sb = new();
         
         // Start subcircuit
-        sb.AppendLine($".subckt {Name} {string.Join(' ', Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice()))}\n");
-
-        // Add VDD node and PMOS/NMOS models
-        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(1));
-        sb.AppendLine(".MODEL NmosMod NMOS".AddIndentation(1));
-        sb.AppendLine(".MODEL PmosMod PMOS".AddIndentation(1));
+        sb.AppendLine($".subckt {Name} {string.Join(' ', PortsToSpice())}\n");
 
         // Add all inner modules' subcircuit declarations
         foreach (Module submodule in Instantiations.Select(i => i.Module).Distinct())
             sb.AppendLine(submodule.ToSpice().AddIndentation(1) + "\n");
+
+        // Add VDD node and PMOS/NMOS models
+        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(1));
+        sb.AppendLine($".MODEL {Util.NmosModelName} NMOS".AddIndentation(1));
+        sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(1));
 
         // Add all instantiations
         int i = 0;
@@ -288,5 +289,47 @@ public class Module
         sb.AppendLine($".ends {Name}");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// All ports converted to Spice strings
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice());
+
+    /// <summary>
+    /// Convert module to Spice# <see cref="Circuit"/> object
+    /// </summary>
+    /// <returns></returns>
+    public SubcircuitDefinition ToSpiceSubcircuit()
+    {
+        if (!Complete)
+            throw new Exception("Module not yet complete");
+
+        EntityCollection entities = [];
+        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeNamedSignals).Select(s => s.ToSpice())];
+
+        // Add VDD node and PMOS/NMOS models
+        entities.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
+        Mosfet1Model nmosModel = new(Util.NmosModelName);
+        nmosModel.Parameters.SetNmos(true);
+        Mosfet1Model pmosModel = new(Util.PmosModelName);
+        pmosModel.Parameters.SetPmos(true);
+        entities.Add(nmosModel);
+        entities.Add(pmosModel);
+
+        // Add instantiations
+        foreach (IEntity entity in Instantiation.GetSpiceSharpEntities(Instantiations))
+            entities.Add(entity);
+
+        // Add behaviors
+        int i = 0;
+        foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+        {
+            foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i.ToString()))
+                entities.Add(entity);
+        }
+
+        return new(entities, pins);
     }
 }

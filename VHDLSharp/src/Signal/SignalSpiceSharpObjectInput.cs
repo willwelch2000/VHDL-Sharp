@@ -1,0 +1,16 @@
+namespace VHDLSharp.Signals;
+
+using VHDLSharp.LogicTree;
+using SpiceSharp;
+
+/// <summary>
+/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object
+/// </summary>
+public class SignalSpiceSharpObjectInput
+{
+    /// <summary>
+    /// Unique id that this portion can use
+    /// Should contain numbers and underscores
+    /// </summary>
+    public string UniqueId { get; set; } = string.Empty;
+}

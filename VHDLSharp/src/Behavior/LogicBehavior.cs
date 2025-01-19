@@ -1,8 +1,8 @@
 
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
-using VHDLSharp.Utility;
 
 namespace VHDLSharp.Behaviors;
 
@@ -34,4 +34,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+
+    /// <inheritdoc/>
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId) => LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
 }

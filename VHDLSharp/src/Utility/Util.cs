@@ -8,6 +8,10 @@ internal static class Util
 
     internal static double RiseFall => 1e-9;
 
+    internal static string NmosModelName => "NmosMod";
+
+    internal static string PmosModelName => "PmosMod";
+
     internal static string AddIndentation(this string s, int indents)
     {
         return string.Concat(Enumerable.Repeat("\t", indents)) + s.ReplaceLineEndings($"\n{string.Concat(Enumerable.Repeat("\t", indents))}");
@@ -54,5 +58,6 @@ internal static class Util
     /// <returns></returns>
     internal static string GetSpiceName(string uniqueId, int dimensionIndex, string ending) => $"n{uniqueId}x{dimensionIndex}_{ending}";
 
-    internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? "PmosMod" : "NmosMod")} W=100u L=1u\n";
+    internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? PmosModelName : NmosModelName)} W=100u L=1u\n";
+
 }

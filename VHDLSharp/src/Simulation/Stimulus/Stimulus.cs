@@ -4,9 +4,9 @@ using VHDLSharp.Signals;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Single-node (one-dimensional) stimulus
+/// Single-node (one-dimensional) stimulus set
 /// </summary>
-public abstract class Stimulus : IStimulus
+public abstract class Stimulus : IStimulusSet
 {
     /// <inheritdoc/>
     public DefiniteDimension Dimension { get; } = new(1);
