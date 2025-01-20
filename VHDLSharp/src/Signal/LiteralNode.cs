@@ -67,6 +67,15 @@ public class LiteralNode : ISingleNodeSignal
     public IEnumerable<ISignal> BaseObjects => [this];
 
     /// <inheritdoc/>
+    public ISignal? ParentSignal => Literal;
+
+    /// <inheritdoc/>
+    public ISignal TopLevelSignal => Literal;
+
+    /// <inheritdoc/>
+    public IEnumerable<ISignal> ChildSignals => [];
+
+    /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));

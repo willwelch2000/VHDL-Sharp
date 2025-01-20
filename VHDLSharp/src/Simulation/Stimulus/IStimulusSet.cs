@@ -28,4 +28,12 @@ public interface IStimulusSet
     /// <param name="uniqueId"></param>
     /// <returns></returns>
     public string ToSpice(NamedSignal signal, string uniqueId); 
+
+    /// <summary>
+    /// Convert to Spice# entities that can be added to a simulation circuit
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="uniqueId"></param>
+    /// <returns></returns>
+    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId);
 }

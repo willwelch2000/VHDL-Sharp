@@ -8,7 +8,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class DigitalBehavior
+public abstract class DigitalBehavior : IHasParentModule
 {
     private EventHandler? behaviorUpdated;
 
@@ -23,7 +23,7 @@ public abstract class DigitalBehavior
     public abstract string ToVhdl(NamedSignal outputSignal);
 
     /// <summary>
-    /// Dimension of behavior, or null if it has no set dimension
+    /// Dimension of behavior, as a <see cref="Dimension"/> object
     /// </summary>
     public abstract Dimension Dimension { get; }
 

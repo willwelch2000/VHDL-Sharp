@@ -7,7 +7,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that can be used in an if statement
 /// </summary>
-public abstract class Condition : ILogicallyCombinable<Condition>
+public abstract class Condition : ILogicallyCombinable<Condition>, IHasParentModule
 {
     /// <inheritdoc/>
     public IEnumerable<Condition> BaseObjects => [this];

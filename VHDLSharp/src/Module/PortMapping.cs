@@ -34,30 +34,36 @@ public class PortMappingException : Exception
 }
 
 /// <summary>
-/// Mapping of ports of a module to the signals its connected to in an instantiation
+/// Mapping of ports of a module to the signals it's connected to in an instantiation
 /// </summary>
-public class PortMapping : ObservableDictionary<Port, NamedSignal>
+public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentModule
 {
-    private readonly Module module;
+    /// <summary>
+    /// Module that is instantiated
+    /// </summary>
+    public Module InstantiatedModule { get; }
 
-    private readonly Module parentModule;
+    /// <summary>
+    /// Module that contains module instantiation
+    /// </summary>
+    public Module ParentModule { get; }
     
     /// <summary>
     /// Construct port mapping given instantiated module and parent module
     /// </summary>
-    /// <param name="module">module that is instantiated</param>
-    /// <param name="parentModule">module that contains instantiated module</param>
-    public PortMapping(Module module, Module parentModule)
+    /// <param name="instantiatedModule">Module that is instantiated</param>
+    /// <param name="parentModule">Module that contains instantiated module</param>
+    public PortMapping(Module instantiatedModule, Module parentModule)
     {
-        this.module = module;
-        this.module.ModuleUpdated += ModuleUpdated;
-        this.parentModule = parentModule;
+        InstantiatedModule = instantiatedModule;
+        InstantiatedModule.ModuleUpdated += ModuleUpdated;
+        ParentModule = parentModule;
     }
 
     /// <summary>
     /// Get all ports that need assignment
     /// </summary>
-    public IEnumerable<Port> PortsToAssign => module.Ports.Except(Keys);
+    public IEnumerable<Port> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
     /// <summary>
     /// Indexer for port mapping
@@ -85,12 +91,12 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
                 throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
-            if (port.Signal.ParentModule != module)
-                throw new PortMappingException($"Ports must have the specified module {module} as parent");
-            if (!module.Ports.Contains(port))
-                throw new PortMappingException($"Port {port} must be in the list of ports of specified module {module}");
-            if (signal.ParentModule != parentModule)
-                throw new PortMappingException($"Signal must have module {parentModule} as parent");
+            if (port.Signal.ParentModule != InstantiatedModule)
+                throw new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
+            if (!InstantiatedModule.Ports.Contains(port))
+                throw new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
+            if (signal.ParentModule != ParentModule)
+                throw new PortMappingException($"Signal must have module {ParentModule} as parent");
         }
     }
 
@@ -98,7 +104,7 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>
     /// True if port mapping is complete (all ports are assigned)
     /// </summary>
     /// <returns></returns>
-    public bool Complete() => module.Ports.All(ContainsKey);
+    public bool Complete() => InstantiatedModule.Ports.All(ContainsKey);
 
     /// <inheritdoc/>
     public override void Add(Port port, NamedSignal signal)

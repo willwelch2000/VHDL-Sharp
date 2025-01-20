@@ -119,6 +119,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         base.CheckValid();
         // Combine dimensions of individual expressions
         IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.GetDimension());
+        // Check that only 1 non-null value is present
         if (dimensions.Select(d => d?.NonNullValue).Where(v => v is not null).Distinct().Count() > 1)
             throw new Exception("Expressions are incompatible");
     }
@@ -191,6 +192,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
         // Create internal NamedSignals that can be passed to LogicExpressions but that aren't considered input signals
+        // Or just make a more complicated LogicExpression (MUX) with whatever comes back nested inside
         throw new NotImplementedException();
     }
 

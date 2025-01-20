@@ -34,9 +34,9 @@ public class StimulusMappingException : Exception
 }
 
 /// <summary>
-/// Mapping of ports of a module to stimuli for a simulation
+/// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<Port, IStimulus>
+public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
 {
     private readonly Module module;
     
@@ -56,7 +56,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulus>
     public IEnumerable<Port> PortsToAssign => module.Ports.Except(Keys);
 
     /// <inheritdoc/>
-    public override IStimulus this[Port port]
+    public override IStimulusSet this[Port port]
     {
         get => base[port];
         set
@@ -73,7 +73,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulus>
 
     private void CheckValid()
     {
-        foreach ((Port port, IStimulus stimulus) in this)
+        foreach ((Port port, IStimulusSet stimulus) in this)
         {
             if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
                 throw new StimulusMappingException($"Port {port} must be input or bidirectional");
@@ -93,7 +93,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulus>
     public bool Complete() => module.Ports.All(ContainsKey);
 
     /// <inheritdoc/>
-    public override void Add(Port port, IStimulus stimulus)
+    public override void Add(Port port, IStimulusSet stimulus)
     {
         base.Add(port, stimulus);
         CheckValid();

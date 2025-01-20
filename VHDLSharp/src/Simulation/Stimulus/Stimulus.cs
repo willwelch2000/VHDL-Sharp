@@ -1,3 +1,4 @@
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 
@@ -34,5 +35,11 @@ public abstract class Stimulus : IStimulusSet
             return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeNamedSignals.First(), uniqueId);
             
         throw new Exception("Input signal must have dimension of 1");
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    {
+        throw new NotImplementedException();
     }
 }

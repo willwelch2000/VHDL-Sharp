@@ -15,6 +15,8 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Module
 {
+    private EventHandler? moduleUpdated;
+
     /// <summary>
     /// Default constructor
     /// </summary>
@@ -24,6 +26,7 @@ public class Module
         SignalBehaviors.CollectionChanged += InvokeModuleUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InvokeModuleUpdated;
+        Instantiations.CollectionChanged += InstantiationsListUpdated;
     }
 
     /// <summary>
@@ -39,15 +42,30 @@ public class Module
     private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
         CheckValid();
-        ModuleUpdated?.Invoke(this, e);
+        moduleUpdated?.Invoke(this, e);
     }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.NewItems is not null)
+        // Add InvokeModuleUpdated to each new behavior
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is (NamedSignal outputSignal, CombinationalBehavior behavior))
+                if (newItem is (NamedSignal outputSignal, DigitalBehavior behavior))
                     behavior.BehaviorUpdated += InvokeModuleUpdated;
+    }
+
+    private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Add InvokeModuleUpdated to each new instantiation
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+            {
+                // Don't allow duplicate instantiations in the list
+                if (Instantiations.Count(i => i == newItem) > 1)
+                    throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+                if (newItem is Instantiation instantiation)
+                    instantiation.SubmoduleUpdated += InvokeModuleUpdated;
+            }
     }
 
 
@@ -55,7 +73,15 @@ public class Module
     /// Event called when a property of the module is changed that could affect other objects,
     /// such as port mapping
     /// </summary>
-    public event EventHandler? ModuleUpdated;
+    public event EventHandler? ModuleUpdated
+    {
+        add
+        {
+            moduleUpdated -= value; // remove if already present
+            moduleUpdated += value;
+        }
+        remove => moduleUpdated -= value;
+    }
 
     /// <summary>
     /// Name of the module
@@ -80,17 +106,19 @@ public class Module
     /// <summary>
     /// Get all named signals used in this module
     /// Signals can come from ports, behavior input signals, or output signals
+    /// TODO: Replace Distinct with a custom function that merges vector nodes with vectors
     /// </summary>
     public IEnumerable<NamedSignal> NamedSignals =>
         Ports.Select(p => p.Signal)
         .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-        .Union(SignalBehaviors.Keys);
+        .Union(SignalBehaviors.Keys)
+        .Union(Instantiations.SelectMany(i => i.PortMapping.Values)).Distinct();
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
     /// </summary>
     public IEnumerable<Module> ModulesUsed =>
-        Instantiations.SelectMany(i => i.Module.ModulesUsed.Append(i.Module)).Distinct();
+        Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
 
     /// <summary>
     /// True if module is ready to be used
@@ -156,6 +184,19 @@ public class Module
         };
         Ports.Add(result);
         return result;
+    }
+
+    /// <summary>
+    /// Add new instantiation automatically using this module as parent module
+    /// </summary>
+    /// <param name="module">Module to be instantiated in this</param>
+    /// <param name="name">Name of instantiation</param>
+    /// <returns></returns>
+    public Instantiation AddNewInstantiation(Module module, string name)
+    {
+        Instantiation instantiation = new(module, this, name);
+        Instantiations.Add(instantiation);
+        return instantiation;
     }
 
     /// <summary>
@@ -253,8 +294,10 @@ public class Module
     /// <summary>
     /// Convert module to spice subcircuit
     /// </summary>
+    /// <param name="subcircuit">Whether it should be wrapped in a subcircuit or top-level</param>
     /// <returns></returns>
-    public string ToSpice()
+    /// <exception cref="Exception"></exception>
+    public string ToSpice(bool subcircuit = false)
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -262,11 +305,12 @@ public class Module
         StringBuilder sb = new();
         
         // Start subcircuit
-        sb.AppendLine($".subckt {Name} {string.Join(' ', PortsToSpice())}\n");
+        if (subcircuit)
+            sb.AppendLine($".subckt {Name} {string.Join(' ', PortsToSpice())}\n");
 
         // Add all inner modules' subcircuit declarations
-        foreach (Module submodule in Instantiations.Select(i => i.Module).Distinct())
-            sb.AppendLine(submodule.ToSpice().AddIndentation(1) + "\n");
+        foreach (Module submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
+            sb.AppendLine(submodule.ToSpice(true).AddIndentation(1) + "\n");
 
         // Add VDD node and PMOS/NMOS models
         sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(1));
@@ -274,19 +318,20 @@ public class Module
         sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(1));
 
         // Add all instantiations
-        int i = 0;
         foreach (Instantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.ToSpice(i++).AddIndentation(1));
+            sb.AppendLine(instantiation.ToSpice().AddIndentation(1));
         sb.AppendLine();
 
         // Add behaviors
+        int i = 0;
         foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
         {
             sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(1));
         }
 
         // End subcircuit
-        sb.AppendLine($".ends {Name}");
+        if (subcircuit)
+            sb.AppendLine($".ends {Name}");
 
         return sb.ToString();
     }
@@ -298,10 +343,10 @@ public class Module
     public IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice());
 
     /// <summary>
-    /// Convert module to Spice# <see cref="Circuit"/> object
+    /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
     /// </summary>
     /// <returns></returns>
-    public SubcircuitDefinition ToSpiceSubcircuit()
+    public SubcircuitDefinition ToSpiceSharpSubcircuit()
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -332,4 +377,10 @@ public class Module
 
         return new(entities, pins);
     }
+
+    /// <summary>
+    /// Convert module to Spice# <see cref="Circuit"/> object
+    /// </summary>
+    /// <returns></returns>
+    public Circuit ToSpiceSharpCircuit() => [.. ToSpiceSharpSubcircuit().Entities];
 }

@@ -24,7 +24,7 @@ public enum PortDirection
 /// <summary>
 /// A signal that is a port of a module
 /// </summary>
-public class Port
+public class Port : IHasParentModule
 {
     /// <summary>
     /// The signal object that this refers to
@@ -35,6 +35,9 @@ public class Port
     /// The direction that this port is with respect to the module
     /// </summary>
     public required PortDirection Direction { get; set; }
+
+    /// <inheritdoc/>
+    public Module ParentModule => Signal.ParentModule;
 
     /// <summary>
     /// Convert to string

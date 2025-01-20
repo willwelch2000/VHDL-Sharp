@@ -19,6 +19,12 @@ public class Signal(string name, Module parent) : SingleNodeNamedSignal
     /// </summary>
     public override Module ParentModule => parent;
 
+    /// <inheritdoc/>
+    public override ISignal? ParentSignal => null;
+
+    /// <inheritdoc/>
+    public override ISignal TopLevelSignal => this;
+
     /// <summary>
     /// Convert to string
     /// </summary>

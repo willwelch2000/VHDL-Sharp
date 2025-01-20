@@ -57,6 +57,9 @@ public class Literal : ISignal
     /// <inheritdoc/>
     public Module? ParentModule => null;
 
+    /// <inheritdoc/>
+    public ISignal TopLevelSignal => this;
+
     /// <summary>
     /// Just check dimension since this has no parent module
     /// </summary>
@@ -72,6 +75,17 @@ public class Literal : ISignal
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public IEnumerable<LiteralNode> ToSingleNodeSignals => [.. bits];
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <inheritdoc/>
+    public ISignal? ParentSignal => null;
+
+    /// <inheritdoc/>
+    public IEnumerable<ISignal> ChildSignals => [.. bits];
 
     /// <summary>
     /// Access individual node signals of literal
@@ -89,11 +103,6 @@ public class Literal : ISignal
             throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
         }
     }
-
-    /// <inheritdoc/>
-    public IEnumerable<LiteralNode> ToSingleNodeSignals => [..bits];
-
-    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     ISingleNodeSignal ISignal.this[int index] => this[index];
 }

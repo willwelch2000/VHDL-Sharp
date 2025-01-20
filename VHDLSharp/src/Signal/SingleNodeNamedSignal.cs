@@ -28,6 +28,9 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
     public override IEnumerable<ISignal> BaseObjects => [this];
 
     /// <inheritdoc/>
+    public override IEnumerable<ISignal> ChildSignals => [];
+
+    /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a signal with a parent, check that one--otherwise, get the first available

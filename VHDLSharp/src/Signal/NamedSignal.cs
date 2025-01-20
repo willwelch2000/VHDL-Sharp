@@ -41,13 +41,13 @@ public abstract class NamedSignal : ISignal
     public abstract IEnumerable<ISignal> BaseObjects { get; }
 
     /// <inheritdoc/>
-    public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);
+    public abstract ISignal? ParentSignal { get; }
 
     /// <inheritdoc/>
-    public abstract string ToLogicString();
+    public abstract ISignal TopLevelSignal { get; }
 
     /// <inheritdoc/>
-    public abstract string ToLogicString(LogicStringOptions options);
+    public abstract IEnumerable<ISignal> ChildSignals { get; }
 
     /// <inheritdoc/>
     public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals => ToSingleNodeNamedSignals;
@@ -58,8 +58,6 @@ public abstract class NamedSignal : ISignal
     /// More type-specific version of <see cref="ToSingleNodeSignals"/>
     /// </summary>
     public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals { get; }
-
-    ISingleNodeSignal ISignal.this[int index] => this[index];
 
     /// <summary>
     /// Indexer for multi-dimensional signals
@@ -76,4 +74,18 @@ public abstract class NamedSignal : ISignal
             return ToSingleNodeNamedSignals.ElementAt(index);
         }
     }
+
+    ISingleNodeSignal ISignal.this[int index] => this[index];
+
+    /// <inheritdoc/>
+    public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);
+
+    /// <inheritdoc/>
+    public abstract string ToLogicString();
+
+    /// <inheritdoc/>
+    public abstract string ToLogicString(LogicStringOptions options);
+
+    /// <inheritdoc/>
+    public override string ToString() => Name;
 }

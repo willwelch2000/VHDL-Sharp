@@ -1,3 +1,4 @@
+using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 
@@ -45,5 +46,11 @@ public class MultiDimensionalStimulus : IStimulusSet
             toReturn += $"{Stimuli[i].ToSpice(signals[i], $"uniqueId_{i}")}\n";
 
         return toReturn;
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    {
+        throw new NotImplementedException();
     }
 }
