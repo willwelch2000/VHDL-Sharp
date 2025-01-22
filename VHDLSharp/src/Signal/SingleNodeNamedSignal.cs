@@ -25,10 +25,10 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
     public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> BaseObjects => [this];
+    public override IEnumerable<SingleNodeNamedSignal> ChildSignals => [];
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> ChildSignals => [];
+    public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals => [this];
 
     /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
@@ -49,7 +49,4 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
 
     /// <inheritdoc/>
     public abstract string ToSpice();
-
-    /// <inheritdoc/>
-    public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals => [this];
 }

@@ -48,7 +48,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             UniqueId = uniqueId,
         });
 
-        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeNamedSignals];
+        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
         if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 
@@ -79,7 +79,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
         List<IEntity> entities = [.. output.SpiceSharpEntities];
 
-        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeNamedSignals];
+        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
         if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 

@@ -20,10 +20,10 @@ public class Signal(string name, Module parent) : SingleNodeNamedSignal
     public override Module ParentModule => parent;
 
     /// <inheritdoc/>
-    public override ISignal? ParentSignal => null;
+    public override NamedSignal? ParentSignal => null;
 
     /// <inheritdoc/>
-    public override ISignal TopLevelSignal => this;
+    public override NamedSignal TopLevelSignal => this;
 
     /// <summary>
     /// Convert to string

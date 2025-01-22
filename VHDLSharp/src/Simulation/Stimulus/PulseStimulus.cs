@@ -1,3 +1,5 @@
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
@@ -26,4 +28,11 @@ public class PulseStimulus : Stimulus
     /// <inheritdoc/>
     protected override string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId) =>
         $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.ToSpice()} 0 PULSE(0 {Util.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
+
+    /// <inheritdoc/>
+    protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
+    {
+        Pulse pulse = new(0, Util.VDD, DelayTime, Util.RiseFall, Util.RiseFall, PulseWidth, Period);
+        yield return new VoltageSource(Util.GetSpiceName(uniqueId, 0, "pulse"), signal.ToSpice(), "0", pulse);
+    }
 }

@@ -47,5 +47,13 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// If this is just a single thing, then it should return itself
     /// If this is a collection of T, then it should return that whole collection
     /// </summary>
-    public IEnumerable<T> BaseObjects { get; }
+    public IEnumerable<T> BaseObjects
+    {
+        get
+        {
+            if (this is T t)
+                return [t];
+            throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(BaseObjects)}");
+        }
+    }
 }

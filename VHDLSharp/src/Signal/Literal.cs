@@ -50,33 +50,20 @@ public class Literal : ISignal
 
     /// <inheritdoc/>
     public DefiniteDimension Dimension { get; }
-    
-    /// <inheritdoc/>
-    public IEnumerable<ISignal> BaseObjects => [];
 
     /// <inheritdoc/>
     public Module? ParentModule => null;
 
-    /// <inheritdoc/>
-    public ISignal TopLevelSignal => this;
+    /// <summary>
+    /// Top-level signal is just this object
+    /// </summary>
+    public Literal TopLevelSignal => this;
+
+    ISignal ISignal.TopLevelSignal => TopLevelSignal;
 
     /// <summary>
-    /// Just check dimension since this has no parent module
+    /// Get the single-node signals that make up this
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
-    {
-        return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
-    }
-
-    /// <inheritdoc/>
-    public string ToLogicString() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
-
-    /// <inheritdoc/>
-    public string ToLogicString(LogicStringOptions options) => ToLogicString();
-
-    /// <inheritdoc/>
     public IEnumerable<LiteralNode> ToSingleNodeSignals => [.. bits];
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
@@ -84,8 +71,12 @@ public class Literal : ISignal
     /// <inheritdoc/>
     public ISignal? ParentSignal => null;
 
-    /// <inheritdoc/>
-    public IEnumerable<ISignal> ChildSignals => [.. bits];
+    /// <summary>
+    /// Get the single-node signals that make up this
+    /// </summary>
+    public IEnumerable<LiteralNode> ChildSignals => [.. bits];
+
+    IEnumerable<ISignal> ISignal.ChildSignals => ChildSignals;
 
     /// <summary>
     /// Access individual node signals of literal
@@ -105,4 +96,20 @@ public class Literal : ISignal
     }
 
     ISingleNodeSignal ISignal.this[int index] => this[index];
+
+    /// <summary>
+    /// Just check dimension since this has no parent module
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public bool CanCombine(ILogicallyCombinable<ISignal> other)
+    {
+        return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
+    }
+
+    /// <inheritdoc/>
+    public string ToLogicString() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
+
+    /// <inheritdoc/>
+    public string ToLogicString(LogicStringOptions options) => ToLogicString();
 }

@@ -70,7 +70,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
 
         // Exception if last module doesn't contain signal
         Module lastModule = Subcircuit.FinalModule;
-        if (!lastModule.NamedSignals.SelectMany(s => s.ToSingleNodeNamedSignals).Contains(Signal))
+        if (!lastModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).Contains(Signal))
             throw new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
     }
 }

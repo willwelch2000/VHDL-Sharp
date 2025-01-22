@@ -106,13 +106,13 @@ public class Module
     /// <summary>
     /// Get all named signals used in this module
     /// Signals can come from ports, behavior input signals, or output signals
-    /// TODO: Replace Distinct with a custom function that merges vector nodes with vectors
     /// </summary>
     public IEnumerable<NamedSignal> NamedSignals =>
         Ports.Select(p => p.Signal)
         .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
         .Union(SignalBehaviors.Keys)
-        .Union(Instantiations.SelectMany(i => i.PortMapping.Values)).Distinct();
+        .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
+        .Select(s => s.TopLevelSignal).Distinct();
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -308,25 +308,33 @@ public class Module
         if (subcircuit)
             sb.AppendLine($".subckt {Name} {string.Join(' ', PortsToSpice())}\n");
 
+        int indentation = subcircuit ? 1 : 0;
+
         // Add all inner modules' subcircuit declarations
         foreach (Module submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
-            sb.AppendLine(submodule.ToSpice(true).AddIndentation(1) + "\n");
+            sb.AppendLine(submodule.ToSpice(true).AddIndentation(indentation) + "\n");
 
         // Add VDD node and PMOS/NMOS models
-        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(1));
-        sb.AppendLine($".MODEL {Util.NmosModelName} NMOS".AddIndentation(1));
-        sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(1));
+        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
+        sb.AppendLine($".MODEL {Util.NmosModelName} NMOS".AddIndentation(indentation));
+        sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(indentation));
 
         // Add all instantiations
         foreach (Instantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.ToSpice().AddIndentation(1));
+            sb.AppendLine(instantiation.ToSpice().AddIndentation(indentation));
         sb.AppendLine();
 
         // Add behaviors
         int i = 0;
         foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+            sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(indentation));
+        
+        // Add large resistors from output/bidirectional ports to ground
+        foreach (NamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
         {
-            sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(1));
+            int j = 0;
+            foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
+                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.ToSpice()} 0 1e6");
         }
 
         // End subcircuit
@@ -352,7 +360,7 @@ public class Module
             throw new Exception("Module not yet complete");
 
         EntityCollection entities = [];
-        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeNamedSignals).Select(s => s.ToSpice())];
+        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice())];
 
         // Add VDD node and PMOS/NMOS models
         entities.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
@@ -373,6 +381,14 @@ public class Module
         {
             foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i.ToString()))
                 entities.Add(entity);
+        }
+        
+        // Add large resistors from output/bidirectional ports to ground
+        foreach (NamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        {
+            int j = 0;
+            foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
+                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.ToSpice(), "0", 1e6));
         }
 
         return new(entities, pins);

@@ -16,14 +16,6 @@ public abstract class Stimulus : IStimulusSet
     public IEnumerable<Stimulus> Stimuli => [this];
 
     /// <summary>
-    /// Convert to Spice given single-node signal and unique id
-    /// </summary>
-    /// <param name="signal"></param>
-    /// <param name="uniqueId"></param>
-    /// <returns></returns>
-    protected abstract string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId); 
-
-    /// <summary>
     /// Convert to Spice given signal and unique id
     /// </summary>
     /// <param name="signal"></param>
@@ -32,14 +24,33 @@ public abstract class Stimulus : IStimulusSet
     public string ToSpice(NamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
-            return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeNamedSignals.First(), uniqueId);
+            return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
             
         throw new Exception("Input signal must have dimension of 1");
     }
 
+    /// <summary>
+    /// Convert to Spice given single-node signal and unique id
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="uniqueId"></param>
+    /// <returns></returns>
+    protected abstract string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId); 
+
     /// <inheritdoc/>
     public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
     {
-        throw new NotImplementedException();
+        if (signal.Dimension.NonNullValue == 1)
+            return ToSpiceSharpEntitiesGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
+            
+        throw new Exception("Input signal must have dimension of 1");
     }
+
+    /// <summary>
+    /// Convert to Spice# entities given single-node signal and unique id
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="uniqueId"></param>
+    /// <returns></returns>
+    protected abstract IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId);
 }

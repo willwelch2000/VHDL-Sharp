@@ -37,27 +37,34 @@ public abstract class NamedSignal : ISignal
     /// </summary>
     public abstract DefiniteDimension Dimension { get; }
 
-    /// <inheritdoc/>
-    public abstract IEnumerable<ISignal> BaseObjects { get; }
+    /// <summary>
+    /// Parent signal of this, if it exists
+    /// </summary>
+    public abstract NamedSignal? ParentSignal { get; }
 
-    /// <inheritdoc/>
-    public abstract ISignal? ParentSignal { get; }
+    /// <summary>
+    /// Top-level signal of this
+    /// </summary>
+    public abstract NamedSignal TopLevelSignal { get; }
 
-    /// <inheritdoc/>
-    public abstract ISignal TopLevelSignal { get; }
+    ISignal ISignal.TopLevelSignal => TopLevelSignal;
 
-    /// <inheritdoc/>
-    public abstract IEnumerable<ISignal> ChildSignals { get; }
+    ISignal? ISignal.ParentSignal => ParentSignal;
 
-    /// <inheritdoc/>
-    public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals => ToSingleNodeNamedSignals;
+    /// <summary>
+    /// Child signals of this
+    /// </summary>
+    public abstract IEnumerable<NamedSignal> ChildSignals { get; }
+
+    IEnumerable<ISignal> ISignal.ChildSignals => ChildSignals;
 
     /// <summary>
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1
     /// If it is dimension 1, then return itself
-    /// More type-specific version of <see cref="ToSingleNodeSignals"/>
     /// </summary>
-    public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals { get; }
+    public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals { get; }
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     /// <summary>
     /// Indexer for multi-dimensional signals
@@ -71,7 +78,7 @@ public abstract class NamedSignal : ISignal
         {
             if (index < 0 || index >= Dimension.NonNullValue)
                 throw new ArgumentOutOfRangeException(nameof(index), $"Must be between 0 and dimension ({Dimension.NonNullValue})");
-            return ToSingleNodeNamedSignals.ElementAt(index);
+            return ToSingleNodeSignals.ElementAt(index);
         }
     }
 

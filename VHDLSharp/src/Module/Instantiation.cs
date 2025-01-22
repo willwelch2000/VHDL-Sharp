@@ -68,7 +68,7 @@ public class Instantiation : IHasParentModule
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>
     /// <returns></returns>
-    public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeNamedSignals).Select(s => s.ToSpice()));
+    public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice()));
 
     /// <summary>
     /// Get list of instantiations as list of entities for Spice#
@@ -85,7 +85,7 @@ public class Instantiation : IHasParentModule
         int i = 0;
         foreach (Instantiation instantiation in instantiations)
         {
-            string[] nodes = [.. instantiation.InstantiatedModule.Ports.SelectMany(p => instantiation.PortMapping[p].ToSingleNodeNamedSignals).Select(s => s.ToSpice())];
+            string[] nodes = [.. instantiation.InstantiatedModule.Ports.SelectMany(p => instantiation.PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice())];
             yield return new Subcircuit($"X{i}", subcircuitDefinitions[instantiation.InstantiatedModule], nodes);
         }
     }

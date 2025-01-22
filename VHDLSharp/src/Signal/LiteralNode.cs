@@ -24,22 +24,6 @@ public class LiteralNode : ISingleNodeSignal
     }
 
     /// <summary>
-    /// Indexer--must be 0 for this
-    /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public ISingleNodeSignal this[int index]
-    {
-        get
-        {
-            if (index != 0)
-                throw new ArgumentOutOfRangeException(nameof(index), $"Must be 0 for single node signal");
-            return this;
-        }
-    }
-
-    /// <summary>
     /// The Literal that this belongs to
     /// </summary>
     public Literal Literal { get; }
@@ -61,19 +45,42 @@ public class LiteralNode : ISingleNodeSignal
     public Module? ParentModule => null;
 
     /// <inheritdoc/>
-    public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals => [this];
+    public IEnumerable<LiteralNode> ToSingleNodeSignals => [this];
 
-    /// <inheritdoc/>
-    public IEnumerable<ISignal> BaseObjects => [this];
+    /// <summary>
+    /// Parent signal
+    /// </summary>
+    public Literal? ParentSignal => Literal;
 
-    /// <inheritdoc/>
-    public ISignal? ParentSignal => Literal;
+    /// <summary>
+    /// Top level signal
+    /// </summary>
+    public Literal TopLevelSignal => Literal;
 
-    /// <inheritdoc/>
-    public ISignal TopLevelSignal => Literal;
+    ISignal? ISignal.ParentSignal => ParentSignal;
+
+    ISignal ISignal.TopLevelSignal => TopLevelSignal;
 
     /// <inheritdoc/>
     public IEnumerable<ISignal> ChildSignals => [];
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Indexer--must be 0 for this
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public ISingleNodeSignal this[int index]
+    {
+        get
+        {
+            if (index != 0)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Must be 0 for single node signal");
+            return this;
+        }
+    }
 
     /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<ISignal> other)

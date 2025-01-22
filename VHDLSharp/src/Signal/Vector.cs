@@ -49,6 +49,18 @@ public class Vector : NamedSignal
 
     /// <inheritdoc/>
     public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
+
+    /// <inheritdoc/>
+    public override IEnumerable<VectorNode> ToSingleNodeSignals => [.. vectorNodes];
+
+    /// <inheritdoc/>
+    public override NamedSignal? ParentSignal => null;
+
+    /// <inheritdoc/>
+    public override Vector TopLevelSignal => this;
+
+    /// <inheritdoc/>
+    public override IEnumerable<VectorNode> ChildSignals => [.. vectorNodes];
     
     /// <summary>
     /// Access individual node signals of vector
@@ -68,9 +80,6 @@ public class Vector : NamedSignal
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISignal> BaseObjects => [this];
-
-    /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a named signal (with a parent), check that one--otherwise, get the first available
@@ -86,16 +95,4 @@ public class Vector : NamedSignal
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
-
-    /// <inheritdoc/>
-    public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeNamedSignals => [.. vectorNodes];
-
-    /// <inheritdoc/>
-    public override ISignal? ParentSignal => null;
-
-    /// <inheritdoc/>
-    public override ISignal TopLevelSignal => this;
-
-    /// <inheritdoc/>
-    public override IEnumerable<VectorNode> ChildSignals => [.. vectorNodes];
 }

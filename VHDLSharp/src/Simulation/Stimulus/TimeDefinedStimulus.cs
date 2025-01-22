@@ -1,3 +1,4 @@
+using SpiceSharp.Entities;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
@@ -48,4 +49,10 @@ public class TimeDefinedStimulus : Stimulus
     }
 
     private static double GetVoltage(bool input) => input ? Util.VDD : 0;
+
+    /// <inheritdoc/>
+    protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
+    {
+        throw new NotImplementedException();
+    }
 }
