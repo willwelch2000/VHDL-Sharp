@@ -15,12 +15,6 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
     public DefiniteDimension Dimension { get; }
 
     /// <summary>
-    /// If this has a dimension > 1, convert to a list of things with dimension 1
-    /// If it is dimension 1, then return itself
-    /// </summary>
-    public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals { get; }
-
-    /// <summary>
     /// Indexer for multi-dimensional signals
     /// A single-dimensional signal will just return itself for the first item
     /// </summary>
@@ -37,10 +31,33 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
     /// If this is the top level, it returns this
     /// Otherwise, it goes up in hierarchy as much as possible
     /// </summary>
-    public ISignal TopLevelSignal { get; }
+    public ISignal TopLevelSignal
+    {
+        get
+        {
+            ISignal signal = this;
+            while (signal.ParentSignal is not null)
+                signal = signal.ParentSignal;
+            return signal;
+        }
+    }
 
     /// <summary>
     /// If this has children (e.g. vector), get the child signals
     /// </summary>
     public IEnumerable<ISignal> ChildSignals { get; }
+
+    /// <summary>
+    /// If this has a dimension > 1, convert to a list of things with dimension 1
+    /// If it is dimension 1, then return itself
+    /// </summary>
+    public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals
+    {
+        get
+        {
+            if (ChildSignals.Any())
+                return ChildSignals.SelectMany(s => s.ToSingleNodeSignals);
+            return this is ISingleNodeSignal singleNodeSignal ? [singleNodeSignal] : [];
+        }
+    }
 }

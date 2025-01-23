@@ -1,12 +1,14 @@
+using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Instantiation of one module inside of another (parent)
 /// </summary>
-public class Instantiation : IHasParentModule
+public class Instantiation : IHasParentModule, IHdlConvertible
 {
     private EventHandler? submoduleUpdated;
 
@@ -69,6 +71,25 @@ public class Instantiation : IHasParentModule
     /// </summary>
     /// <returns></returns>
     public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice()));
+
+    /// <summary>
+    /// Convert to VHDL
+    /// For instantiation, not component declaration
+    /// </summary>
+    /// <returns></returns>
+    public string ToVhdl()
+    {
+        StringBuilder sb = new();
+        sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
+        sb.AppendLine("port map (".AddIndentation(1));
+        sb.AppendJoin(",\n", PortMapping.Select(
+            kvp => $"{kvp.Key.Signal.ToVhdl()} => {kvp.Value.ToVhdl()}".AddIndentation(2)
+        ));
+        sb.AppendLine();
+        sb.AppendLine(");".AddIndentation(1));
+
+        return sb.ToString();
+    }
 
     /// <summary>
     /// Get list of instantiations as list of entities for Spice#

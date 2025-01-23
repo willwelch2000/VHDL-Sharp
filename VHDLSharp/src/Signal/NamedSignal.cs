@@ -25,13 +25,6 @@ public abstract class NamedSignal : ISignal
     public abstract string VhdlType { get; }
 
     /// <summary>
-    /// Get signal as VHDL
-    /// TODO might should be renamed
-    /// </summary>
-    /// <returns></returns>
-    public abstract string ToVhdl { get; }
-
-    /// <summary>
     /// Dimension of signal with definite value
     /// Of type <see cref="DefiniteDimension"/>
     /// </summary>
@@ -95,4 +88,11 @@ public abstract class NamedSignal : ISignal
 
     /// <inheritdoc/>
     public override string ToString() => Name;
+
+    /// <summary>
+    /// Get signal as VHDL
+    /// TODO might should be renamed
+    /// </summary>
+    /// <returns></returns>
+    public abstract string ToVhdl();
 }

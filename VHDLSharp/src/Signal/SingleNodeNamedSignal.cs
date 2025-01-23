@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Base class for any signal that contains just a single node (not a vector)
 /// </summary>
-public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
+public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal, IHdlConvertible
 {
     /// <inheritdoc/>
     public override abstract string Name { get; }
@@ -20,9 +20,6 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
 
     /// <inheritdoc/>
     public override string VhdlType => "std_logic";
-
-    /// <inheritdoc/>
-    public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
 
     /// <inheritdoc/>
     public override IEnumerable<SingleNodeNamedSignal> ChildSignals => [];
@@ -49,4 +46,7 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal
 
     /// <inheritdoc/>
     public abstract string ToSpice();
+
+    /// <inheritdoc/>
+    public override string ToVhdl() => $"signal {Name}\t: {VhdlType}";
 }

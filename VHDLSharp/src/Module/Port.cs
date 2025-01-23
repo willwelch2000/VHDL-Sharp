@@ -49,7 +49,7 @@ public class Port : IHasParentModule
     /// Get signal as VHDL
     /// </summary>
     /// <returns></returns>
-    public string ToVhdl => $"{Signal.Name}\t: {DirectionToVhdl(Direction)}\t{Signal.VhdlType}";
+    public string ToVhdl() => $"{Signal.Name}\t: {DirectionToVhdl(Direction)}\t{Signal.VhdlType}";
 
     private static string DirectionToVhdl(PortDirection direction) =>
         direction switch

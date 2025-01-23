@@ -48,9 +48,6 @@ public class Vector : NamedSignal
     public override string VhdlType => $"std_logic_vector({dimension-1} downto 0)";
 
     /// <inheritdoc/>
-    public override string ToVhdl => $"signal {Name}\t: {VhdlType}";
-
-    /// <inheritdoc/>
     public override IEnumerable<VectorNode> ToSingleNodeSignals => [.. vectorNodes];
 
     /// <inheritdoc/>
@@ -95,4 +92,7 @@ public class Vector : NamedSignal
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override string ToVhdl() => $"signal {Name}\t: {VhdlType}";
 }

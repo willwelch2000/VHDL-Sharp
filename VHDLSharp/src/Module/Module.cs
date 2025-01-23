@@ -13,7 +13,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// A digital module--a circuit that has some functionality
 /// </summary>
-public class Module
+public class Module : IHdlConvertible
 {
     private EventHandler? moduleUpdated;
 
@@ -261,7 +261,7 @@ public class Module
         // Entity statement
         sb.AppendLine($"entity {Name} is");
         sb.AppendLine("\tport (");
-        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl.AddIndentation(2)));
+        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
         sb.AppendLine();
         sb.AppendLine(");".AddIndentation(1));
         sb.AppendLine($"end {Name};");
@@ -276,8 +276,17 @@ public class Module
             sb.AppendLine($"signal {signal.ToVhdl}".AddIndentation(1));
         }
 
+        // Component declarations
+        foreach (Module module in ModulesUsed)
+            sb.AppendLine(module.GetComponentDeclaration());
+
         // Begin
         sb.AppendLine("begin");
+
+        // Add all instantiations
+        foreach (Instantiation instantiation in Instantiations)
+            sb.AppendLine(instantiation.ToVhdl().AddIndentation(1));
+        sb.AppendLine();
 
         // Behaviors
         foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
@@ -291,13 +300,16 @@ public class Module
         return sb.ToString();
     }
 
+    /// <inheritdoc/>
+    public string ToSpice() => ToSpice(false);
+
     /// <summary>
-    /// Convert module to spice subcircuit
+    /// Convert module to spice circuit
     /// </summary>
     /// <param name="subcircuit">Whether it should be wrapped in a subcircuit or top-level</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public string ToSpice(bool subcircuit = false)
+    public string ToSpice(bool subcircuit)
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -399,4 +411,19 @@ public class Module
     /// </summary>
     /// <returns></returns>
     public Circuit ToSpiceSharpCircuit() => [.. ToSpiceSharpSubcircuit().Entities];
+
+    private string GetComponentDeclaration()
+    {
+        StringBuilder sb = new();
+
+        // Entity statement
+        sb.AppendLine($"component {Name}");
+        sb.AppendLine("\tport (");
+        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
+        sb.AppendLine();
+        sb.AppendLine(");".AddIndentation(1));
+        sb.AppendLine($"end component {Name};");
+
+        return sb.ToString();
+    }
 }

@@ -8,7 +8,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class DigitalBehavior : IHasParentModule
+public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOutput
 {
     private EventHandler? behaviorUpdated;
 
