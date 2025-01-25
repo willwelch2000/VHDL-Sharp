@@ -29,7 +29,7 @@ public class SimulationResult(SignalReference signal)
     /// <summary>
     /// Time steps paired with digital values
     /// </summary>
-    public IEnumerable<(double, bool)> TimeStepValues => TimeSteps.Zip(Values);
+    public IEnumerable<(double, bool)> TimeStepsAndValues => TimeSteps.Zip(Values);
 
     internal void AddTimeStepValue(double time, double voltage)
     {

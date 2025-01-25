@@ -1,3 +1,4 @@
+using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -28,7 +29,7 @@ public class TimeDefinedStimulus : Stimulus
         foreach ((double time, bool val) in orderedPoints)
         {
             // Skip if same as previous
-            if (val == prevVal)
+            if (val == prevVal && !firstLoop)
                 continue;
 
             // Add space if not first time
@@ -53,6 +54,30 @@ public class TimeDefinedStimulus : Stimulus
     /// <inheritdoc/>
     protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
     {
-        throw new NotImplementedException();
+        // Get points as (time, val) ordered by time
+        List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
+
+        // Uses first value as starting value
+        bool prevVal = orderedPoints.First().val;
+        bool firstLoop = true;
+        List<double> vector = [];
+        foreach ((double time, bool val) in orderedPoints)
+        {
+            // Skip if same as previous
+            if (val == prevVal && !firstLoop)
+                continue;
+
+            // Add point at time step with previous value
+            vector.Add(time);
+            vector.Add(GetVoltage(prevVal));
+
+            // Add point right after with new value
+            vector.Add(time + Util.RiseFall);
+            vector.Add(GetVoltage(val));
+        }
+
+        Pwl pwl = new();
+        pwl.SetPoints([.. vector]);
+        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pwl")}", signal.ToSpice(), "0", pwl);
     }
 }

@@ -11,6 +11,29 @@ namespace VHDLSharp.Simulations;
 public class PulseStimulus : Stimulus
 {
     /// <summary>
+    /// Default constructor
+    /// </summary>
+    public PulseStimulus()
+    {
+        DelayTime = 0.5e-3;
+        PulseWidth = 0.5e-3;
+        Period = 1e-3;
+    }
+
+    /// <summary>
+    /// Constructor given parameters
+    /// </summary>
+    /// <param name="delayTime"></param>
+    /// <param name="pulseWidth"></param>
+    /// <param name="period"></param>
+    public PulseStimulus(double delayTime, double pulseWidth, double period)
+    {
+        DelayTime = delayTime;
+        PulseWidth = pulseWidth;
+        Period = period;
+    }
+
+    /// <summary>
     /// Delay time for pulse
     /// </summary>
     public double DelayTime { get; set; }
