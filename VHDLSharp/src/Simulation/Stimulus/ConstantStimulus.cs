@@ -37,6 +37,6 @@ public class ConstantStimulus : Stimulus
     protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
     {
         // DC voltage source at signal with VDD or 0
-        yield return new VoltageSource(Util.GetSpiceName(uniqueId, 0, "const"), signal.ToSpice(), "0", Value ? Util.VDD : 0);
+        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "const")}", signal.ToSpice(), "0", Value ? Util.VDD : 0);
     }
 }

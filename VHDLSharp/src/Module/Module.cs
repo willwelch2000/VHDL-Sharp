@@ -346,7 +346,7 @@ public class Module : IHdlConvertible
         {
             int j = 0;
             foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.ToSpice()} 0 1e6");
+                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.ToSpice()} 0 1e9");
         }
 
         // End subcircuit
@@ -400,7 +400,7 @@ public class Module : IHdlConvertible
         {
             int j = 0;
             foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.ToSpice(), "0", 1e6));
+                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.ToSpice(), "0", 1e9));
         }
 
         return new(entities, pins);

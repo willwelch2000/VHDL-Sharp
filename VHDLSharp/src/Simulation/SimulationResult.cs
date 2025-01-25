@@ -12,9 +12,9 @@ public class SimulationResult(SignalReference signal)
     private readonly List<bool> values = [];
 
     /// <summary>
-    /// Signal that is monitored
+    /// Reference to signal that is monitored
     /// </summary>
-    public SignalReference Signal { get; } = signal;
+    public SignalReference SignalReference { get; } = signal;
 
     /// <summary>
     /// X values of result--time steps

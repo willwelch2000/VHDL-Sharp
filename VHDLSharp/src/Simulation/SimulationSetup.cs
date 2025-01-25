@@ -120,33 +120,9 @@ public class SimulationSetup
             spiceSharpRefs.Add((new RealVoltageExport(tran, spiceSharpRef), result));
         }
 
-        double time = StepSize;
-        IEntity[] entities = circuit.ToArray();
-        Circuit circuit2 = [];
-        circuit2.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
-        Mosfet1Model nmosModel = new(Util.NmosModelName);
-        nmosModel.Parameters.SetNmos(true);
-        Mosfet1Model pmosModel = new(Util.PmosModelName);
-        pmosModel.Parameters.SetPmos(true);
-        circuit2.Add(nmosModel);
-        circuit2.Add(pmosModel);
-        circuit2.Add(new Resistor("Rn0_0x0_res", "s1", "n0_0x0_baseout", 1));
-        circuit2.Add(new Resistor("Rn0_1x0_res", "s2", "n0_1x0_baseout", 1));
-        circuit2.Add(new Mosfet1("Mn0x0_pnand0", "n0x0_nandout", "n0_0x0_baseout", "VDD", "VDD", "PmosMod"));
-        circuit2.Add(new Mosfet1("Mn0x0_nnand0", "n0x0_nandout", "n0_0x0_baseout", "0", "0", "NmosMod"));
-
-        circuit2.Add(new VoltageSource("V_1", "s1", "0", Util.VDD));
-        circuit2.Add(new VoltageSource("V_2", "n0x0_nandout", "0", 3));
-        circuit2.Add(new VoltageSource("V_3", "n0_1x0_baseout", "0", 3));
-        circuit2.Add(new VoltageSource("V_4", "s2", "0", Util.VDD));
-        foreach (int _ in tran.Run(circuit2, Transient.ExportTransient))
-        {
+        foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
             foreach ((RealVoltageExport export, SimulationResult result) in spiceSharpRefs)
-            {
-                result.AddTimeStepValue(time, export.Value);
-                time += StepSize;
-            }
-        }
+                result.AddTimeStepValue(tran.Time, export.Value);
 
         return spiceSharpRefs.Select(r => r.result);
     }

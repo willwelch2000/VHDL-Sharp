@@ -91,7 +91,6 @@ public abstract class NamedSignal : ISignal
 
     /// <summary>
     /// Get signal as VHDL
-    /// TODO might should be renamed
     /// </summary>
     /// <returns></returns>
     public abstract string ToVhdl();

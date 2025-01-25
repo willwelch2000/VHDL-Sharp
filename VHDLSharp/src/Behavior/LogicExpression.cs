@@ -175,7 +175,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                         returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, $"pnand{j}"), nandSignalNames[i], inputSignal, "VDD", true);
                         // NMOSs go in series from nandSignal to ground
                         string nDrain = j == 0 ? nandSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nand{j}");
-                        string nSource = j == dimension - 1 ? "0" : Util.GetSpiceName(uniqueId, i, $"nand{j+1}");
+                        string nSource = j == inputSignalNames.Count - 1 ? "0" : Util.GetSpiceName(uniqueId, i, $"nand{j+1}");
                         returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, $"nnand{j}"), nDrain, inputSignal, nSource, false);
                     }
 
@@ -237,7 +237,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     {
                         // PMOSs go in series from VDD to norSignal
                         string pDrain = j == 0 ? norSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nor{j}");
-                        string pSource = j == dimension - 1 ? "VDD" : Util.GetSpiceName(uniqueId, i, $"nor{j+1}");
+                        string pSource = j == inputSignalNames.Count - 1 ? "VDD" : Util.GetSpiceName(uniqueId, i, $"nor{j+1}");
                         returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, $"pnor{j}"), pDrain, inputSignal, pSource, true);
                         // NMOSs go in parallel from norSignal to ground
                         returnVal += Util.GetMosfetSpiceLine(Util.GetSpiceName(uniqueId, i, $"nnor{j}"), norSignalNames[i], inputSignal, "0", false);
@@ -375,13 +375,13 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                         entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnand{j}")}", nandSignalNames[i], inputSignal, "VDD", "VDD", Util.PmosModelName));
                         // NMOSs go in series from nandSignal to ground
                         string nDrain = j == 0 ? nandSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nand{j}");
-                        string nSource = j == dimension - 1 ? "0" : Util.GetSpiceName(uniqueId, i, $"nand{j+1}");
+                        string nSource = j == inputSignalNames.Count - 1 ? "0" : Util.GetSpiceName(uniqueId, i, $"nand{j+1}");
                         entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnand{j}")}", nDrain, inputSignal, nSource, nSource, Util.NmosModelName));
                     }
 
                     // Add PMOS and NMOS to form NOT gate going from nand signal name to output signal name
                     entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnot")}", outputSignalNames[i], nandSignalNames[i], "VDD", "VDD", Util.PmosModelName));
-                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], nandSignalNames[i], "0", "0", Util.PmosModelName));
+                    entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], nandSignalNames[i], "0", "0", Util.NmosModelName));
                 }
 
                 return new()
@@ -436,7 +436,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
                     {
                         // PMOSs go in series from VDD to norSignal
                         string pDrain = j == 0 ? norSignalNames[i] : Util.GetSpiceName(uniqueId, i, $"nor{j}");
-                        string pSource = j == dimension - 1 ? "VDD" : Util.GetSpiceName(uniqueId, i, $"nor{j+1}");
+                        string pSource = j == inputSignalNames.Count - 1 ? "VDD" : Util.GetSpiceName(uniqueId, i, $"nor{j+1}");
                         entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"pnor{j}")}", pDrain, inputSignal, pSource, pSource, Util.PmosModelName));
                         // NMOSs go in parallel from norSignal to ground
                         entities.Add(new Mosfet1($"M{Util.GetSpiceName(uniqueId, i, $"nnor{j}")}", norSignalNames[i], inputSignal, "0", "0", Util.NmosModelName));
