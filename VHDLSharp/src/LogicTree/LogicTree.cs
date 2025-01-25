@@ -38,11 +38,25 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     public And<T> And(ILogicallyCombinable<T> other) => new(this, other);
 
     /// <summary>
+    /// Generate an And with this logic tree and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+
+    /// <summary>
     /// Generate an Or with this logic tree and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
     public Or<T> Or(ILogicallyCombinable<T> other) => new(this, other);
+
+    /// <summary>
+    /// Generate an Or with this logic tree and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public And<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
 
     /// <summary>
     /// Generate a Not with this logic tree

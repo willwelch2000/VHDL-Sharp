@@ -1,3 +1,4 @@
+using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
@@ -20,6 +21,7 @@ public class ValueBehavior : CombinationalBehavior
         if (value < 0)
             throw new ArgumentOutOfRangeException(nameof(value), "Must be >= 0");
         Value = value;
+        // Following produces correct minimum dimension given the value
         if (value == 0)
             Dimension = new(1, null);
         else
@@ -46,12 +48,21 @@ public class ValueBehavior : CombinationalBehavior
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
-        throw new NotImplementedException();
+        string toReturn = "";
+        int i = 0;
+        // Loop through single-node signals and apply corresponding bit of Value
+        foreach (SingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+            // TODO voltage sources could be standardized better
+            toReturn += $"V{Util.GetSpiceName(uniqueId, i++, "value")} {singleNodeSignal.ToSpice()} 0 {((Value & i) > 0 ? Util.VDD : 0)}";
+        return toReturn;
     }
 
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
-        throw new NotImplementedException();
+        int i = 0;
+        // Loop through single-node signals and apply corresponding bit of Value
+        foreach (SingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+            yield return new VoltageSource(Util.GetSpiceName(uniqueId, i++, "value"), singleNodeSignal.ToSpice(), "0", (Value & i) > 0 ? Util.VDD : 0);
     }
 }

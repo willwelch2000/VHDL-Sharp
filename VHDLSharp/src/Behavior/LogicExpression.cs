@@ -104,11 +104,25 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     public LogicExpression And(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(expression, other));
 
     /// <summary>
+    /// Generate an And with this expression and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public LogicExpression And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new And<ISignal>([.. others, expression]));
+
+    /// <summary>
     /// Generate an Or with this expression and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
     public LogicExpression Or(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(expression, other));
+
+    /// <summary>
+    /// Generate an Or with this expression and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public LogicExpression Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new Or<ISignal>([.. others, expression]));
 
     /// <summary>
     /// Generate a Not with this expression
@@ -291,6 +305,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
             SignalSpiceObjectOutput BaseFunction(ISignal innerExpression, SignalSpiceObjectInput additionalInput)
             {
+                // TODO check that this works for literal signals
                 // Get signals as strings and generate output signal names
                 string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
                 string uniqueId = additionalInput.UniqueId;

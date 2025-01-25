@@ -215,7 +215,7 @@ public class Module : IHdlConvertible
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
                 throw new Exception($"Behavior must have this module as parent");
             if (!behavior.Dimension.Compatible(outputSignal.Dimension))
-                throw new Exception("Behavior must have same dimension as assigned output signal");
+                throw new Exception("Behavior must have dimension compatible with assigned output signal");
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
                 throw new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
