@@ -8,11 +8,27 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
 {
     /// <summary>
     /// Given another thing of type T, this is true if they are compatible for a logic tree
-    /// Transitive property is assumed! (e.g. if A is compatible with B and B with C, then A must be compatible with C)
+    /// TODO I don't think this is true: Transitive property is assumed! (e.g. if A is compatible with B and B with C, then A must be compatible with C)
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
     public bool CanCombine(ILogicallyCombinable<T> other);
+
+    /// <summary>
+    /// Given other things of type T, this is true if they are all compatible for a logic tree
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<T>> others)
+    {
+        IEnumerable<ILogicallyCombinable<T>> all = [.. others, this];
+        foreach (var thing1 in all)
+            foreach (var thing2 in all.Except([thing1]))
+                if (!thing1.CanCombine(thing2))
+                    return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Convert to string
@@ -56,4 +72,38 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
             throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(BaseObjects)}");
         }
     }
+    
+    /// <summary>
+    /// Generate an And with this and another <see cref="ILogicallyCombinable{T}"/>
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public And<T> And(ILogicallyCombinable<T> other) => new(this, other);
+
+    /// <summary>
+    /// Generate an And with this and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+
+    /// <summary>
+    /// Generate an Or with this and another <see cref="ILogicallyCombinable{T}"/>
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public Or<T> Or(ILogicallyCombinable<T> other) => new(this, other);
+
+    /// <summary>
+    /// Generate an Or with this and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+
+    /// <summary>
+    /// Generate a Not with this
+    /// </summary>
+    /// <returns></returns>
+    public Not<T> Not() => new(this);
 }

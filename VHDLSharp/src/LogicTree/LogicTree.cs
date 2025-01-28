@@ -30,40 +30,6 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     /// <returns></returns>
     public bool CanCombine(ILogicallyCombinable<T> other) => !BaseObjects.Any() || BaseObjects.All(o => o.CanCombine(other) && other.CanCombine(o));
 
-    /// <summary>
-    /// Generate an And with this logic tree and another <see cref="ILogicallyCombinable{T}"/>
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public And<T> And(ILogicallyCombinable<T> other) => new(this, other);
-
-    /// <summary>
-    /// Generate an And with this logic tree and other <see cref="ILogicallyCombinable{T}"/> objects
-    /// </summary>
-    /// <param name="others"></param>
-    /// <returns></returns>
-    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
-
-    /// <summary>
-    /// Generate an Or with this logic tree and another <see cref="ILogicallyCombinable{T}"/>
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public Or<T> Or(ILogicallyCombinable<T> other) => new(this, other);
-
-    /// <summary>
-    /// Generate an Or with this logic tree and other <see cref="ILogicallyCombinable{T}"/> objects
-    /// </summary>
-    /// <param name="others"></param>
-    /// <returns></returns>
-    public And<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
-
-    /// <summary>
-    /// Generate a Not with this logic tree
-    /// </summary>
-    /// <returns></returns>
-    public Not<T> Not() => new(this);
-
     /// <inheritdoc/>
     public abstract string ToLogicString();
 
@@ -72,4 +38,18 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
 
     /// <inheritdoc/>
     public abstract TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new();
+
+    /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<T>> others)
+    {
+        T? first = FirstBaseObject;
+
+        // If no base objects exist for this object, it's determined by the others
+        // Test the first other with all the remaining others
+        if (first is null)
+            return !others.Any() || others.First().CanCombine(others.Skip(1));
+
+        // Otherwise, test the first base object with the others
+        return first.CanCombine(others);
+    }
 }

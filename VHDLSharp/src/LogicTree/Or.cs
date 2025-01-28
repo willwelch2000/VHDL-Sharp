@@ -17,6 +17,8 @@ public class Or<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     {
         if (inputs.Length < 2)
             throw new Exception("Or should have > 1 inputs");
+        if (!inputs[0].CanCombine(inputs[1..]))
+            throw new Exception("Inputs to AND must be compatible");
         this.inputs = inputs;
     }
 
@@ -27,7 +29,7 @@ public class Or<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     public override IEnumerable<T> BaseObjects => inputs.SelectMany(i => i.BaseObjects);
 
     /// <inheritdoc/>
-    public override string ToLogicString() => string.Join(" or ", inputs.Select(i => $"{i.ToLogicString()}"));
+    public override string ToLogicString() => "(" + string.Join(" or ", inputs.Select(i => $"{i.ToLogicString()}")) + ")";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();

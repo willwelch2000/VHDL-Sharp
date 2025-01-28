@@ -16,7 +16,9 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     public And(params ILogicallyCombinable<T>[] inputs)
     {
         if (inputs.Length < 2)
-            throw new Exception("And should have > 1 inputs");
+            throw new Exception("AND should have > 1 inputs");
+        if (!inputs[0].CanCombine(inputs[1..]))
+            throw new Exception("Inputs to AND must be compatible");
         this.inputs = inputs;
     }
 
@@ -27,7 +29,7 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     public override IEnumerable<T> BaseObjects => inputs.SelectMany(i => i.BaseObjects);
 
     /// <inheritdoc/>
-    public override string ToLogicString() => string.Join(" and ", inputs.Select(i => $"{i.ToLogicString()}"));
+    public override string ToLogicString() => "(" + string.Join(" and ", inputs.Select(i => $"{i.ToLogicString()}")) + ")";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();

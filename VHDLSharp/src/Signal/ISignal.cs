@@ -60,4 +60,34 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
             return this is ISingleNodeSignal singleNodeSignal ? [singleNodeSignal] : [];
         }
     }
+
+    /// <summary>
+    /// Given several signals, returns true if they can be combined together
+    /// </summary>
+    /// <param name="combinables"></param>
+    /// <returns></returns>
+    internal static bool CanCombineSignals(IEnumerable<ILogicallyCombinable<ISignal>> combinables)
+    {
+        IEnumerable<ISignal> baseSignals = combinables.SelectMany(c => c.BaseObjects);
+
+        // 1 or 0 signals is always true
+        if (baseSignals.Count() < 2)
+            return true;
+
+        // Find named signal, if it exists
+        NamedSignal? namedSignal = baseSignals.FirstOrDefault(s => s is NamedSignal) as NamedSignal;
+        if (namedSignal is not null)
+        {
+            // If any signal has another parent
+            if (baseSignals.Any(s => s.ParentModule is not null && s.ParentModule != namedSignal.ParentModule))
+                return false;
+        }
+
+        // If any signal has incompatible dimension with first
+        ISignal first = baseSignals.First();
+        if (baseSignals.Any(s => !s.Dimension.Compatible(first.Dimension)))
+            return false;
+
+        return true;
+    }
 }

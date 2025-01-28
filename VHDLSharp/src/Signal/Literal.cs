@@ -108,8 +108,28 @@ public class Literal : ISignal
     }
 
     /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
+    /// <inheritdoc/>
     public string ToLogicString() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    // The following functions are given here so that they can be accessed without referring to this object as ISignal
+    
+    /// <inheritdoc/>
+    public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
+
+    /// <inheritdoc/>
+    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+
+    /// <inheritdoc/>
+    public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
+
+    /// <inheritdoc/>
+    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+
+    /// <inheritdoc/>
+    public Not<ISignal> Not() => new(this);
 }
