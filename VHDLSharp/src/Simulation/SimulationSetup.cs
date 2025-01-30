@@ -111,20 +111,17 @@ public class SimulationSetup
         
         var tran = new Transient("Tran 1", StepSize, Length);
 
-        // List of Spice# Reference objects and SimulationResult objects
-        List<(RealVoltageExport export, SimulationResult result)> spiceSharpRefs = [];
+        // Create all SimulationResult objects
+        List<SimulationResult> results = [];
         foreach (SignalReference signalReference in SignalsToMonitor)
-        {
-            Reference spiceSharpRef = signalReference.GetSpiceSharpReference();
-            SimulationResult result = new(signalReference);
-            spiceSharpRefs.Add((new RealVoltageExport(tran, spiceSharpRef), result));
-        }
+            results.Add(new SimulationResult(signalReference, tran));
 
+        // At each timestep, have the SimulationResult objects add the current x-y value
         foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
-            foreach ((RealVoltageExport export, SimulationResult result) in spiceSharpRefs)
-                result.AddTimeStepValue(tran.Time, export.Value);
+            foreach (SimulationResult result in results)
+                result.AddCurrentTimeStepValue();
 
-        return spiceSharpRefs.Select(r => r.result);
+        return results;
     }
 
     private void CheckValidNewItem(object? sender, NotifyCollectionChangedEventArgs e)

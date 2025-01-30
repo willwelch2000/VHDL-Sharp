@@ -17,7 +17,7 @@ public class Not<T>(ILogicallyCombinable<T> input) : LogicTree<T> where T : ILog
     public override IEnumerable<T> BaseObjects => input.BaseObjects;
 
     /// <inheritdoc/>
-    public override string ToLogicString() => $"not ({input.ToLogicString()})";
+    public override string ToLogicString() => $"(not ({input.ToLogicString()}))";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();

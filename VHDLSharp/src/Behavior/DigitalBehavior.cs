@@ -90,4 +90,18 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     {
         behaviorUpdated?.Invoke(sender, e);
     }
+
+    /// <summary>
+    /// Check that a given output signal is compatible with this
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    /// <exception cref="Exception"></exception>
+    public void CheckCompatible(NamedSignal outputSignal)
+    {
+        CheckValid();
+        if (ParentModule is not null && outputSignal.ParentModule != ParentModule)
+            throw new Exception($"Output signal's parent module ({outputSignal.ParentModule}) does not match this parent module ({ParentModule})");
+        if (!Dimension.Compatible(outputSignal.Dimension))
+            throw new Exception("Output signal must have dimension compatible with this");
+    }
 }

@@ -16,7 +16,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// </summary>
     /// <param name="subcircuitReference"></param>
     /// <param name="signal"></param>
-    public SignalReference(SubcircuitReference subcircuitReference, SingleNodeNamedSignal signal)
+    public SignalReference(SubcircuitReference subcircuitReference, NamedSignal signal)
     {
         Subcircuit = subcircuitReference;
         Signal = signal;
@@ -34,7 +34,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// <summary>
     /// Signal being referenced--must be in <see cref="Subcircuit"/>
     /// </summary>
-    public SingleNodeNamedSignal Signal { get; }
+    public NamedSignal Signal { get; }
 
     /// <inheritdoc/>
     public Module TopLevelModule => Subcircuit.TopLevelModule;
@@ -59,9 +59,13 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     public override int GetHashCode() => HashCode.Combine(Subcircuit, Signal);
 
     /// <summary>
-    /// Get reference to this signal that can be used in a Spice# simulation
+    /// Get references to this signal that can be used in a Spice# simulation
     /// </summary>
-    public Reference GetSpiceSharpReference() => new([.. Subcircuit.Path.Select(i => i.SpiceName), Signal.ToSpice()]);
+    public IEnumerable<Reference> GetSpiceSharpReferences()
+    {
+        foreach (SingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
+            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.ToSpice()]);
+    }
 
     internal void CheckValid()
     {
@@ -70,7 +74,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
 
         // Exception if last module doesn't contain signal
         Module lastModule = Subcircuit.FinalModule;
-        if (!lastModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).Contains(Signal))
+        if (!lastModule.ContainsSignal(Signal))
             throw new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
     }
 }

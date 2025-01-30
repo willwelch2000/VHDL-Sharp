@@ -12,6 +12,7 @@ public class MultiDimensionalStimulus : IStimulusSet
 {
     /// <summary>
     /// Default constructor
+    /// TODO might should get rid of this and make Stimuli readonly, so that MultiDimensionalConstantStimulus works better
     /// </summary>
     public MultiDimensionalStimulus() {}
 

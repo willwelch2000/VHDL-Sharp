@@ -6,7 +6,7 @@ internal static class Util
 {
     internal static double VDD => 5.0;
 
-    internal static double RiseFall => 1e-9;
+    internal static double RiseFall => 1e-6;
 
     internal static string NmosModelName => "NmosMod";
 

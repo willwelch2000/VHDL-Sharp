@@ -1,3 +1,4 @@
+using SpiceSharp.Simulations;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Simulations;
@@ -5,16 +6,32 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Class used as one of many results of a simulation
 /// </summary>
-public class SimulationResult(SignalReference signal)
+public class SimulationResult
 {
     private readonly List<double> timeSteps = [];
 
-    private readonly List<bool> values = [];
+    private readonly List<int> values = [];
+
+    private readonly RealVoltageExport[] exports;
+
+    private readonly Transient simulation;
+
+    /// <summary>
+    /// Constructor given signal and simulation
+    /// </summary>
+    /// <param name="signalReference">Signal being monitored</param>
+    /// <param name="simulation">Simulation producing results</param>
+    internal SimulationResult(SignalReference signalReference, Transient simulation)
+    {
+        SignalReference = signalReference;
+        this.simulation = simulation;
+        exports = [.. signalReference.GetSpiceSharpReferences().Select(r => new RealVoltageExport(simulation, r))];
+    }
 
     /// <summary>
     /// Reference to signal that is monitored
     /// </summary>
-    public SignalReference SignalReference { get; } = signal;
+    public SignalReference SignalReference { get; }
 
     /// <summary>
     /// X values of result--time steps
@@ -24,16 +41,27 @@ public class SimulationResult(SignalReference signal)
     /// <summary>
     /// Digital values of signal
     /// </summary>
-    public bool[] Values => [.. values];
+    public int[] Values => [.. values];
 
     /// <summary>
     /// Time steps paired with digital values
     /// </summary>
-    public IEnumerable<(double, bool)> TimeStepsAndValues => TimeSteps.Zip(Values);
+    public IEnumerable<(double, int)> TimeStepsAndValues => TimeSteps.Zip(Values);
 
-    internal void AddTimeStepValue(double time, double voltage)
+    /// <summary>
+    /// Call this method after each simulation step to add the values from the voltage export objects
+    /// </summary>
+    internal void AddCurrentTimeStepValue()
     {
-        timeSteps.Add(time);
-        values.Add(voltage > Util.VDD/2);
+        // Get time from simulation
+        timeSteps.Add(simulation.Time);
+
+        // Calculate value--each export is a bit in the value
+        int value = 0;
+        for (int i = 0; i < exports.Length; i++)
+            if (exports[i].Value > Util.VDD/2)
+                value += 1<<i;
+
+        values.Add(value);
     }
 }

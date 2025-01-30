@@ -20,6 +20,14 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <inheritdoc/>
     public IEnumerable<ISignal> BaseObjects => expression.BaseObjects;
 
+    /// <summary>
+    /// Get dimension of this expression
+    /// Works by getting dimension from first signal in expression
+    /// Valid because signals have definite dimensions
+    /// </summary>
+    /// <returns></returns>
+    public DefiniteDimension Dimension => expression.BaseObjects.First().Dimension;
+    
     /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<ISignal> other) => expression.CanCombine(other);
 
@@ -539,12 +547,4 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
         => expression is LogicExpression logicExpression ? logicExpression : new(expression);
-
-    /// <summary>
-    /// Get dimension of this expression
-    /// Works by getting dimension from first signal in expression
-    /// Valid because signals have definite dimensions
-    /// </summary>
-    /// <returns></returns>
-    public DefiniteDimension? GetDimension() => expression.BaseObjects.FirstOrDefault()?.Dimension;
 }

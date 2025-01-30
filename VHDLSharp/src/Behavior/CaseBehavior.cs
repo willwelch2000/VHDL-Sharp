@@ -38,11 +38,12 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// Since signals have definite dimensions, the first non-null expression can be used
     /// This is either null or definite
     /// </summary>
-    public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.GetDimension() ?? new Dimension();
+    public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
     {
+        CheckCompatible(outputSignal);
         if (!Complete())
             throw new Exception("Case behavior must be complete to convert to VHDL");
 
@@ -119,7 +120,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         // Check parent modules
         base.CheckValid();
         // Combine dimensions of individual expressions
-        IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.GetDimension());
+        IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.Dimension);
         // Check that only 1 non-null value is present
         if (dimensions.Select(d => d?.NonNullValue).Where(v => v is not null).Distinct().Count() > 1)
             throw new Exception("Expressions are incompatible");
@@ -192,55 +193,78 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
+        CheckCompatible(outputSignal);
         if (!Complete())
             throw new Exception("Case behavior must be complete to convert to Spice");
 
-        return ToLogicExpression().ToSpice(outputSignal, uniqueId);
+        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
 
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
+        CheckCompatible(outputSignal);
         if (!Complete())
             throw new Exception("Case behavior must be complete to convert to Spice");
 
-        return ToLogicExpression().GetSpiceSharpEntities(outputSignal, uniqueId);
+        return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
     }
 
-    private LogicExpression ToLogicExpression()
+    private IEnumerable<(NamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(NamedSignal outputSignal, string uniqueId)
     {
-        if (!Complete())
-            throw new Exception("Case behavior must be complete to convert to logic expression");
-
-        // Array for each AND in the MUX--these will be ORed at the end
-        And<ISignal>[] selectedExpressions = new And<ISignal>[caseExpressions.Length];
-        // The individual nodes of the selector signal
-        SingleNodeNamedSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
-
-        // Loop through case expressions to formulate selectedExpressions
-        for (int i = 0; i < selectedExpressions.Length; i++)
+        // Loop through cases, generating intermediate signal names and logic behaviors to map to them
+        NamedSignal[] caseIntermediateSignals = new NamedSignal[caseExpressions.Length];
+        int idCounter = 0;
+        for (int i = 0; i < caseExpressions.Length; i++)
         {
-            // What each bit of the selector needs to be for this expression to be used
-            IEnumerable<bool> selectorValues = Enumerable.Range(0, Selector.Dimension.NonNullValue).Select(j => (i & j) > 0);
+            // Expression comes from case or default
+            LogicExpression expression = caseExpressions[i] ?? DefaultExpression ?? throw new("Impossible");
+
+            // Generate intermediate signal matching dimension of output
+            string intermediateName = Util.GetSpiceName(uniqueId, 0, $"case{i}");
+            NamedSignal signal;
+            if (expression.Dimension.NonNullValue == 1)
+                signal = new Signal(intermediateName, outputSignal.ParentModule);
+            else
+                signal = new Vector(intermediateName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
+            caseIntermediateSignals[i] = signal;
             
-            // Convert selector values into actual signals--either the node of the selector or the NOT of that
-            List<ILogicallyCombinable<ISignal>> selectorExpressions = [];
-            foreach ((bool selectorValue, int index) in selectorValues.Select((val, index) => (val, index)))
-            {
-                selectorExpressions.Add(
-                    selectorValue ? selectorSingleNodeSignals[index] :
-                    new Not<ISignal>(selectorSingleNodeSignals[index])
-                );
-            }
-
-            // Case expression comes from list of case expressions or default
-            LogicExpression caseExpression = caseExpressions[i] ?? DefaultExpression ?? throw new Exception("Should be impossible");
-            selectedExpressions[i] = new And<ISignal>([.. selectorExpressions, caseExpression]);
+            yield return (signal, $"{uniqueId}_{idCounter++}", new LogicBehavior(expression));
         }
-        
-        // OR all the selected expressions together to complete MUX
-        LogicExpression expression = new(new Or<ISignal>(selectedExpressions));
 
-        return expression;
+        // The individual nodes of the selector signal and output signal
+        SingleNodeNamedSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
+        SingleNodeNamedSignal[] outputSignalSingleNodes = [.. outputSignal.ToSingleNodeSignals];
+
+        // Here, do MUX for each dimension
+        for (int dim = 0; dim < outputSignal.Dimension.NonNullValue; dim++)
+        {
+            // Array for each AND in the MUX--these will be ORed at the end
+            And<ISignal>[] selectedExpressions = new And<ISignal>[caseExpressions.Length];
+
+            // Loop through case expressions to formulate selectedExpressions
+            for (int i = 0; i < selectedExpressions.Length; i++)
+            {
+                // What each bit of the selector needs to be for this expression to be used
+                IEnumerable<bool> selectorValues = Enumerable.Range(0, Selector.Dimension.NonNullValue).Select(j => (i & 1<<j) > 0);
+                
+                // Convert selector values into actual signals--either the node of the selector or the NOT of that
+                List<ILogicallyCombinable<ISignal>> selectorExpressions = [];
+                foreach ((bool selectorValue, int index) in selectorValues.Select((val, index) => (val, index)))
+                {
+                    selectorExpressions.Add(
+                        selectorValue ? selectorSingleNodeSignals[index] :
+                        new Not<ISignal>(selectorSingleNodeSignals[index])
+                    );
+                }
+
+                SingleNodeNamedSignal singleNodeSignal = caseIntermediateSignals[i].ToSingleNodeSignals.ElementAt(dim);
+                selectedExpressions[i] = new And<ISignal>([.. selectorExpressions, singleNodeSignal]);
+            }
+            
+            // OR all the selected expressions together to complete MUX
+            LogicBehavior behavior = new(new LogicExpression(new Or<ISignal>(selectedExpressions)));
+            yield return (outputSignalSingleNodes[dim], $"{uniqueId}_{idCounter++}", behavior);
+        }
     }
 }

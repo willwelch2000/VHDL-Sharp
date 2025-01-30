@@ -26,10 +26,21 @@ public enum PortDirection
 /// </summary>
 public class Port : IHasParentModule
 {
+    private NamedSignal? signal;
+
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required NamedSignal Signal { get; set; }
+    public required NamedSignal Signal
+    {
+        get => signal ?? throw new Exception("Should be impossible");
+        set
+        {
+            signal = value;
+            if (signal.ParentSignal is not null)
+                throw new Exception("Port signal should be top-level signal");
+        }
+    }
 
     /// <summary>
     /// The direction that this port is with respect to the module

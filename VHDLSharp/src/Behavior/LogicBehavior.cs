@@ -27,14 +27,26 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     /// Works by getting dimension from first internal signal--they should all have the same dimension
     /// This is a definite dimension unless there are no signals added
     /// </summary>
-    public override Dimension Dimension => LogicExpression.BaseObjects.FirstOrDefault()?.Dimension ?? new Dimension();
+    public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId) => LogicExpression.ToSpice(outputSignal, uniqueId);
+    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    {
+        CheckCompatible(outputSignal);
+        return LogicExpression.ToSpice(outputSignal, uniqueId);
+    }
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal) => $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+    public override string ToVhdl(NamedSignal outputSignal)
+    {
+        CheckCompatible(outputSignal);
+        return $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+    }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId) => LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    {
+        CheckCompatible(outputSignal);
+        return LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
+    }
 }
