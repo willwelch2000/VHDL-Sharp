@@ -90,7 +90,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
     /// True if port mapping is complete (all input ports are assigned)
     /// </summary>
     /// <returns></returns>
-    public bool Complete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
+    public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
 
     /// <inheritdoc/>
     public override void Add(Port port, IStimulusSet stimulus)

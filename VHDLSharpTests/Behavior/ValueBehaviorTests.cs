@@ -45,7 +45,8 @@ public class ValueBehaviorTests
         Vector v3 = module1.GenerateVector("v3", 3);
         ValueBehavior behavior1 = new(10);
         ValueBehavior behavior2 = new(6);
-        
+
+        // Basic stuff
         Assert.AreEqual(10, behavior1.Value);
         Assert.AreEqual(6, behavior2.Value);
         Assert.AreEqual(new Dimension(4, null), behavior1.Dimension);

@@ -44,8 +44,9 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
     {
-        CheckCompatible(outputSignal);
-        if (!Complete())
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
         StringBuilder sb = new();
@@ -137,7 +138,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     {
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
-        CheckCompatible(logicExpression);
+        CheckCompatibleNewExpression(logicExpression);
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
         RaiseBehaviorChanged(this, EventArgs.Empty);
     }
@@ -162,7 +163,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <param name="logicExpression"></param>
     public void SetDefault(ILogicallyCombinable<ISignal>? logicExpression)
     {
-        CheckCompatible(logicExpression);
+        CheckCompatibleNewExpression(logicExpression);
         defaultExpression = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
     }
 
@@ -170,14 +171,14 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// Is the behavior ready to be used
     /// </summary>
     /// <returns></returns>
-    public bool Complete() => caseExpressions.All(c => c is not null) || defaultExpression is not null;
+    public bool IsComplete() => caseExpressions.All(c => c is not null) || defaultExpression is not null;
 
     /// <summary>
     /// Checks if new (nullable) logic expression is compatible with the current state, given the expressions that have already been assigned
     /// </summary>
     /// <param name="logicExpression"></param>
     /// <exception cref="Exception"></exception>
-    private void CheckCompatible(ILogicallyCombinable<ISignal>? logicExpression)
+    private void CheckCompatibleNewExpression(ILogicallyCombinable<ISignal>? logicExpression)
     {
         // Fine if new one is null
         if (logicExpression is null)
@@ -194,18 +195,20 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
-        CheckCompatible(outputSignal);
-        if (!Complete())
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
-        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
+        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
 
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
-        CheckCompatible(outputSignal);
-        if (!Complete())
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
         return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));

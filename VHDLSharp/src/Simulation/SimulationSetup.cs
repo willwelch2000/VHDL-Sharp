@@ -61,7 +61,7 @@ public class SimulationSetup
     /// <summary>
     /// True if ready to convert to Spice or simulate
     /// </summary>
-    public bool Complete() => StimulusMapping.Complete();
+    public bool IsComplete() => StimulusMapping.IsComplete();
 
     /// <summary>
     /// Get Spice representation of the setup
@@ -69,7 +69,7 @@ public class SimulationSetup
     /// <returns></returns>
     public string ToSpice()
     {
-        if (!Complete())
+        if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to Spice");
 
         string toReturn = Module.ToSpice();
@@ -88,7 +88,7 @@ public class SimulationSetup
     /// <returns></returns>
     public Circuit ToSpiceSharpCircuit()
     {
-        if (!Complete())
+        if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
         Circuit circuit = Module.ToSpiceSharpCircuit();

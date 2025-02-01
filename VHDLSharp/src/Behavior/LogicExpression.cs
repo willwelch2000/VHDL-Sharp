@@ -16,10 +16,13 @@ namespace VHDLSharp.Behaviors;
 /// <param name="expression">Input expression</param>
 public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogicallyCombinable<ISignal>
 {
-    private readonly ILogicallyCombinable<ISignal> expression = expression;
+    /// <summary>
+    /// Inner expression that backs this logic expression
+    /// </summary>
+    public ILogicallyCombinable<ISignal> InnerExpression { get; } = expression;
 
     /// <inheritdoc/>
-    public IEnumerable<ISignal> BaseObjects => expression.BaseObjects;
+    public IEnumerable<ISignal> BaseObjects => InnerExpression.BaseObjects;
 
     /// <summary>
     /// Get dimension of this expression
@@ -27,21 +30,21 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// Valid because signals have definite dimensions
     /// </summary>
     /// <returns></returns>
-    public DefiniteDimension Dimension => expression.BaseObjects.First().Dimension;
+    public DefiniteDimension Dimension => InnerExpression.BaseObjects.First().Dimension;
     
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other) => expression.CanCombine(other);
+    public bool CanCombine(ILogicallyCombinable<ISignal> other) => InnerExpression.CanCombine(other);
 
     /// <inheritdoc/>
-    public string ToLogicString() => expression.ToLogicString();
+    public string ToLogicString() => InnerExpression.ToLogicString();
 
     /// <inheritdoc/>
-    public string ToLogicString(LogicStringOptions options) => expression.ToLogicString(options);
+    public string ToLogicString(LogicStringOptions options) => InnerExpression.ToLogicString(options);
 
     /// <inheritdoc/>
     public TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<ISignal, TIn, TOut> options, TIn additionalInput) where TOut : new()
     {
-        return expression.GenerateLogicalObject(options, additionalInput);
+        return InnerExpression.GenerateLogicalObject(options, additionalInput);
     }
 
     /// <summary>
@@ -55,7 +58,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
-        SignalSpiceObjectOutput output = expression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
+        SignalSpiceObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
         {
             UniqueId = uniqueId,
         });
@@ -87,7 +90,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
-        SignalSpiceSharpObjectOutput output = expression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
+        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {
             UniqueId = uniqueId,
         });
@@ -116,34 +119,34 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public LogicExpression And(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(expression, other));
+    public LogicExpression And(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(InnerExpression, other));
 
     /// <summary>
     /// Generate an And with this expression and other <see cref="ILogicallyCombinable{T}"/> objects
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public LogicExpression And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new And<ISignal>([.. others, expression]));
+    public LogicExpression And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new And<ISignal>([.. others, InnerExpression]));
 
     /// <summary>
     /// Generate an Or with this expression and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public LogicExpression Or(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(expression, other));
+    public LogicExpression Or(ILogicallyCombinable<ISignal> other) => new(new And<ISignal>(InnerExpression, other));
 
     /// <summary>
     /// Generate an Or with this expression and other <see cref="ILogicallyCombinable{T}"/> objects
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public LogicExpression Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new Or<ISignal>([.. others, expression]));
+    public LogicExpression Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new(new Or<ISignal>([.. others, InnerExpression]));
 
     /// <summary>
     /// Generate a Not with this expression
     /// </summary>
     /// <returns></returns>
-    public LogicExpression Not() => new(new Not<ISignal>(expression));
+    public LogicExpression Not() => new(new Not<ISignal>(InnerExpression));
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput>? signalSpiceObjectOptions;
 
@@ -559,5 +562,5 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// Check if a given output signal is compatible with this
     /// </summary>
     /// <param name="outputSignal"></param>
-    public bool IsCompatible(NamedSignal outputSignal) => expression.CanCombine(outputSignal);
+    public bool IsCompatible(NamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
 }

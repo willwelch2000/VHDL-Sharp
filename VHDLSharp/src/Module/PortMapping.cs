@@ -104,7 +104,7 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentMo
     /// True if port mapping is complete (all ports are assigned)
     /// </summary>
     /// <returns></returns>
-    public bool Complete() => InstantiatedModule.Ports.All(ContainsKey);
+    public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
 
     /// <inheritdoc/>
     public override void Add(Port port, NamedSignal signal)

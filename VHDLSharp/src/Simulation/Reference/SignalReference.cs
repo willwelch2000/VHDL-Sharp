@@ -55,6 +55,22 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is SignalReference signalReference && Equals(signalReference);
 
+    /// <summary>
+    /// Returns true if two references are equal
+    /// </summary>
+    /// <param name="reference1"></param>
+    /// <param name="reference2"></param>
+    /// <returns></returns>
+    public static bool operator==(SignalReference reference1, SignalReference reference2) => reference1.Equals(reference2);
+    
+    /// <summary>
+    /// Returns true if two references are not equal
+    /// </summary>
+    /// <param name="reference1"></param>
+    /// <param name="reference2"></param>
+    /// <returns></returns>
+    public static bool operator!=(SignalReference reference1, SignalReference reference2) => !reference1.Equals(reference2);
+    
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Subcircuit, Signal);
 
