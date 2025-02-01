@@ -1,6 +1,7 @@
 
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 
@@ -37,9 +38,9 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
         {
             return LogicExpression.ToSpice(outputSignal, uniqueId);
         }
-        catch (Exception)
+        catch (IncompatibleSignalException)
         {
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         }
     }
 
@@ -47,7 +48,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override string ToVhdl(NamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return $"{outputSignal} <= {LogicExpression.ToLogicString()};";
     }
 
@@ -59,9 +60,9 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
         {
             return LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
         }
-        catch (Exception)
+        catch (IncompatibleSignalException)
         {
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         }
     }
 }

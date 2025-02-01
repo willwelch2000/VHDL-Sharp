@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -52,7 +53,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     public string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal must be compatible with this expression");
+            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
         SignalSpiceObjectOutput output = expression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
         {
@@ -84,7 +85,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     public IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal must be compatible with this expression");
+            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
         SignalSpiceSharpObjectOutput output = expression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {

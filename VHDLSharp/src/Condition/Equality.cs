@@ -1,3 +1,4 @@
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 
@@ -46,6 +47,6 @@ public class Equality : ConstantCondition
     private void CheckValid()
     {
         if (!MainSignal.CanCombine(ComparisonSignal) || !ComparisonSignal.CanCombine(MainSignal))
-            throw new Exception("Main signal is not compatible with comparison signal");
+            throw new IncompatibleSignalException("Main signal is not compatible with comparison signal");
     }
 }

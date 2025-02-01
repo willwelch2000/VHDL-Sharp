@@ -9,5 +9,5 @@ public class DefiniteDimension(int value) : Dimension(value, null, null)
     /// <summary>
     /// Accessor for value that is known to be nonnull
     /// </summary>
-    public int NonNullValue => Value ?? throw new Exception("Impossible");
+    public int NonNullValue => Value ?? throw new("Impossible");
 }

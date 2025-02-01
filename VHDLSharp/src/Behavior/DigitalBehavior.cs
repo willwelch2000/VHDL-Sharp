@@ -57,7 +57,7 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
-    public virtual void CheckValid()
+    protected virtual void CheckValid()
     {
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)

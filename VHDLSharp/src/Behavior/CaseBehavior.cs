@@ -1,6 +1,7 @@
 using System.Text;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -45,7 +46,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     {
         CheckCompatible(outputSignal);
         if (!Complete())
-            throw new Exception("Case behavior must be complete to convert to VHDL");
+            throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
         StringBuilder sb = new();
         sb.AppendLine($"process({string.Join(", ", NamedInputSignals.Select(s => s.Name))}) is");
@@ -115,7 +116,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     }
     
     /// <inheritdoc/>
-    public override void CheckValid()
+    protected override void CheckValid()
     {
         // Check parent modules
         base.CheckValid();
@@ -186,7 +187,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         {
             // Check ability to combine in both directions
             if (expression is not null && !(expression.CanCombine(logicExpression) && logicExpression.CanCombine(expression)))
-                throw new Exception($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
+                throw new IncompatibleSignalException($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
     }
 
@@ -195,7 +196,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     {
         CheckCompatible(outputSignal);
         if (!Complete())
-            throw new Exception("Case behavior must be complete to convert to Spice");
+            throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
         return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
@@ -205,7 +206,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     {
         CheckCompatible(outputSignal);
         if (!Complete())
-            throw new Exception("Case behavior must be complete to convert to Spice");
+            throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
         return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
     }

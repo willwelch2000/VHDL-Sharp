@@ -2,12 +2,10 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using SpiceSharp;
-using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using SpiceSharp.Simulations;
-using SpiceSharp.Simulations.Base;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
-using VHDLSharp.Utility;
 
 namespace VHDLSharp.Simulations;
 
@@ -72,7 +70,7 @@ public class SimulationSetup
     public string ToSpice()
     {
         if (!Complete())
-            throw new Exception("Simulation setup must be complete to convert to Spice");
+            throw new IncompleteException("Simulation setup must be complete to convert to Spice");
 
         string toReturn = Module.ToSpice();
 
@@ -91,7 +89,7 @@ public class SimulationSetup
     public Circuit ToSpiceSharpCircuit()
     {
         if (!Complete())
-            throw new Exception("Simulation setup must be complete to convert to circuit");
+            throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
         Circuit circuit = Module.ToSpiceSharpCircuit();
 

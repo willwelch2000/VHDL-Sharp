@@ -1,15 +1,15 @@
 namespace VHDLSharp.Exceptions;
 
 /// <summary>
-/// Exception when descending in hierarchy through subcircuits. 
-/// Includes trying to find invalid subcircuit or signal
+/// Exception when a component is not complete, but the user 
+/// attempts to do something with it
 /// </summary>
-public class SubcircuitPathException : Exception
+public class IncompleteException : Exception
 {
     /// <summary>
     /// Parameterless constructor
     /// </summary>
-    public SubcircuitPathException() : base("A subcircuit path exception has occurred.")
+    public IncompleteException() : base("An incomplete exception has occurred.")
     {
     }
 
@@ -17,7 +17,7 @@ public class SubcircuitPathException : Exception
     /// Constructor that accepts a custom message
     /// </summary>
     /// <param name="message"></param>
-    public SubcircuitPathException(string message) : base(message)
+    public IncompleteException(string message) : base(message)
     {
     }
 
@@ -26,7 +26,7 @@ public class SubcircuitPathException : Exception
     /// </summary>
     /// <param name="message"></param>
     /// <param name="innerException"></param>
-    public SubcircuitPathException(string message, Exception innerException) : base(message, innerException)
+    public IncompleteException(string message, Exception innerException) : base(message, innerException)
     {
     }
 }

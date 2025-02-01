@@ -66,7 +66,7 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override void CheckValid()
+    protected override void CheckValid()
     {
         // Check parent modules
         base.CheckValid();

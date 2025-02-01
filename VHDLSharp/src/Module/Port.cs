@@ -33,7 +33,7 @@ public class Port : IHasParentModule
     /// </summary>
     public required NamedSignal Signal
     {
-        get => signal ?? throw new Exception("Should be impossible");
+        get => signal ?? throw new("Should be impossible");
         set
         {
             signal = value;

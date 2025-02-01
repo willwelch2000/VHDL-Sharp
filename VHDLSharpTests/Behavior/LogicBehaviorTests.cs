@@ -2,6 +2,7 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 
@@ -121,9 +122,9 @@ public class LogicBehaviorTests
         Vector v4 = new("v4", module1, 2);
         Assert.IsTrue(behavior.IsCompatible(s3));
         Assert.IsFalse(behavior.IsCompatible(v4));
-        Assert.ThrowsException<Exception>(() => behavior.ToSpice(v4, "0"));
-        Assert.ThrowsException<Exception>(() => behavior.ToVhdl(v4));
-        Assert.ThrowsException<Exception>(() => behavior.GetSpiceSharpEntities(v4, "0"));
+        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.ToSpice(v4, "0"));
+        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.ToVhdl(v4));
+        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpiceSharpEntities(v4, "0"));
     }
 
     [TestMethod]

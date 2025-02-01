@@ -23,6 +23,7 @@ public class Module : IHdlConvertible
     public Module()
     {
         Ports.CollectionChanged += InvokeModuleUpdated;
+        Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += InvokeModuleUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InvokeModuleUpdated;
@@ -75,16 +76,27 @@ public class Module : IHdlConvertible
 
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Add InvokeModuleUpdated to each new instantiation
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-            {
-                // Don't allow duplicate instantiations in the list
-                if (Instantiations.Count(i => i == newItem) > 1)
-                    throw new Exception($"The same instantiation ({newItem}) should not be added twice");
                 if (newItem is Instantiation instantiation)
+                {
+                    // Don't allow duplicate instantiation names in the list
+                    if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
+                        throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+                    // Add InvokeModuleUpdated to each new instantiation
                     instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
-            }
+                }
+    }
+
+    private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is Port port)
+                {
+                    if (Ports.Count(i => i.Signal == port.Signal) > 1)
+                        throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
+                }
     }
 
 
@@ -120,7 +132,7 @@ public class Module : IHdlConvertible
     /// <summary>
     /// List of module instantiations inside of this module
     /// </summary>
-    public ObservableCollection<Instantiation> Instantiations { get; set; } = [];
+    public ObservableCollection<Instantiation> Instantiations { get; } = [];
 
     /// <summary>
     /// Get all named signals used in this module

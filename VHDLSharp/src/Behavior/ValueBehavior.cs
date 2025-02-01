@@ -1,6 +1,7 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 
@@ -46,7 +47,7 @@ public class ValueBehavior : CombinationalBehavior
     public override string ToVhdl(NamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return$"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
     }
 
@@ -54,7 +55,7 @@ public class ValueBehavior : CombinationalBehavior
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         string toReturn = "";
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
@@ -68,7 +69,7 @@ public class ValueBehavior : CombinationalBehavior
     public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
-            throw new Exception("Output signal is not compatible with this behavior");
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
         foreach (SingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
