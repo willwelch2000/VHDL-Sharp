@@ -25,7 +25,6 @@ public class Literal : ISignal
 
         Value = value;
 
-
         if (value == 0)
         {
             if (dimension < 1)

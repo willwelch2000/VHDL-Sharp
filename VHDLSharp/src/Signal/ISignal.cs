@@ -5,12 +5,11 @@ namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Interface for any type of signal that can be used in an expression
-/// Defined by a dimension and an optional parent module
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
 {
     /// <summary>
-    /// Object explaining many nodes are part of this signal (1 for normal signal)
+    /// Object explaining how many nodes are part of this signal (1 for normal signal)
     /// </summary>
     public DefiniteDimension Dimension { get; }
 
@@ -28,7 +27,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
     public ISignal? ParentSignal { get; }
 
     /// <summary>
-    /// If this is the top level, it returns this
+    /// If this is the top level, it returns this. 
     /// Otherwise, it goes up in hierarchy as much as possible
     /// </summary>
     public ISignal TopLevelSignal
@@ -48,7 +47,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
     public IEnumerable<ISignal> ChildSignals { get; }
 
     /// <summary>
-    /// If this has a dimension > 1, convert to a list of things with dimension 1
+    /// If this has a dimension > 1, convert to a list of things with dimension 1. 
     /// If it is dimension 1, then return itself
     /// </summary>
     public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals

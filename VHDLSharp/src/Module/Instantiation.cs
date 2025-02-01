@@ -10,7 +10,7 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Instantiation : IHasParentModule, IHdlConvertible
 {
-    private EventHandler? submoduleUpdated;
+    private EventHandler? instantiatedModuleUpdated;
 
     /// <summary>
     /// Create new instantiation given instantiated module and parent module
@@ -24,7 +24,7 @@ public class Instantiation : IHasParentModule, IHdlConvertible
         PortMapping = new(instantiatedModule, parentModule);
         ParentModule = parentModule;
         Name = name;
-        instantiatedModule.ModuleUpdated += (object? sender, EventArgs e) => submoduleUpdated?.Invoke(this, e);
+        instantiatedModule.ModuleUpdated += (object? sender, EventArgs e) => instantiatedModuleUpdated?.Invoke(this, e);
     }
 
     /// <summary>
@@ -55,26 +55,26 @@ public class Instantiation : IHasParentModule, IHdlConvertible
     /// <summary>
     /// Event called whenever referenced module is updated
     /// </summary>
-    public event EventHandler? SubmoduleUpdated
+    public event EventHandler? InstantiatedModuleUpdated
     {
         add
         {
-            submoduleUpdated -= value; // remove if already present
-            submoduleUpdated += value;
+            instantiatedModuleUpdated -= value; // remove if already present
+            instantiatedModuleUpdated += value;
         }
-        remove => submoduleUpdated -= value;
+        remove => instantiatedModuleUpdated -= value;
     }
 
     /// <summary>
-    /// Convert to spice
+    /// Convert to spice. 
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>
     /// <returns></returns>
     public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice()));
 
     /// <summary>
-    /// Convert to VHDL
-    /// For instantiation, not component declaration
+    /// Convert to VHDL. 
+    /// For instantiation, not component declaration. 
     /// </summary>
     /// <returns></returns>
     public string ToVhdl()

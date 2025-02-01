@@ -27,6 +27,16 @@ public class Module : IHdlConvertible
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InvokeModuleUpdated;
         Instantiations.CollectionChanged += InstantiationsListUpdated;
+        UpdateNamedSignals();
+    }
+
+    /// <summary>
+    /// Constructor with name
+    /// </summary>
+    /// <param name="name"></param>
+    public Module(string name) : this()
+    {
+        Name = name;
     }
 
     /// <summary>
@@ -42,6 +52,7 @@ public class Module : IHdlConvertible
     private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
         CheckValid();
+        UpdateNamedSignals();
         moduleUpdated?.Invoke(this, e);
     }
 
@@ -72,13 +83,13 @@ public class Module : IHdlConvertible
                 if (Instantiations.Count(i => i == newItem) > 1)
                     throw new Exception($"The same instantiation ({newItem}) should not be added twice");
                 if (newItem is Instantiation instantiation)
-                    instantiation.SubmoduleUpdated += InvokeModuleUpdated;
+                    instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
             }
     }
 
 
     /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects,
+    /// Event called when a property of the module is changed that could affect other objects, 
     /// such as port mapping
     /// </summary>
     public event EventHandler? ModuleUpdated
@@ -97,7 +108,7 @@ public class Module : IHdlConvertible
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Mapping of output signal to behavior that defines it
+    /// Mapping of module signal to behavior that defines it
     /// </summary>
     public ObservableDictionary<NamedSignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
 
@@ -116,35 +127,34 @@ public class Module : IHdlConvertible
     /// Signals can come from ports, behavior input signals, or output signals
     /// If all of a multi-dimensional signal's children are used, then the top-level signal is included
     /// Otherwise, only the children are returned
-    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
     /// </summary>
-    public IEnumerable<NamedSignal> NamedSignals
+    public IEnumerable<NamedSignal> NamedSignals { get; private set; } = [];
+
+    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
+    private void UpdateNamedSignals()
     {
-        get
+        // Get list of all single-node named signals used
+        HashSet<NamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+            .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
+            .Union(SignalBehaviors.Keys)
+            .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
+            .SelectMany(s => s.ToSingleNodeSignals)];
+
+        HashSet<NamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+        HashSet<NamedSignal> allNamedSignals = [];
+
+        foreach (NamedSignal topLevelSignal in topLevelSignals)
         {
-            // Get list of all single-node named signals used
-            HashSet<NamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
-                .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-                .Union(SignalBehaviors.Keys)
-                .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-                .SelectMany(s => s.ToSingleNodeSignals)];
-
-            HashSet<NamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-            HashSet<NamedSignal> toReturn = [];
-
-            foreach (NamedSignal topLevelSignal in topLevelSignals)
-            {
-                // If all child signals are present, add top level one
-                if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                    toReturn.Add(topLevelSignal);
-                else
-                // Otherwise, add single-node signals that are present
-                    foreach (SingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                        toReturn.Add(singleNodeSignal);
-            }
-
-            return toReturn;
+            // If all child signals are present, add top level one
+            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                allNamedSignals.Add(topLevelSignal);
+            else
+            // Otherwise, add single-node signals that are present
+                foreach (SingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                    allNamedSignals.Add(singleNodeSignal);
         }
+
+        NamedSignals = allNamedSignals;
     }
 
     /// <summary>
@@ -256,7 +266,8 @@ public class Module : IHdlConvertible
                 throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
                 throw new Exception($"Behavior must have this module as parent");
-            behavior.CheckCompatible(outputSignal);
+            if (!behavior.IsCompatible(outputSignal))
+                throw new Exception($"Behavior must be compatible with output signal");
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
                 throw new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
@@ -401,7 +412,7 @@ public class Module : IHdlConvertible
     /// All ports converted to Spice strings
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice());
+    private IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice());
 
     /// <summary>
     /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
@@ -470,15 +481,19 @@ public class Module : IHdlConvertible
 
     /// <summary>
     /// Test if the module contains a signal
-    /// If the signal has children, all of its children must be included to count as true
     /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
     public bool ContainsSignal(NamedSignal signal)
     {
-        if (signal is SingleNodeNamedSignal singleNodeSignal)
-            return NamedSignals.SelectMany(s => s.ToSingleNodeSignals).Contains(signal);
-        return NamedSignals.Contains(signal);
+        NamedSignal[] namedSignals = [.. NamedSignals];
+        // True if directly contained
+        if (NamedSignals.Contains(signal))
+            return true;
+        // True if signal is single-node and the parent is contained
+        if (signal is SingleNodeNamedSignal)
+            return namedSignals.Contains(signal.TopLevelSignal);
+        return false;
     }
 }

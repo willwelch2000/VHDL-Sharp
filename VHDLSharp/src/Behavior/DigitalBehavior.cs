@@ -48,7 +48,6 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     {
         get
         {
-            CheckValid();
             return NamedInputSignals.FirstOrDefault()?.ParentModule;
         }
     }
@@ -86,22 +85,16 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected void RaiseBehaviorChanged(object? sender, EventArgs e)
-    {
-        behaviorUpdated?.Invoke(sender, e);
-    }
+    protected void RaiseBehaviorChanged(object? sender, EventArgs e) => behaviorUpdated?.Invoke(sender, e);
 
     /// <summary>
     /// Check that a given output signal is compatible with this
     /// </summary>
     /// <param name="outputSignal"></param>
-    /// <exception cref="Exception"></exception>
-    public void CheckCompatible(NamedSignal outputSignal)
+    public bool IsCompatible(NamedSignal outputSignal)
     {
-        CheckValid();
         if (ParentModule is not null && outputSignal.ParentModule != ParentModule)
-            throw new Exception($"Output signal's parent module ({outputSignal.ParentModule}) does not match this parent module ({ParentModule})");
-        if (!Dimension.Compatible(outputSignal.Dimension))
-            throw new Exception("Output signal must have dimension compatible with this");
+            return false;
+        return Dimension.Compatible(outputSignal.Dimension);
     }
 }

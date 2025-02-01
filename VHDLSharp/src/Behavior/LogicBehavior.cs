@@ -32,21 +32,36 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     /// <inheritdoc/>
     public override string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
-        CheckCompatible(outputSignal);
-        return LogicExpression.ToSpice(outputSignal, uniqueId);
+        // Don't call IsCompatible here since it does it in LogicExpression
+        try
+        {
+            return LogicExpression.ToSpice(outputSignal, uniqueId);
+        }
+        catch (Exception)
+        {
+            throw new Exception("Output signal is not compatible with this behavior");
+        }
     }
 
     /// <inheritdoc/>
     public override string ToVhdl(NamedSignal outputSignal)
     {
-        CheckCompatible(outputSignal);
+        if (!IsCompatible(outputSignal))
+            throw new Exception("Output signal is not compatible with this behavior");
         return $"{outputSignal} <= {LogicExpression.ToLogicString()};";
     }
 
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
-        CheckCompatible(outputSignal);
-        return LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
+        // Don't call IsCompatible here since it does it in LogicExpression
+        try
+        {
+            return LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
+        }
+        catch (Exception)
+        {
+            throw new Exception("Output signal is not compatible with this behavior");
+        }
     }
 }

@@ -69,9 +69,6 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
 
     internal void CheckValid()
     {
-        // TODO I don't think this needs to do subcircuit checkValid bc that manages itself
-        // Subcircuit.CheckValid();
-
         // Exception if last module doesn't contain signal
         Module lastModule = Subcircuit.FinalModule;
         if (!lastModule.ContainsSignal(Signal))

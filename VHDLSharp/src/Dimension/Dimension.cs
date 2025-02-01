@@ -6,7 +6,7 @@ namespace VHDLSharp.Dimensions;
 /// <param name="value">If known, the dimension</param>
 /// <param name="minimum">If known, the minimum that the dimension could be</param>
 /// <param name="maximum">If known, the maximum that the dimension could be</param>
-public class Dimension(int? value, int? minimum, int? maximum)
+public class Dimension(int? value, int? minimum, int? maximum) : IEquatable<Dimension>
 {
     /// <summary>
     /// Generate dimension given value
@@ -147,4 +147,39 @@ public class Dimension(int? value, int? minimum, int? maximum)
 
         return true;
     }
+
+    /// <inheritdoc/>
+    public bool Equals(Dimension? other) => other is not null && Value == other.Value && Minimum == other.Minimum && Maximum == other.Maximum;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is Dimension dim && Equals(dim);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        if (Value is not null)
+            hash.Add(Value);
+        if (Minimum is not null)
+            hash.Add(Minimum);
+        if (Maximum is not null)
+            hash.Add(Maximum);
+        return hash.ToHashCode();
+    }
+
+    /// <summary>
+    /// Return true if two dimensions are equal
+    /// </summary>
+    /// <param name="dimension1"></param>
+    /// <param name="dimension2"></param>
+    /// <returns></returns>
+    public static bool operator==(Dimension dimension1, Dimension dimension2) => dimension1.Equals(dimension2);
+
+    /// <summary>
+    /// Return true if two dimensions are not equal
+    /// </summary>
+    /// <param name="dimension1"></param>
+    /// <param name="dimension2"></param>
+    /// <returns></returns>
+    public static bool operator!=(Dimension dimension1, Dimension dimension2) => !dimension1.Equals(dimension2);
 }

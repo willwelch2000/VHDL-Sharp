@@ -51,6 +51,9 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public string ToSpice(NamedSignal outputSignal, string uniqueId)
     {
+        if (!IsCompatible(outputSignal))
+            throw new Exception("Output signal must be compatible with this expression");
+
         SignalSpiceObjectOutput output = expression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
         {
             UniqueId = uniqueId,
@@ -80,6 +83,9 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
     public IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
     {
+        if (!IsCompatible(outputSignal))
+            throw new Exception("Output signal must be compatible with this expression");
+
         SignalSpiceSharpObjectOutput output = expression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {
             UniqueId = uniqueId,
@@ -547,4 +553,10 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
         => expression is LogicExpression logicExpression ? logicExpression : new(expression);
+
+    /// <summary>
+    /// Check if a given output signal is compatible with this
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    public bool IsCompatible(NamedSignal outputSignal) => expression.CanCombine(outputSignal);
 }
