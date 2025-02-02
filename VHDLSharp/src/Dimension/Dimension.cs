@@ -26,7 +26,7 @@ public class Dimension(int? value, int? minimum, int? maximum) : IEquatable<Dime
     /// <param name="maximum"></param>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public Dimension(int? minimum = null, int? maximum = null) : this(null, minimum, maximum)
+    public Dimension(int? minimum, int? maximum) : this(null, minimum, maximum)
     {
         if (minimum is not null && minimum < 0)
             throw new ArgumentOutOfRangeException(nameof(minimum), "Must be > 0");
@@ -106,7 +106,7 @@ public class Dimension(int? value, int? minimum, int? maximum) : IEquatable<Dime
     {
         // Value, if present
         if (dimensions.FirstOrDefault(d => d.Value is not null) is Dimension dimension)
-            return new(dimension.Value);
+            return new(dimension.Value ?? 0);
 
         // Minimum
         IEnumerable<int?> minimums = dimensions.Select(d => d.Minimum).Where(m => m is not null);

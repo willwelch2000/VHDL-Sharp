@@ -81,6 +81,9 @@ public abstract class NamedSignal : ISignal
     public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);
 
     /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
+    /// <inheritdoc/>
     public abstract string ToLogicString();
 
     /// <inheritdoc/>
@@ -111,7 +114,4 @@ public abstract class NamedSignal : ISignal
 
     /// <inheritdoc/>
     public Not<ISignal> Not() => new(this);
-
-    /// <inheritdoc/>
-    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
 }

@@ -15,7 +15,7 @@ public class LiteralNode : ISingleNodeSignal
     /// <param name="literal"></param>
     /// <param name="node"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public LiteralNode(Literal literal, int node)
+    internal LiteralNode(Literal literal, int node)
     {
         Literal = literal;
         Node = node;
@@ -87,6 +87,10 @@ public class LiteralNode : ISingleNodeSignal
     {
         return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
     }
+
+    /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
 
     /// <inheritdoc/>
     public string ToLogicString() => Value.ToString();

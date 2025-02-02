@@ -39,7 +39,7 @@ public class Literal : ISignal
 
         Dimension = new(dimension);
 
-        bits = Enumerable.Range(0, dimension).Select(i => new LiteralNode(this, i)).ToArray();
+        bits = [.. Enumerable.Range(0, dimension).Select(i => new LiteralNode(this, i))];
     }
 
     /// <summary>

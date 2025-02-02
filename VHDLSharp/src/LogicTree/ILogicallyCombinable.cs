@@ -15,7 +15,8 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     public bool CanCombine(ILogicallyCombinable<T> other);
 
     /// <summary>
-    /// Given other things of type T, this is true if they are all compatible for a logic tree
+    /// Given other things of type T, this is true if they are all compatible for a logic tree.
+    /// Should be overridden if there is a more efficient method
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
