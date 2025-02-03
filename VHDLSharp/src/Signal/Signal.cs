@@ -25,12 +25,6 @@ public class Signal(string name, Module parent) : SingleNodeNamedSignal
     /// <inheritdoc/>
     public override NamedSignal TopLevelSignal => this;
 
-    /// <summary>
-    /// Convert to string
-    /// </summary>
-    /// <returns></returns>
-    public override string ToString() => Name;
-
     /// <inheritdoc/>
     public override string ToSpice() => Name;
 }

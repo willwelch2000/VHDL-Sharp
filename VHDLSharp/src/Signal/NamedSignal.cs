@@ -25,7 +25,7 @@ public abstract class NamedSignal : ISignal
     public abstract string VhdlType { get; }
 
     /// <summary>
-    /// Dimension of signal with definite value
+    /// Dimension of signal with definite value. 
     /// Of type <see cref="DefiniteDimension"/>
     /// </summary>
     public abstract DefiniteDimension Dimension { get; }
@@ -104,13 +104,13 @@ public abstract class NamedSignal : ISignal
     public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Not<ISignal> Not() => new(this);

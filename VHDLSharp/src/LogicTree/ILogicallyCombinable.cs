@@ -22,7 +22,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// <returns></returns>
     public bool CanCombine(IEnumerable<ILogicallyCombinable<T>> others)
     {
-        IEnumerable<ILogicallyCombinable<T>> all = [.. others, this];
+        IEnumerable<ILogicallyCombinable<T>> all = [this, .. others];
         foreach (var thing1 in all)
             foreach (var thing2 in all.Except([thing1]))
                 if (!thing1.CanCombine(thing2))
@@ -86,7 +86,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
 
     /// <summary>
     /// Generate an Or with this and another <see cref="ILogicallyCombinable{T}"/>
@@ -100,7 +100,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
 
     /// <summary>
     /// Generate a Not with this

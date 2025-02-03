@@ -8,7 +8,7 @@ using VHDLSharp.LogicTree;
 public class SignalSpiceObjectInput
 {
     /// <summary>
-    /// Unique id that this portion can use
+    /// Unique id that this portion can use. 
     /// Should contain numbers and underscores
     /// </summary>
     public string UniqueId { get; set; } = string.Empty;
