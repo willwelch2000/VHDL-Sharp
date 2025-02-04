@@ -1,3 +1,4 @@
+using VHDLSharp.Behaviors;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -60,6 +61,15 @@ public abstract class NamedSignal : ISignal
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     /// <summary>
+    /// Behavior assigned to this signal in its module
+    /// </summary>
+    public DigitalBehavior? Behavior
+    {
+        get => ParentModule.SignalBehaviors.TryGetValue(this, out DigitalBehavior? value) ? value : null;
+        set => AssignBehavior(value);
+    }
+
+    /// <summary>
     /// Indexer for multi-dimensional signals
     /// A single-dimensional signal will just return itself for the first item
     /// </summary>
@@ -114,4 +124,30 @@ public abstract class NamedSignal : ISignal
 
     /// <inheritdoc/>
     public Not<ISignal> Not() => new(this);
+
+    // Methods that are shortcuts for adding behaviors
+
+    /// <summary>
+    /// Assign a specified behavior to the signal
+    /// </summary>
+    /// <param name="behavior"></param>
+    public void AssignBehavior(DigitalBehavior? behavior)
+    {
+        if (behavior is null)
+            ParentModule.SignalBehaviors.Remove(this);
+        else
+            ParentModule.SignalBehaviors[this] = behavior;
+    }
+
+    /// <summary>
+    /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
+    /// </summary>
+    /// <param name="value"></param>
+    public void AssignBehavior(int value) => AssignBehavior(new ValueBehavior(value));
+
+    /// <summary>
+    /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
+    /// </summary>
+    /// <param name="expression"></param>
+    public void AssignBehavior(ILogicallyCombinable<ISignal> expression) => AssignBehavior(new LogicBehavior(expression));
 }

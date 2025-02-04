@@ -19,14 +19,8 @@ public static class Program
 
     public static void MainTest()
     {
-        Module module1 = new()
-        {
-            Name = "m1",
-        };
-        Module module2 = new()
-        {
-            Name = "m2",
-        };
+        Module module1 = new("m1");
+        Module module2 = new("m2");
         PortMapping portMapping = new(module1, module2);
         Signal s1 = new("s1", module1);
         Signal s2 = new("s2", module1);
@@ -36,12 +30,12 @@ public static class Program
             Signal = s3, 
             Direction = PortDirection.Output,
         };
-        LogicExpression expression1 = new(new And<ISignal>(s1, new Not<ISignal>(s2)));
+        LogicExpression expression1 = new(s2.Not().And(s1));
         LogicTree<ISignal> expression2 = new And<ISignal>(expression1, new Or<ISignal>(s1, s2));
         module1.AddNewPort(s1, PortDirection.Input);
         module1.AddNewPort(s2, PortDirection.Input);
         module1.Ports.Add(p3);
-        module1.SignalBehaviors[s3] = new LogicBehavior(new And<ISignal>(s1, s2));
+        s3.Behavior = new LogicBehavior(s1.And(s2));
 
         Console.WriteLine(module1.ToSpice());
 

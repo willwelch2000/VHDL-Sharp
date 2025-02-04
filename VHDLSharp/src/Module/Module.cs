@@ -50,56 +50,6 @@ public class Module : IHdlConvertible
             AddNewPort(name, direction);
     }
 
-    private void InvokeModuleUpdated(object? sender, EventArgs e)
-    {
-        CheckValid();
-        UpdateNamedSignals();
-        moduleUpdated?.Invoke(this, e);
-    }
-
-    private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is (NamedSignal outputSignal, DigitalBehavior behavior))
-                {
-                    // Add InvokeModuleUpdated to each new behavior
-                    behavior.BehaviorUpdated += InvokeModuleUpdated;
-
-                    // Throw error if a parent is overwriting a child or vice versa
-                    List<SingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
-                    foreach (SingleNodeNamedSignal newItemSingleNode in outputSignal.ToSingleNodeSignals)
-                        if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
-                            throw new Exception("Module already defines behavior for part or all of this signal");
-                }
-    }
-
-    private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is Instantiation instantiation)
-                {
-                    // Don't allow duplicate instantiation names in the list
-                    if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
-                        throw new Exception($"The same instantiation ({newItem}) should not be added twice");
-                    // Add InvokeModuleUpdated to each new instantiation
-                    instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
-                }
-    }
-
-    private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is Port port)
-                {
-                    if (Ports.Count(i => i.Signal == port.Signal) > 1)
-                        throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
-                }
-    }
-
-
     /// <summary>
     /// Event called when a property of the module is changed that could affect other objects, 
     /// such as port mapping
@@ -141,33 +91,6 @@ public class Module : IHdlConvertible
     /// Otherwise, only the children are returned
     /// </summary>
     public IEnumerable<NamedSignal> NamedSignals { get; private set; } = [];
-
-    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    private void UpdateNamedSignals()
-    {
-        // Get list of all single-node named signals used
-        HashSet<NamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
-            .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-            .Union(SignalBehaviors.Keys)
-            .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-            .SelectMany(s => s.ToSingleNodeSignals)];
-
-        HashSet<NamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-        HashSet<NamedSignal> allNamedSignals = [];
-
-        foreach (NamedSignal topLevelSignal in topLevelSignals)
-        {
-            // If all child signals are present, add top level one
-            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                allNamedSignals.Add(topLevelSignal);
-            else
-            // Otherwise, add single-node signals that are present
-                foreach (SingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                    allNamedSignals.Add(singleNodeSignal);
-        }
-
-        NamedSignals = allNamedSignals;
-    }
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -267,23 +190,6 @@ public class Module : IHdlConvertible
     /// </summary>
     /// <returns></returns>
     public override string ToString() => Name;
-
-    private void CheckValid()
-    {
-        // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
-        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
-        {
-            // TODO make better exception names
-            if (outputSignal.ParentModule != this)
-                throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
-            if (behavior.ParentModule is not null && behavior.ParentModule != this)
-                throw new Exception($"Behavior must have this module as parent");
-            if (!behavior.IsCompatible(outputSignal))
-                throw new Exception($"Behavior must be compatible with output signal");
-            if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
-                throw new Exception($"Output signal ({outputSignal}) must not be an input port");
-        }
-    }
 
     /// <summary>
     /// Get the module as a VHDL string, including all modules used
@@ -476,21 +382,6 @@ public class Module : IHdlConvertible
     /// <returns></returns>
     public Circuit ToSpiceSharpCircuit() => [.. ToSpiceSharpSubcircuit().Entities];
 
-    private string GetComponentDeclaration()
-    {
-        StringBuilder sb = new();
-
-        // Entity statement
-        sb.AppendLine($"component {Name}");
-        sb.AppendLine("\tport (");
-        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
-        sb.AppendLine();
-        sb.AppendLine(");".AddIndentation(1));
-        sb.AppendLine($"end component {Name};");
-
-        return sb.ToString();
-    }
-
     /// <summary>
     /// Test if the module contains a signal
     /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
@@ -507,5 +398,113 @@ public class Module : IHdlConvertible
         if (signal is SingleNodeNamedSignal)
             return namedSignals.Contains(signal.TopLevelSignal);
         return false;
+    }
+    
+    private void InvokeModuleUpdated(object? sender, EventArgs e)
+    {
+        CheckValid();
+        UpdateNamedSignals();
+        moduleUpdated?.Invoke(this, e);
+    }
+
+    private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is (NamedSignal outputSignal, DigitalBehavior behavior))
+                {
+                    // Add InvokeModuleUpdated to each new behavior
+                    behavior.BehaviorUpdated += InvokeModuleUpdated;
+
+                    // Throw error if a parent is overwriting a child or vice versa
+                    List<SingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
+                    foreach (SingleNodeNamedSignal newItemSingleNode in outputSignal.ToSingleNodeSignals)
+                        if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
+                            throw new Exception("Module already defines behavior for part or all of this signal");
+                }
+    }
+
+    private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is Instantiation instantiation)
+                {
+                    // Don't allow duplicate instantiation names in the list
+                    if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
+                        throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+                    // Add InvokeModuleUpdated to each new instantiation
+                    instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
+                }
+    }
+
+    private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is Port port)
+                {
+                    if (Ports.Count(i => i.Signal == port.Signal) > 1)
+                        throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
+                }
+    }
+
+    private string GetComponentDeclaration()
+    {
+        StringBuilder sb = new();
+
+        // Entity statement
+        sb.AppendLine($"component {Name}");
+        sb.AppendLine("\tport (");
+        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
+        sb.AppendLine();
+        sb.AppendLine(");".AddIndentation(1));
+        sb.AppendLine($"end component {Name};");
+
+        return sb.ToString();
+    }
+
+    private void CheckValid()
+    {
+        // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
+        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        {
+            // TODO make better exception names
+            if (outputSignal.ParentModule != this)
+                throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
+            if (behavior.ParentModule is not null && behavior.ParentModule != this)
+                throw new Exception($"Behavior must have this module as parent");
+            if (!behavior.IsCompatible(outputSignal))
+                throw new Exception($"Behavior must be compatible with output signal");
+            if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
+                throw new Exception($"Output signal ({outputSignal}) must not be an input port");
+        }
+    }
+
+    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
+    private void UpdateNamedSignals()
+    {
+        // Get list of all single-node named signals used
+        HashSet<NamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+            .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
+            .Union(SignalBehaviors.Keys)
+            .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
+            .SelectMany(s => s.ToSingleNodeSignals)];
+
+        HashSet<NamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+        HashSet<NamedSignal> allNamedSignals = [];
+
+        foreach (NamedSignal topLevelSignal in topLevelSignals)
+        {
+            // If all child signals are present, add top level one
+            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                allNamedSignals.Add(topLevelSignal);
+            else
+            // Otherwise, add single-node signals that are present
+                foreach (SingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                    allNamedSignals.Add(singleNodeSignal);
+        }
+
+        NamedSignals = allNamedSignals;
     }
 }

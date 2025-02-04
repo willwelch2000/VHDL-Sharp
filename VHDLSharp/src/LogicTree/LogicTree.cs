@@ -52,4 +52,38 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
         // Otherwise, test the first base object with the others
         return first.CanCombine(others);
     }
+    
+    /// <summary>
+    /// Generate an And with this and another <see cref="ILogicallyCombinable{T}"/>
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public And<T> And(ILogicallyCombinable<T> other) => new(this, other);
+
+    /// <summary>
+    /// Generate an And with this and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
+
+    /// <summary>
+    /// Generate an Or with this and another <see cref="ILogicallyCombinable{T}"/>
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public Or<T> Or(ILogicallyCombinable<T> other) => new(this, other);
+
+    /// <summary>
+    /// Generate an Or with this and other <see cref="ILogicallyCombinable{T}"/> objects
+    /// </summary>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
+
+    /// <summary>
+    /// Generate a Not with this
+    /// </summary>
+    /// <returns></returns>
+    public Not<T> Not() => new(this);
 }

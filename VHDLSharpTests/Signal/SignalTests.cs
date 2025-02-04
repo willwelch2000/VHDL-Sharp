@@ -1,3 +1,4 @@
+using VHDLSharp.Behaviors;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
@@ -85,5 +86,31 @@ public class SignalTests
         Assert.IsTrue(orInputs.Contains(s1));
         Assert.IsTrue(orInputs.Contains(s2));
         Assert.IsTrue(orInputs.Contains(s4));
+    }
+
+    [TestMethod]
+    public void AssignBehaviorTest()
+    {
+        Module module1 = new("m1");
+        Signal s1 = module1.GenerateSignal("s1");
+        Signal s2 = module1.GenerateSignal("s2");
+
+        Assert.IsNull(s1.Behavior);
+        s1.AssignBehavior(1);
+        DigitalBehavior behavior = s1.Behavior!;
+        Assert.IsTrue(behavior is ValueBehavior valueBehavior && valueBehavior.Value == 1);
+
+        s1.Behavior = null;
+        Assert.IsNull(s1.Behavior);
+
+        s1.AssignBehavior(s2);
+        behavior = s1.Behavior!;
+        Assert.IsTrue(behavior is LogicBehavior logicBehavior && logicBehavior.LogicExpression.InnerExpression == s2);
+
+        Literal literal = new(0, 1);
+        DigitalBehavior literalBehavior = new LogicBehavior(literal);
+        s1.AssignBehavior(literalBehavior);
+        behavior = s1.Behavior!;
+        Assert.IsTrue(behavior is LogicBehavior logicBehavior2 && logicBehavior2.LogicExpression.InnerExpression == literal);
     }
 }
