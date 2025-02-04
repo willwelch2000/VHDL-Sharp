@@ -46,7 +46,4 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeSignal, IH
 
     /// <inheritdoc/>
     public abstract string ToSpice();
-
-    /// <inheritdoc/>
-    public override string ToVhdl() => $"signal {Name}\t: {VhdlType}";
 }

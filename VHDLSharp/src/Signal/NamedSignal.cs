@@ -106,7 +106,7 @@ public abstract class NamedSignal : ISignal
     /// Get signal as VHDL
     /// </summary>
     /// <returns></returns>
-    public abstract string ToVhdl();
+    public virtual string ToVhdl() => $"signal {Name}\t: {VhdlType}";
 
     // The following functions are given here so that they can be accessed without referring to this object as ISignal
     

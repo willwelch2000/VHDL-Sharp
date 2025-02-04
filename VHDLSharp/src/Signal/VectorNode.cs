@@ -33,4 +33,7 @@ public class VectorNode(Vector vector, int node) : SingleNodeNamedSignal
 
     /// <inheritdoc/>
     public override string ToSpice() => $"{Vector.Name}_{Node}";
+
+    /// <inheritdoc/>
+    public override string ToVhdl() => $"signal {Vector.Name}_{Node}\t: {VhdlType}";
 }
