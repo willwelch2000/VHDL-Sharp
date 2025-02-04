@@ -1,3 +1,4 @@
+namespace VHDLSharpTests;
 
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;

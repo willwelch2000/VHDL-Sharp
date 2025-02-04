@@ -63,7 +63,7 @@ public class SignalTests
         Signal s1 = new("s1", module1);
         Signal s2 = new("s2", module1);
         Signal s3 = new("s3", module2);
-        Signal s4 = new("s3", module1);
+        Signal s4 = new("s4", module1);
 
         // Not
         Not<ISignal> not = s1.Not();
