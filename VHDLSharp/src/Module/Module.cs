@@ -243,7 +243,7 @@ public class Module : IHdlConvertible
         // Signals
         foreach(NamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
         {
-            sb.AppendLine($"signal {signal.ToVhdl}".AddIndentation(1));
+            sb.AppendLine(signal.ToVhdl().AddIndentation(1));
         }
 
         // Component declarations

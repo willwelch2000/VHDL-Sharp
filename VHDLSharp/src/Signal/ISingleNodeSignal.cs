@@ -1,7 +1,7 @@
 namespace VHDLSharp.Signals;
 
 /// <summary>
-/// Interface for signal of any type that has exactly one node
+/// Interface for signal of any type that has exactly one node. 
 /// Dimension must be 1
 /// </summary>
 public interface ISingleNodeSignal : ISignal
