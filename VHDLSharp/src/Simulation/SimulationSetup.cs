@@ -56,7 +56,7 @@ public class SimulationSetup
     /// </summary>
     /// <param name="port"></param>
     /// <param name="stimulus"></param>
-    public void AssignStimulus(Port port, IStimulusSet stimulus) => StimulusMapping[port] = stimulus;
+    public void AssignStimulus(IPort port, IStimulusSet stimulus) => StimulusMapping[port] = stimulus;
 
     /// <summary>
     /// True if ready to convert to Spice or simulate
@@ -76,7 +76,7 @@ public class SimulationSetup
 
         // Connect stimuli to ports
         int i = 0;
-        foreach ((Port port, IStimulusSet stimulus) in StimulusMapping)
+        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
             toReturn += $"{stimulus.ToSpice(port.Signal, i++.ToString())}\n";
 
         return toReturn;
@@ -95,7 +95,7 @@ public class SimulationSetup
 
         // Connect stimuli to ports
         int i = 0;
-        foreach ((Port port, IStimulusSet stimulus) in StimulusMapping)
+        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
             foreach (IEntity entity in stimulus.ToSpiceSharpEntities(port.Signal, i++.ToString()))
                 circuit.Add(entity);
 

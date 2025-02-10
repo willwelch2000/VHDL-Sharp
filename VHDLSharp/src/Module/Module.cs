@@ -77,7 +77,7 @@ public class Module : IHdlConvertible
     /// <summary>
     /// List of ports for this module
     /// </summary>
-    public ObservableCollection<Port> Ports { get; } = [];
+    public ObservableCollection<IPort> Ports { get; } = [];
 
     /// <summary>
     /// List of module instantiations inside of this module
@@ -107,7 +107,7 @@ public class Module : IHdlConvertible
         get
         {
             // If any output signal hasn't been assigned
-            foreach (Port port in Ports.Where(p => p.Direction == PortDirection.Output))
+            foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
             {
                 if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
                     continue;
@@ -231,7 +231,7 @@ public class Module : IHdlConvertible
         // Entity statement
         sb.AppendLine($"entity {Name} is");
         sb.AppendLine("\tport (");
-        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
+        sb.AppendJoin(";\n", Ports.Select(p => p.GetVhdlDeclaration().AddIndentation(2)));
         sb.AppendLine();
         sb.AppendLine(");".AddIndentation(1));
         sb.AppendLine($"end {Name};");
@@ -442,7 +442,7 @@ public class Module : IHdlConvertible
     {
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is Port port)
+                if (newItem is IPort port)
                 {
                     if (Ports.Count(i => i.Signal == port.Signal) > 1)
                         throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
@@ -456,7 +456,7 @@ public class Module : IHdlConvertible
         // Entity statement
         sb.AppendLine($"component {Name}");
         sb.AppendLine("\tport (");
-        sb.AppendJoin(";\n", Ports.Select(p => p.ToVhdl().AddIndentation(2)));
+        sb.AppendJoin(";\n", Ports.Select(p => p.GetVhdlDeclaration().AddIndentation(2)));
         sb.AppendLine();
         sb.AppendLine(");".AddIndentation(1));
         sb.AppendLine($"end component {Name};");
