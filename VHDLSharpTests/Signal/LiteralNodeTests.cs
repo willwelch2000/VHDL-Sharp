@@ -30,7 +30,6 @@ public class LiteralNodeTests
 
         Assert.AreEqual(literal, child0.Literal);
         Assert.AreEqual(1, child0.Dimension.NonNullValue);
-        Assert.IsNull(child0.ParentModule);
         ISignal[] singleNodeSignals = [.. child0.ToSingleNodeSignals];
         Assert.AreEqual(1, singleNodeSignals.Length);
         Assert.AreEqual(child0, singleNodeSignals[0]);
@@ -56,6 +55,6 @@ public class LiteralNodeTests
         Assert.IsTrue(child0.CanCombine(s2));
         Assert.IsFalse(child0.CanCombine([s1, s2]));
         Assert.AreEqual("True", child0.ToLogicString());
-        Assert.AreEqual("VDD", child0.ToSpice());
+        Assert.AreEqual("VDD", child0.GetSpiceName());
     }
 }

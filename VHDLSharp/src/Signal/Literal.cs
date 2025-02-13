@@ -50,9 +50,6 @@ public class Literal : ISignal
     /// <inheritdoc/>
     public DefiniteDimension Dimension { get; }
 
-    /// <inheritdoc/>
-    public Module? ParentModule => null;
-
     /// <summary>
     /// Top-level signal is just this object
     /// </summary>

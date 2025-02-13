@@ -22,7 +22,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<NamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is NamedSignal).Select(o => (NamedSignal)o).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is INamedSignal).Select(o => (INamedSignal)o).Distinct();
 
     /// <summary>
     /// Works by getting dimension from first internal signal--they should all have the same dimension
@@ -31,7 +31,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
     {
         // Don't call IsCompatible here since it does it in LogicExpression
         try
@@ -45,7 +45,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     }
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string ToVhdl(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
@@ -53,7 +53,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         // Don't call IsCompatible here since it does it in LogicExpression
         try

@@ -32,13 +32,13 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is NamedSignal).Select(s => (NamedSignal)s))).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is INamedSignal).Select(s => (INamedSignal)s))).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string ToVhdl(INamedSignal outputSignal)
     {
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
@@ -81,13 +81,13 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

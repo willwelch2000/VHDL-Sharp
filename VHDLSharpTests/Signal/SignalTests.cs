@@ -18,7 +18,7 @@ public class SignalTests
         Assert.AreEqual(module1, s1.ParentModule);
         Assert.IsNull(s1.ParentSignal);
         Assert.AreEqual(s1, s1.TopLevelSignal);
-        Assert.AreEqual("s1", s1.ToSpice());
+        Assert.AreEqual("s1", s1.GetSpiceName());
         Assert.AreEqual("s1", s1.ToString());
 
         Assert.AreEqual(1, s1.Dimension.NonNullValue);
@@ -28,7 +28,7 @@ public class SignalTests
         Assert.AreEqual(1, singleNodeSignals.Length);
         Assert.AreEqual(s1, singleNodeSignals[0]);
         Assert.AreEqual("s1", s1.ToLogicString());
-        Assert.AreEqual("signal s1\t: std_logic", s1.ToVhdl());
+        Assert.AreEqual("signal s1\t: std_logic", s1.GetVhdlDeclaration());
 
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => s1[1]);
         Assert.AreEqual(s1, s1[0]);

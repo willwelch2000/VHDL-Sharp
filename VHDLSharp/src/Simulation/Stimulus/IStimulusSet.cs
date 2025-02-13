@@ -27,7 +27,7 @@ public interface IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(NamedSignal signal, string uniqueId); 
+    public string ToSpice(INamedSignal signal, string uniqueId); 
 
     /// <summary>
     /// Convert to Spice# entities that can be added to a simulation circuit
@@ -35,5 +35,5 @@ public interface IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId);
+    public IEnumerable<IEntity> ToSpiceSharpEntities(INamedSignal signal, string uniqueId);
 }

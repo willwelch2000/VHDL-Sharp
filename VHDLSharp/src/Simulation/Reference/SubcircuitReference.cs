@@ -52,7 +52,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
                 return new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
 
             // Try to find signal
-            SingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
+            ISingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
             if (signal is not null)
                 return new SignalReference(this, signal);
 
@@ -101,7 +101,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public SignalReference GetChildSignalReference(SingleNodeNamedSignal signal) => new(this, signal);
+    public SignalReference GetChildSignalReference(ISingleNodeNamedSignal signal) => new(this, signal);
 
     /// <summary>
     /// Try to get child signal reference given signal name
@@ -112,7 +112,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public bool TryGetChildSignalReference(string name, out SignalReference? reference)
     {
         // Try to find signal
-        SingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
+        ISingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
         if (signal is not null)
         {
             reference = new SignalReference(this, signal);

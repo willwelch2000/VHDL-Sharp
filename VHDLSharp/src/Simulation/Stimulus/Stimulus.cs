@@ -21,7 +21,7 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(NamedSignal signal, string uniqueId)
+    public string ToSpice(INamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
             return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
@@ -35,10 +35,10 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    protected abstract string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId); 
+    protected abstract string ToSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId); 
 
     /// <inheritdoc/>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    public IEnumerable<IEntity> ToSpiceSharpEntities(INamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
             return ToSpiceSharpEntitiesGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
@@ -52,5 +52,5 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    protected abstract IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId);
+    protected abstract IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId);
 }

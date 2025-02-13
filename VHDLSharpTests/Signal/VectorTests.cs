@@ -25,7 +25,7 @@ public class VectorTests()
         VectorNode[] vectorNodes = [.. v1.ChildSignals];
         Assert.AreEqual(4, vectorNodes.Length);
         Assert.AreEqual("v1", v1.ToLogicString());
-        Assert.AreEqual("signal v1\t: std_logic_vector(3 downto 0)", v1.ToVhdl());
+        Assert.AreEqual("signal v1\t: std_logic_vector(3 downto 0)", v1.GetVhdlDeclaration());
     }
 
     [TestMethod]

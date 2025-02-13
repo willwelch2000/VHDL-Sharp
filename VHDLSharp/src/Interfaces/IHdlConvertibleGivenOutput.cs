@@ -12,7 +12,7 @@ public interface IHdlConvertibleGivenOutput
     /// </summary>
     /// <param name="outputSignal"></param>
     /// <returns></returns>
-    public string ToVhdl(NamedSignal outputSignal);
+    public string ToVhdl(INamedSignal outputSignal);
 
     /// <summary>
     /// Convert to Spice given output signal and unique id
@@ -20,5 +20,5 @@ public interface IHdlConvertibleGivenOutput
     /// <param name="outputSignal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(NamedSignal outputSignal, string uniqueId);
+    public string ToSpice(INamedSignal outputSignal, string uniqueId);
 }

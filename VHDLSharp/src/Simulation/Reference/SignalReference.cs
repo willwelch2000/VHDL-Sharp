@@ -16,7 +16,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// </summary>
     /// <param name="subcircuitReference"></param>
     /// <param name="signal"></param>
-    public SignalReference(SubcircuitReference subcircuitReference, NamedSignal signal)
+    public SignalReference(SubcircuitReference subcircuitReference, INamedSignal signal)
     {
         Subcircuit = subcircuitReference;
         Signal = signal;
@@ -34,7 +34,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// <summary>
     /// Signal being referenced--must be in <see cref="Subcircuit"/>
     /// </summary>
-    public NamedSignal Signal { get; }
+    public INamedSignal Signal { get; }
 
     /// <inheritdoc/>
     public Module TopLevelModule => Subcircuit.TopLevelModule;
@@ -79,8 +79,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// </summary>
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
-        foreach (SingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
-            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.ToSpice()]);
+        foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
+            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
     internal void CheckValid()

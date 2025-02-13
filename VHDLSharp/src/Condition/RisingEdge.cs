@@ -7,15 +7,15 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// A <see cref="EventDrivenCondition"/> that is true on a signal's rising edge
 /// </summary>
-public class RisingEdge(SingleNodeNamedSignal signal) : EventDrivenCondition
+public class RisingEdge(ISingleNodeNamedSignal signal) : EventDrivenCondition
 {
     /// <summary>
     /// Signal used for the condition
     /// </summary>
-    public SingleNodeNamedSignal Signal { get; } = signal;
+    public ISingleNodeNamedSignal Signal { get; } = signal;
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> InputSignals => [Signal];
+    public override IEnumerable<INamedSignal> InputSignals => [Signal];
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"rising_edge({Signal.Name})";

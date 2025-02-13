@@ -53,7 +53,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <param name="outputSignal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public string ToSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
@@ -63,7 +63,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             UniqueId = uniqueId,
         });
 
-        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
         if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 
@@ -71,7 +71,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         string value = output.SpiceString;
         for (int i = 0; i < output.Dimension; i++)
         {
-            string newSignalName = singleNodeSignals[i].ToSpice();
+            string newSignalName = singleNodeSignals[i].GetSpiceName();
             string oldSignalName = output.OutputSignalNames[i];
 
             value = Regex.Replace(value, $@"\b{oldSignalName}\b", newSignalName);
@@ -85,7 +85,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// </summary>
     /// <param name="outputSignal">Output signal for this expression</param>
     /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
-    public IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
@@ -97,14 +97,14 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
         List<IEntity> entities = [.. output.SpiceSharpEntities];
 
-        SingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
         if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 
         // Convert final output signals from output into correct output signals
         for (int i = 0; i < output.Dimension; i++)
         {
-            string newSignalName = singleNodeSignals[i].ToSpice();
+            string newSignalName = singleNodeSignals[i].GetSpiceName();
             string oldSignalName = output.OutputSignalNames[i];
             
             // Connect oldSignalName to newSignalName via 1m resistor
@@ -325,7 +325,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             {
                 // TODO check that this works for literal signals
                 // Get signals as strings and generate output signal names
-                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
+                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
                 string uniqueId = additionalInput.UniqueId;
                 string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "baseout"))];
                 
@@ -522,7 +522,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             SignalSpiceSharpObjectOutput BaseFunction(ISignal innerExpression, SignalSpiceSharpObjectInput additionalInput)
             {
                 // Get signals as strings and generate output signal names
-                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.ToSpice())];
+                string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
                 string uniqueId = additionalInput.UniqueId;
                 string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => Util.GetSpiceName(uniqueId, i, "baseout"))];
                 
@@ -562,5 +562,5 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// Check if a given output signal is compatible with this
     /// </summary>
     /// <param name="outputSignal"></param>
-    public bool IsCompatible(NamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
+    public bool IsCompatible(INamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
 }

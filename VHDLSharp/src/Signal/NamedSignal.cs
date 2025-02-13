@@ -8,7 +8,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Single-node and vector signals that are contained in a module and have a name
 /// </summary>
-public abstract class NamedSignal : ISignal
+public abstract class NamedSignal : INamedSignal
 {
     /// <summary>
     /// Name of the module the signal is in
@@ -34,12 +34,12 @@ public abstract class NamedSignal : ISignal
     /// <summary>
     /// Parent signal of this, if it exists
     /// </summary>
-    public abstract NamedSignal? ParentSignal { get; }
+    public abstract INamedSignal? ParentSignal { get; }
 
     /// <summary>
     /// Top-level signal of this
     /// </summary>
-    public abstract NamedSignal TopLevelSignal { get; }
+    public abstract INamedSignal TopLevelSignal { get; }
 
     ISignal ISignal.TopLevelSignal => TopLevelSignal;
 
@@ -48,7 +48,7 @@ public abstract class NamedSignal : ISignal
     /// <summary>
     /// Child signals of this
     /// </summary>
-    public abstract IEnumerable<NamedSignal> ChildSignals { get; }
+    public abstract IEnumerable<INamedSignal> ChildSignals { get; }
 
     IEnumerable<ISignal> ISignal.ChildSignals => ChildSignals;
 
@@ -56,7 +56,7 @@ public abstract class NamedSignal : ISignal
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1
     /// If it is dimension 1, then return itself
     /// </summary>
-    public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals { get; }
+    public abstract IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
@@ -75,7 +75,7 @@ public abstract class NamedSignal : ISignal
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public virtual SingleNodeNamedSignal this[int index]
+    public virtual ISingleNodeNamedSignal this[int index]
     {
         get
         {
@@ -103,10 +103,10 @@ public abstract class NamedSignal : ISignal
     public override string ToString() => Name;
 
     /// <summary>
-    /// Get signal as VHDL
+    /// Get signal declaration as VHDL
     /// </summary>
     /// <returns></returns>
-    public virtual string ToVhdl() => $"signal {Name}\t: {VhdlType}";
+    public virtual string GetVhdlDeclaration() => $"signal {Name}\t: {VhdlType}";
 
     // The following functions are given here so that they can be accessed without referring to this object as ISignal
     

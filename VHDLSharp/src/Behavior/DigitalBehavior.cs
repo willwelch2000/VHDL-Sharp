@@ -8,19 +8,19 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOutput
+public abstract class DigitalBehavior : IHasParentModule
 {
     private EventHandler? behaviorUpdated;
 
     /// <summary>
     /// Get all of the named input signals used in this behavior
     /// </summary>
-    public abstract IEnumerable<NamedSignal> NamedInputSignals { get; }
+    public abstract IEnumerable<INamedSignal> NamedInputSignals { get; }
 
     /// <summary>
     /// Get VHDL representation given the assigned output signal
     /// </summary>
-    public abstract string ToVhdl(NamedSignal outputSignal);
+    public abstract string ToVhdl(INamedSignal outputSignal);
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object
@@ -70,7 +70,7 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     /// <param name="outputSignal">Output signal for this behavior</param>
     /// <param name="uniqueId">Unique string provided to this instantiation so that it can have a unique name</param>
     /// <returns></returns>
-    public abstract string ToSpice(NamedSignal outputSignal, string uniqueId);
+    public abstract string ToSpice(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Get behavior as list of entities for Spice#
@@ -78,7 +78,7 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     /// <param name="outputSignal">Output signal for this behavior</param>
     /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
     /// <returns></returns>
-    public abstract IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId);
+    public abstract IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Call this method to raise the <see cref="BehaviorUpdated"/> event
@@ -91,7 +91,7 @@ public abstract class DigitalBehavior : IHasParentModule, IHdlConvertibleGivenOu
     /// Check that a given output signal is compatible with this
     /// </summary>
     /// <param name="outputSignal"></param>
-    public bool IsCompatible(NamedSignal outputSignal)
+    public bool IsCompatible(INamedSignal outputSignal)
     {
         if (ParentModule is not null && outputSignal.ParentModule != ParentModule)
             return false;

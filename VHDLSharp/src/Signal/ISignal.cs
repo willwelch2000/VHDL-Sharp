@@ -6,11 +6,11 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Interface for any type of signal that can be used in an expression
 /// </summary>
-public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
+public interface ISignal : ILogicallyCombinable<ISignal>
 {
     /// <summary>
     /// Object explaining how many nodes are part of this signal (1 for normal signal)
-    /// </summary>
+    /// </summary> 
     public DefiniteDimension Dimension { get; }
 
     /// <summary>
@@ -74,11 +74,11 @@ public interface ISignal : ILogicallyCombinable<ISignal>, IHasParentModule
             return true;
 
         // Find named signal, if it exists
-        NamedSignal? namedSignal = baseSignals.FirstOrDefault(s => s is NamedSignal) as NamedSignal;
+        INamedSignal? namedSignal = baseSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal;
         if (namedSignal is not null)
         {
             // If any signal has another parent
-            if (baseSignals.Any(s => s.ParentModule is not null && s.ParentModule != namedSignal.ParentModule))
+            if (baseSignals.Any(s => s is INamedSignal namedS && namedS.ParentModule != namedSignal.ParentModule))
                 return false;
         }
 

@@ -36,13 +36,13 @@ public class MultiDimensionalStimulus : IStimulusSet
     IEnumerable<Stimulus> IStimulusSet.Stimuli => Stimuli;
 
     /// <inheritdoc/>
-    public string ToSpice(NamedSignal signal, string uniqueId)
+    public string ToSpice(INamedSignal signal, string uniqueId)
     {
         if (!signal.Dimension.Compatible(Dimension))
             throw new Exception("Signal must be compatible with stimulus dimension");
             
         string toReturn = "";
-        SingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
 
         // Pair each stimulus with corresponding signal
         for (int i = 0; i < Stimuli.Count; i++)
@@ -52,12 +52,12 @@ public class MultiDimensionalStimulus : IStimulusSet
     }
 
     /// <inheritdoc/>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    public IEnumerable<IEntity> ToSpiceSharpEntities(INamedSignal signal, string uniqueId)
     {
         if (!signal.Dimension.Compatible(Dimension))
             throw new Exception("Signal must be compatible with stimulus dimension");
             
-        SingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
         
         // Pair each stimulus with corresponding signal
         for (int i = 0; i < Stimuli.Count; i++)

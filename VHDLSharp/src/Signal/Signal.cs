@@ -3,10 +3,10 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Signals;
 
 /// <summary>
-/// A signal used in a module
+/// A basic single-node signal used in a module
 /// </summary>
-/// <param name="name">name of signal</param>
-/// <param name="parent">module to which this signal belongs</param>
+/// <param name="name">Name of signal</param>
+/// <param name="parent">Module to which this signal belongs</param>
 public class Signal(string name, Module parent) : SingleNodeNamedSignal
 {
     /// <summary>
@@ -20,11 +20,11 @@ public class Signal(string name, Module parent) : SingleNodeNamedSignal
     public override Module ParentModule => parent;
 
     /// <inheritdoc/>
-    public override NamedSignal? ParentSignal => null;
+    public override INamedSignal? ParentSignal => null;
 
     /// <inheritdoc/>
     public override NamedSignal TopLevelSignal => this;
 
     /// <inheritdoc/>
-    public override string ToSpice() => Name;
+    public override string GetSpiceName() => Name;
 }

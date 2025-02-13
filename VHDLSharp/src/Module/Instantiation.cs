@@ -70,7 +70,7 @@ public class Instantiation : IHasParentModule, IHdlConvertible
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>
     /// <returns></returns>
-    public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice()));
+    public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
 
     /// <summary>
     /// Convert to VHDL. 
@@ -83,7 +83,7 @@ public class Instantiation : IHasParentModule, IHdlConvertible
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
         sb.AppendLine("port map (".AddIndentation(1));
         sb.AppendJoin(",\n", PortMapping.Select(
-            kvp => $"{kvp.Key.Signal.ToVhdl()} => {kvp.Value.ToVhdl()}".AddIndentation(2)
+            kvp => $"{kvp.Key.Signal.GetVhdlDeclaration()} => {kvp.Value.GetVhdlDeclaration()}".AddIndentation(2)
         ));
         sb.AppendLine();
         sb.AppendLine(");".AddIndentation(1));
@@ -106,7 +106,7 @@ public class Instantiation : IHasParentModule, IHdlConvertible
         int i = 0;
         foreach (Instantiation instantiation in instantiations)
         {
-            string[] nodes = [.. instantiation.InstantiatedModule.Ports.SelectMany(p => instantiation.PortMapping[p].ToSingleNodeSignals).Select(s => s.ToSpice())];
+            string[] nodes = [.. instantiation.InstantiatedModule.Ports.SelectMany(p => instantiation.PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
             yield return new Subcircuit($"X{i}", subcircuitDefinitions[instantiation.InstantiatedModule], nodes);
         }
     }

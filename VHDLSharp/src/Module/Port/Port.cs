@@ -7,12 +7,12 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Port : IPort
 {
-    private NamedSignal? signal;
+    private INamedSignal? signal;
 
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required NamedSignal Signal
+    public required INamedSignal Signal
     {
         get => signal ?? throw new("Should be impossible");
         set
@@ -29,7 +29,7 @@ public class Port : IPort
     public required PortDirection Direction { get; set; }
 
     /// <summary>
-    /// Get signal as VHDL
+    /// Get port as VHDL port declaration that goes in an entity declaration
     /// </summary>
     /// <returns></returns>
     public string GetVhdlDeclaration() => $"{Signal.Name}\t: {DirectionToVhdl(Direction)}\t{Signal.VhdlType}";

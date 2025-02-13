@@ -100,7 +100,7 @@ public class LogicBehaviorTests
         Assert.IsTrue(resistorOut.Nodes.SequenceEqual(["n0x0_andout", "s3"]));
 
         // Check named signals
-        NamedSignal[] behaviorSignals = [.. behavior.NamedInputSignals];
+        INamedSignal[] behaviorSignals = [.. behavior.NamedInputSignals];
         Assert.AreEqual(2, behaviorSignals.Length);
         Assert.AreEqual(s1, behaviorSignals[0]);
         Assert.AreEqual(s2, behaviorSignals[1]);

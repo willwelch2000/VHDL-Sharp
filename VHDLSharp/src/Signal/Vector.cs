@@ -51,7 +51,7 @@ public class Vector : NamedSignal
     public override IEnumerable<VectorNode> ToSingleNodeSignals => [.. vectorNodes];
 
     /// <inheritdoc/>
-    public override NamedSignal? ParentSignal => null;
+    public override INamedSignal? ParentSignal => null;
 
     /// <inheritdoc/>
     public override Vector TopLevelSignal => this;
@@ -80,11 +80,11 @@ public class Vector : NamedSignal
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a named signal (with a parent), check that one--otherwise, get the first available
-        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e.ParentModule is not null) ?? other.BaseObjects.FirstOrDefault();
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is INamedSignal) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal.ParentModule is null || ParentModule == signal.ParentModule);
+        return Dimension.Compatible(signal.Dimension) && (signal is not INamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
     }
 
     /// <inheritdoc/>

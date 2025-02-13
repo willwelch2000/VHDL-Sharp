@@ -10,7 +10,7 @@ public interface IPort
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public NamedSignal Signal { get; }
+    public INamedSignal Signal { get; }
 
     /// <summary>
     /// The direction that this port is with respect to the module

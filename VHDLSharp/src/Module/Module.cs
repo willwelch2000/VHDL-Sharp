@@ -72,7 +72,7 @@ public class Module : IHdlConvertible
     /// <summary>
     /// Mapping of module signal to behavior that defines it
     /// </summary>
-    public ObservableDictionary<NamedSignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
+    public ObservableDictionary<INamedSignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -90,7 +90,7 @@ public class Module : IHdlConvertible
     /// If all of a multi-dimensional signal's children are used, then the top-level signal is included
     /// Otherwise, only the children are returned
     /// </summary>
-    public IEnumerable<NamedSignal> NamedSignals { get; private set; } = [];
+    public IEnumerable<INamedSignal> NamedSignals { get; private set; } = [];
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -158,7 +158,7 @@ public class Module : IHdlConvertible
     /// <param name="signal"></param>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public Port AddNewPort(NamedSignal signal, PortDirection direction)
+    public Port AddNewPort(INamedSignal signal, PortDirection direction)
     {
         if (signal.ParentModule != this)
             throw new ArgumentException("Signal must have this module as parent");
@@ -241,9 +241,9 @@ public class Module : IHdlConvertible
         sb.AppendLine($"architecture rtl of {Name} is");
 
         // Signals
-        foreach(NamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
+        foreach(INamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
         {
-            sb.AppendLine(signal.ToVhdl().AddIndentation(1));
+            sb.AppendLine(signal.GetVhdlDeclaration().AddIndentation(1));
         }
 
         // Component declarations
@@ -259,7 +259,7 @@ public class Module : IHdlConvertible
         sb.AppendLine();
 
         // Behaviors
-        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
             sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(1));
         }
@@ -308,15 +308,15 @@ public class Module : IHdlConvertible
 
         // Add behaviors
         int i = 0;
-        foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
             sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(indentation));
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (NamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
         {
             int j = 0;
-            foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.ToSpice()} 0 1e9");
+            foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
+                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.GetSpiceName()} 0 1e9");
         }
 
         // End subcircuit
@@ -330,7 +330,7 @@ public class Module : IHdlConvertible
     /// All ports converted to Spice strings
     /// </summary>
     /// <returns></returns>
-    private IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice());
+    private IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName());
 
     /// <summary>
     /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
@@ -342,7 +342,7 @@ public class Module : IHdlConvertible
             throw new Exception("Module not yet complete");
 
         EntityCollection entities = [];
-        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.ToSpice())];
+        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
 
         // Add VDD node and PMOS/NMOS models
         entities.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
@@ -359,18 +359,18 @@ public class Module : IHdlConvertible
 
         // Add behaviors
         int i = 0;
-        foreach ((NamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
         {
             foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i++.ToString()))
                 entities.Add(entity);
         }
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (NamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
         {
             int j = 0;
-            foreach (SingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.ToSpice(), "0", 1e9));
+            foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
+                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.GetSpiceName(), "0", 1e9));
         }
 
         return new(entities, pins);
@@ -388,14 +388,14 @@ public class Module : IHdlConvertible
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(NamedSignal signal)
+    public bool ContainsSignal(INamedSignal signal)
     {
-        NamedSignal[] namedSignals = [.. NamedSignals];
+        INamedSignal[] namedSignals = [.. NamedSignals];
         // True if directly contained
         if (NamedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
-        if (signal is SingleNodeNamedSignal)
+        if (signal is ISingleNodeNamedSignal)
             return namedSignals.Contains(signal.TopLevelSignal);
         return false;
     }
@@ -411,14 +411,14 @@ public class Module : IHdlConvertible
     {
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is (NamedSignal outputSignal, DigitalBehavior behavior))
+                if (newItem is (INamedSignal outputSignal, DigitalBehavior behavior))
                 {
                     // Add InvokeModuleUpdated to each new behavior
                     behavior.BehaviorUpdated += InvokeModuleUpdated;
 
                     // Throw error if a parent is overwriting a child or vice versa
-                    List<SingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
-                    foreach (SingleNodeNamedSignal newItemSingleNode in outputSignal.ToSingleNodeSignals)
+                    List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
+                    foreach (ISingleNodeNamedSignal newItemSingleNode in outputSignal.ToSingleNodeSignals)
                         if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
                             throw new Exception("Module already defines behavior for part or all of this signal");
                 }
@@ -467,7 +467,7 @@ public class Module : IHdlConvertible
     private void CheckValid()
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
-        foreach ((NamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
         {
             // TODO make better exception names
             if (outputSignal.ParentModule != this)
@@ -485,23 +485,23 @@ public class Module : IHdlConvertible
     private void UpdateNamedSignals()
     {
         // Get list of all single-node named signals used
-        HashSet<NamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+        HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
             .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
             .Union(SignalBehaviors.Keys)
             .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
             .SelectMany(s => s.ToSingleNodeSignals)];
 
-        HashSet<NamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-        HashSet<NamedSignal> allNamedSignals = [];
+        HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+        HashSet<INamedSignal> allNamedSignals = [];
 
-        foreach (NamedSignal topLevelSignal in topLevelSignals)
+        foreach (INamedSignal topLevelSignal in topLevelSignals)
         {
             // If all child signals are present, add top level one
             if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
                 allNamedSignals.Add(topLevelSignal);
             else
             // Otherwise, add single-node signals that are present
-                foreach (SingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
                     allNamedSignals.Add(singleNodeSignal);
         }
 
