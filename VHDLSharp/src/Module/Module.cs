@@ -13,7 +13,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// A digital module--a circuit that has some functionality
 /// </summary>
-public class Module : IHdlConvertible
+public class Module
 {
     private EventHandler? moduleUpdated;
 

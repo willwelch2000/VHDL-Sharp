@@ -5,9 +5,9 @@ using VHDLSharp.Signals;
 namespace VHDLSharp.Conditions;
 
 /// <summary>
-/// A <see cref="EventDrivenCondition"/> that is true on a signal's rising edge
+/// An event-driven condition that is true on a signal's rising edge
 /// </summary>
-public class RisingEdge(ISingleNodeNamedSignal signal) : EventDrivenCondition
+public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrivenCondition
 {
     /// <summary>
     /// Signal used for the condition

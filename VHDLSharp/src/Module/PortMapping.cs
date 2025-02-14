@@ -36,7 +36,7 @@ public class PortMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation
 /// </summary>
-public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IHasParentModule
+public class PortMapping : ObservableDictionary<IPort, INamedSignal>
 {
     /// <summary>
     /// Module that is instantiated

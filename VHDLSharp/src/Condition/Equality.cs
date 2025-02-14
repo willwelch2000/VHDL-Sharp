@@ -7,7 +7,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Comparison between signal and either another signal or a value
 /// </summary>
-public class Equality : ConstantCondition
+public class Equality : Condition, IConstantCondition
 {
     /// <summary>
     /// Generate equality comparison between two signals

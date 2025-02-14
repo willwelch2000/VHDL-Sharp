@@ -8,7 +8,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Instantiation of one module inside of another (parent)
 /// </summary>
-public class Instantiation : IHasParentModule, IHdlConvertible
+public class Instantiation
 {
     private EventHandler? instantiatedModuleUpdated;
 

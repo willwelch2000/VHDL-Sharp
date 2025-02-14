@@ -153,9 +153,9 @@ public static class Program
         timeDefinedStimulus.Points[3e-6] = false;
         timeDefinedStimulus.Points[4e-6] = true;
 
-        Console.WriteLine(constStimulus.ToSpice(s1, "0"));
-        Console.WriteLine(pulseStimulus.ToSpice(s1, "1"));
-        Console.WriteLine(timeDefinedStimulus.ToSpice(s1, "2"));
+        Console.WriteLine(constStimulus.GetSpice(s1, "0"));
+        Console.WriteLine(pulseStimulus.GetSpice(s1, "1"));
+        Console.WriteLine(timeDefinedStimulus.GetSpice(s1, "2"));
     }
 
     public static void TestSpiceSharp()

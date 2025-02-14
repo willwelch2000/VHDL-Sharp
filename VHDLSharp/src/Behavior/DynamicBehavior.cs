@@ -21,7 +21,7 @@ public class DynamicBehavior : Behavior
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+    private ObservableCollection<(ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
@@ -48,12 +48,12 @@ public class DynamicBehavior : Behavior
         sb.AppendLine("begin");
 
         // First condition
-        (ILogicallyCombinable<Condition> firstCondition, ICombinationalBehavior firstBehavior) = ConditionMappings.First();
+        (ILogicallyCombinable<ICondition> firstCondition, ICombinationalBehavior firstBehavior) = ConditionMappings.First();
         sb.AppendLine($"\tif ({firstCondition.ToLogicString()}) then");
         sb.AppendLine(firstBehavior.GetVhdlStatement(outputSignal).AddIndentation(2));
 
         // Remaining conditions
-        foreach ((ILogicallyCombinable<Condition> condition, ICombinationalBehavior behavior) in ConditionMappings.Skip(1))
+        foreach ((ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) in ConditionMappings.Skip(1))
         {
             sb.AppendLine($"\telse if ({condition.ToLogicString()}) then");
             sb.AppendLine(behavior.GetVhdlStatement(outputSignal).AddIndentation(2));
