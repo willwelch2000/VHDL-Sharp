@@ -77,7 +77,7 @@ public class SimulationSetup
         // Connect stimuli to ports
         int i = 0;
         foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            toReturn += $"{stimulus.ToSpice(port.Signal, i++.ToString())}\n";
+            toReturn += $"{stimulus.GetSpice(port.Signal, i++.ToString())}\n";
 
         return toReturn;
     }
@@ -96,7 +96,7 @@ public class SimulationSetup
         // Connect stimuli to ports
         int i = 0;
         foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            foreach (IEntity entity in stimulus.ToSpiceSharpEntities(port.Signal, i++.ToString()))
+            foreach (IEntity entity in stimulus.GetSpiceSharpEntities(port.Signal, i++.ToString()))
                 circuit.Add(entity);
 
         return circuit;

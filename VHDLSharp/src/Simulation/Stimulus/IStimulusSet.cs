@@ -16,7 +16,7 @@ public interface IStimulusSet
     public DefiniteDimension Dimension { get; }
 
     /// <summary>
-    /// All individual (single-node) stimuli
+    /// All individual (single-node) stimuli. 
     /// Must be of length <see cref="Dimension"/>
     /// </summary>
     public IEnumerable<Stimulus> Stimuli { get; }
@@ -27,13 +27,13 @@ public interface IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(INamedSignal signal, string uniqueId); 
+    public string GetSpice(INamedSignal signal, string uniqueId); 
 
     /// <summary>
-    /// Convert to Spice# entities that can be added to a simulation circuit
+    /// Convert to Spice# entities that can be added to a simulation circuit given signal and unique id
     /// </summary>
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(INamedSignal signal, string uniqueId);
+    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal signal, string uniqueId);
 }

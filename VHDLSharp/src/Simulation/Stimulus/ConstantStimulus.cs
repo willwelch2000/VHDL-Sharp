@@ -30,11 +30,11 @@ public class ConstantStimulus : Stimulus
     public bool Value { get; set; } = false;
 
     /// <inheritdoc/>
-    protected override string ToSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
+    protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
         $"V{Util.GetSpiceName(uniqueId, 0, "const")} {signal.GetSpiceName()} 0 {(Value ? Util.VDD.ToString() : "0")}";
 
     /// <inheritdoc/>
-    protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
+    protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         // DC voltage source at signal with VDD or 0
         yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "const")}", signal.GetSpiceName(), "0", Value ? Util.VDD : 0);

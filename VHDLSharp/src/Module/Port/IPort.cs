@@ -4,6 +4,7 @@ namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Interface for anything that can be used as a port in a <see cref="Module"/>
+/// TODO might not need interface for this
 /// </summary>
 public interface IPort
 {
