@@ -17,7 +17,7 @@ public class Instantiation : IInstantiation
     /// <param name="instantiatedModule">Module that is instantiated</param>
     /// <param name="parentModule">The module inside which this instantiation exists</param>
     /// <param name="name">Name of instantiation</param>
-    public Instantiation(Module instantiatedModule, Module parentModule, string name)
+    public Instantiation(IModule instantiatedModule, IModule parentModule, string name)
     {
         InstantiatedModule = instantiatedModule;
         PortMapping = new(instantiatedModule, parentModule);
@@ -29,7 +29,7 @@ public class Instantiation : IInstantiation
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public Module InstantiatedModule { get; }
+    public IModule InstantiatedModule { get; }
 
     /// <summary>
     /// Mapping of module's ports to parent's signals (connections to module)
@@ -39,7 +39,7 @@ public class Instantiation : IInstantiation
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public Module ParentModule { get; }
+    public IModule ParentModule { get; }
 
     /// <summary>
     /// Name of instantiation
@@ -91,7 +91,7 @@ public class Instantiation : IInstantiation
     }
 
     /// <inheritdoc/>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<Module, SubcircuitDefinition> subcircuitDefinitions, int uniqueId)
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions, int uniqueId)
     {
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
         return new Subcircuit($"X{uniqueId}", subcircuitDefinitions[InstantiatedModule], nodes);

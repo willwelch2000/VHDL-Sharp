@@ -13,7 +13,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// A digital module--a circuit that has some functionality
 /// </summary>
-public class Module
+public class Module : IModule
 {
     private EventHandler? moduleUpdated;
 
@@ -85,18 +85,20 @@ public class Module
     public ObservableCollection<IInstantiation> Instantiations { get; } = [];
 
     /// <summary>
-    /// Get all named signals used in this module
-    /// Signals can come from ports, behavior input signals, or output signals
-    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included
-    /// Otherwise, only the children are returned
+    /// Get all named signals used in this module. 
+    /// Signals can come from ports, behavior input signals, or output signals. 
+    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
+    /// Otherwise, only the children are returned. 
     /// </summary>
     public IEnumerable<INamedSignal> NamedSignals { get; private set; } = [];
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
     /// </summary>
-    public IEnumerable<Module> ModulesUsed =>
+    public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
+
+    IEnumerable<IModule> IModule.ModulesUsed => ModulesUsed;
 
     /// <summary>
     /// True if module is ready to be used
@@ -178,7 +180,7 @@ public class Module
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public IInstantiation AddNewI(Module module, string name)
+    public IInstantiation AddNewInstantiation(Module module, string name)
     {
         IInstantiation instantiation = new Instantiation(module, this, name);
         Instantiations.Add(instantiation);
@@ -195,7 +197,7 @@ public class Module
     /// Get the module as a VHDL string, including all modules used
     /// </summary>
     /// <returns></returns>
-    public string ToVhdl()
+    public string GetVhdl()
     {
         StringBuilder sb = new();
 
@@ -206,22 +208,22 @@ public class Module
         // Submodules
         foreach (var module in ModulesUsed)
         {
-            sb.AppendLine(module.ToVhdlInner());
+            sb.AppendLine(module.GetVhdlNoSubmodules());
             sb.AppendLine();
         }
 
         // Main module
-        sb.AppendLine(ToVhdlInner());
+        sb.AppendLine(GetVhdlNoSubmodules());
 
         return sb.ToString();
     }
 
     /// <summary>
-    /// Function that only generates this module without submodules or 
+    /// Get the VHDL for this module without submodules or 
     /// stuff that goes at the beginning of the file
     /// </summary>
     /// <returns></returns>
-    private string ToVhdlInner()
+    public string GetVhdlNoSubmodules()
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -271,15 +273,15 @@ public class Module
     }
 
     /// <inheritdoc/>
-    public string ToSpice() => ToSpice(false);
+    public string GetSpice() => GetSpice(false);
 
     /// <summary>
-    /// Convert module to spice circuit
+    /// Convert module to Spice circuit
     /// </summary>
     /// <param name="subcircuit">Whether it should be wrapped in a subcircuit or top-level</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public string ToSpice(bool subcircuit)
+    public string GetSpice(bool subcircuit)
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -294,7 +296,7 @@ public class Module
 
         // Add all inner modules' subcircuit declarations
         foreach (Module submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
-            sb.AppendLine(submodule.ToSpice(true).AddIndentation(indentation) + "\n");
+            sb.AppendLine(submodule.GetSpice(true).AddIndentation(indentation) + "\n");
 
         // Add VDD node and PMOS/NMOS models
         sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
@@ -336,7 +338,7 @@ public class Module
     /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
     /// </summary>
     /// <returns></returns>
-    public SubcircuitDefinition ToSpiceSharpSubcircuit()
+    public SubcircuitDefinition GetSpiceSharpSubcircuit()
     {
         if (!Complete)
             throw new Exception("Module not yet complete");
@@ -380,7 +382,7 @@ public class Module
     /// Convert module to Spice# <see cref="Circuit"/> object
     /// </summary>
     /// <returns></returns>
-    public Circuit ToSpiceSharpCircuit() => [.. ToSpiceSharpSubcircuit().Entities];
+    public Circuit GetSpiceSharpCircuit() => [.. GetSpiceSharpSubcircuit().Entities];
 
     /// <summary>
     /// Test if the module contains a signal

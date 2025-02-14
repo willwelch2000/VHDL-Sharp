@@ -28,7 +28,7 @@ public abstract class Condition : ICondition
     /// <summary>
     /// Get parent module based on named input signals
     /// </summary>
-    public Module? ParentModule => (InputSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal)?.ParentModule;
+    public IModule? ParentModule => (InputSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal)?.ParentModule;
 
     /// <summary>
     /// Input signals to condition

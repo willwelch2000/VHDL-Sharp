@@ -12,7 +12,7 @@ public interface ICondition : ILogicallyCombinable<ICondition>
     /// <summary>
     /// Get parent module, if it exists
     /// </summary>
-    public Module? ParentModule { get; }
+    public IModule? ParentModule { get; }
 
     /// <summary>
     /// Input signals to condition

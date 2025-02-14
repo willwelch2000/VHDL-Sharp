@@ -44,7 +44,7 @@ public abstract class Behavior : IBehavior
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public Module? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
+    public IModule? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals

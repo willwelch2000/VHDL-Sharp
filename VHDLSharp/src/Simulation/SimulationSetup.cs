@@ -18,7 +18,7 @@ public class SimulationSetup
     /// Create simulation setup given module to simulate
     /// </summary>
     /// <param name="module">Module that is simulated</param>
-    public SimulationSetup(Module module)
+    public SimulationSetup(IModule module)
     {
         StimulusMapping = new(module);
         Module = module;
@@ -34,7 +34,7 @@ public class SimulationSetup
     /// <summary>
     /// Module that has stimuli applied
     /// </summary>
-    public Module Module { get; }
+    public IModule Module { get; }
 
     /// <summary>
     /// List of signals to receive output for
@@ -67,12 +67,12 @@ public class SimulationSetup
     /// Get Spice representation of the setup
     /// </summary>
     /// <returns></returns>
-    public string ToSpice()
+    public string GetSpice()
     {
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to Spice");
 
-        string toReturn = Module.ToSpice();
+        string toReturn = Module.GetSpice();
 
         // Connect stimuli to ports
         int i = 0;
@@ -86,12 +86,12 @@ public class SimulationSetup
     /// Get Spice# Circuit representation of setup
     /// </summary>
     /// <returns></returns>
-    public Circuit ToSpiceSharpCircuit()
+    public Circuit GetSpiceSharpCircuit()
     {
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
-        Circuit circuit = Module.ToSpiceSharpCircuit();
+        Circuit circuit = Module.GetSpiceSharpCircuit();
 
         // Connect stimuli to ports
         int i = 0;
@@ -105,7 +105,7 @@ public class SimulationSetup
     /// <inheritdoc/>
     public IEnumerable<SimulationResult> Simulate()
     {
-        Circuit circuit = ToSpiceSharpCircuit();
+        Circuit circuit = GetSpiceSharpCircuit();
         
         var tran = new Transient("Tran 1", StepSize, Length);
 

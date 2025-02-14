@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// </summary>
 /// <param name="name">Name of signal</param>
 /// <param name="parent">Module to which this signal belongs</param>
-public class Signal(string name, Module parent) : SingleNodeNamedSignal
+public class Signal(string name, IModule parent) : SingleNodeNamedSignal
 {
     /// <summary>
     /// Name of the signal
@@ -17,7 +17,7 @@ public class Signal(string name, Module parent) : SingleNodeNamedSignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public override Module ParentModule => parent;
+    public override IModule ParentModule => parent;
 
     /// <inheritdoc/>
     public override INamedSignal? ParentSignal => null;

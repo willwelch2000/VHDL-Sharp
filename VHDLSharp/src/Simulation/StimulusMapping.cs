@@ -38,13 +38,13 @@ public class StimulusMappingException : Exception
 /// </summary>
 public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
 {
-    private readonly Module module;
+    private readonly IModule module;
     
     /// <summary>
     /// Construct port mapping given module that has stimuli applied to its ports
     /// </summary>
     /// <param name="module">Module that has stimuli applied to its ports</param>
-    public StimulusMapping(Module module)
+    public StimulusMapping(IModule module)
     {
         this.module = module;
         this.module.ModuleUpdated += ModuleUpdated;

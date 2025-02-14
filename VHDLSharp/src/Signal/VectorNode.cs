@@ -32,7 +32,7 @@ public class VectorNode : SingleNodeNamedSignal
     public override string Name => $"{Vector.Name}[{Node}]";
 
     /// <inheritdoc/>
-    public override Module ParentModule => Vector.ParentModule;
+    public override IModule ParentModule => Vector.ParentModule;
 
     /// <inheritdoc/>
     public override Vector? ParentSignal => Vector;

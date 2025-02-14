@@ -3,14 +3,14 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Signals;
 
 /// <summary>
-/// Interface for any signal that has a name and belongs to a <see cref="Module"/>
+/// Interface for any signal that has a name and belongs to a <see cref="IModule"/>
 /// </summary>
 public interface INamedSignal : ISignal
 {
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public Module ParentModule { get; }
+    public IModule ParentModule { get; }
 
     /// <summary>
     /// Name of the signal

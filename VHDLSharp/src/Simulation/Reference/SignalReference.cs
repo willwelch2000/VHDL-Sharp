@@ -37,7 +37,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     public INamedSignal Signal { get; }
 
     /// <inheritdoc/>
-    public Module TopLevelModule => Subcircuit.TopLevelModule;
+    public IModule TopLevelModule => Subcircuit.TopLevelModule;
 
     /// <inheritdoc/>
     public ReadOnlyCollection<IInstantiation> Path => Subcircuit.Path;
@@ -86,7 +86,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     internal void CheckValid()
     {
         // Exception if last module doesn't contain signal
-        Module lastModule = Subcircuit.FinalModule;
+        IModule lastModule = Subcircuit.FinalModule;
         if (!lastModule.ContainsSignal(Signal))
             throw new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
     }

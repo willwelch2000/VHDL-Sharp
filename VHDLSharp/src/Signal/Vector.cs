@@ -19,7 +19,7 @@ public class Vector : NamedSignal
     /// <param name="name">name of signal</param>
     /// <param name="parentModule">module to which this signal belongs</param>
     /// <param name="dimension">length of vector</param>
-    public Vector(string name, Module parentModule, int dimension)
+    public Vector(string name, IModule parentModule, int dimension)
     {
         if (dimension < 2)
             throw new ArgumentException("Dimension should be > 1");
@@ -37,7 +37,7 @@ public class Vector : NamedSignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public override Module ParentModule { get; }
+    public override IModule ParentModule { get; }
 
     /// <summary>
     /// How many nodes are part of this signal (1 for base version)

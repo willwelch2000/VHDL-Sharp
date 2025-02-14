@@ -13,7 +13,7 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     public override abstract string Name { get; }
 
     /// <inheritdoc/>
-    public override abstract Module ParentModule { get; }
+    public override abstract IModule ParentModule { get; }
 
     /// <inheritdoc/>
     public override DefiniteDimension Dimension => new(1);

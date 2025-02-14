@@ -15,7 +15,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="topLevelModule"></param>
     /// <param name="path"></param>
-    public SubcircuitReference(Module topLevelModule, IEnumerable<IInstantiation> path)
+    public SubcircuitReference(IModule topLevelModule, IEnumerable<IInstantiation> path)
     {
         TopLevelModule = topLevelModule;
         Path = new([.. path]);
@@ -26,7 +26,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     }
 
     /// <inheritdoc/>
-    public Module TopLevelModule { get; }
+    public IModule TopLevelModule { get; }
 
     /// <inheritdoc/>
     public ReadOnlyCollection<IInstantiation> Path { get; }
@@ -34,7 +34,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// <summary>
     /// Final module in path
     /// </summary>
-    public Module FinalModule => Path.Select(i => i.InstantiatedModule).LastOrDefault(TopLevelModule);
+    public IModule FinalModule => Path.Select(i => i.InstantiatedModule).LastOrDefault(TopLevelModule);
 
     /// <summary>
     /// Gets subcircuit or signal reference inside this subcircuit
@@ -173,7 +173,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
 
     internal void CheckValid()
     {
-        Module module = TopLevelModule;
+        IModule module = TopLevelModule;
         foreach (IInstantiation instantiation in Path)
         {
             if (instantiation.ParentModule != module)

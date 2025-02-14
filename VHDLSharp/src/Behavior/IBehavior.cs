@@ -34,7 +34,7 @@ public interface IBehavior
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public Module? ParentModule { get; }
+    public IModule? ParentModule { get; }
 
     /// <summary>
     /// Convert to Spice

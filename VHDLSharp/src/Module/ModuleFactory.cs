@@ -5,17 +5,17 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public static class ModuleFactory
 {
-    private readonly static List<Module> fullyDefinedModules = [];
+    private readonly static List<IModule> fullyDefinedModules = [];
 
-    private readonly static Dictionary<string, Module> otherModules = [];
+    private readonly static Dictionary<string, IModule> otherModules = [];
 
     /// <summary>
     /// Used to get a predefined module while ensuring that duplicate versions are not created.
-    /// Only works for classes that extend <see cref="Module"/> and have a parameterless constructor
+    /// Only works for classes that extend <see cref="IModule"/> and have a parameterless constructor
     /// </summary>
-    /// <typeparam name="T">The type of module to get. Should extend <see cref="Module"/> and implement the default constructor</typeparam>
+    /// <typeparam name="T">The type of module to get. Should extend <see cref="IModule"/> and implement the default constructor</typeparam>
     /// <returns></returns>
-    public static Module Get<T>() where T : Module, new()
+    public static IModule Get<T>() where T : class, IModule, new()
     {
         T? existing = fullyDefinedModules.FirstOrDefault(m => m is T) as T;
         if (existing is not null)
@@ -33,10 +33,10 @@ public static class ModuleFactory
     /// <param name="dimension"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public static Module And(int dimension)
+    public static IModule And(int dimension)
     {
         string name = $"and_{dimension}bit";
-        if (otherModules.TryGetValue(name, out Module? module))
+        if (otherModules.TryGetValue(name, out IModule? module))
         {
             return module;
         }

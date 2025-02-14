@@ -41,19 +41,19 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public Module InstantiatedModule { get; }
+    public IModule InstantiatedModule { get; }
 
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public Module ParentModule { get; }
+    public IModule ParentModule { get; }
     
     /// <summary>
     /// Construct port mapping given instantiated module and parent module
     /// </summary>
     /// <param name="instantiatedModule">Module that is instantiated</param>
     /// <param name="parentModule">Module that contains instantiated module</param>
-    public PortMapping(Module instantiatedModule, Module parentModule)
+    public PortMapping(IModule instantiatedModule, IModule parentModule)
     {
         InstantiatedModule = instantiatedModule;
         InstantiatedModule.ModuleUpdated += ModuleUpdated;

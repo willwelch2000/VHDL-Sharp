@@ -1,7 +1,5 @@
-using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
-using VHDLSharp.Utility;
 
 namespace VHDLSharp.Modules;
 
@@ -13,7 +11,7 @@ public interface IInstantiation
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public Module InstantiatedModule { get; }
+    public IModule InstantiatedModule { get; }
 
     /// <summary>
     /// Mapping of module's ports to parent's signals (connections to module)
@@ -23,7 +21,7 @@ public interface IInstantiation
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public Module ParentModule { get; }
+    public IModule ParentModule { get; }
 
     /// <summary>
     /// Name of instantiation
@@ -61,7 +59,7 @@ public interface IInstantiation
     /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects</param>
     /// <param name="uniqueId">Unique id to use for name</param>
     /// <returns></returns>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<Module, SubcircuitDefinition> subcircuitDefinitions, int uniqueId);
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions, int uniqueId);
 
     /// <inheritdoc/>
     public string ToString();
@@ -73,9 +71,9 @@ public interface IInstantiation
     public static IEnumerable<IEntity> GetSpiceSharpEntities(IEnumerable<IInstantiation> instantiations)
     {
         // Make subcircuit definitions for all distinct modules
-        Dictionary<Module, SubcircuitDefinition> subcircuitDefinitions = [];
-        foreach (Module submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            subcircuitDefinitions[submodule] = submodule.ToSpiceSharpSubcircuit();
+        Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
+        foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
+            subcircuitDefinitions[submodule] = submodule.GetSpiceSharpSubcircuit();
 
         // Add instantiations
         int i = 0;

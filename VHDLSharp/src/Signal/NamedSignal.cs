@@ -13,7 +13,7 @@ public abstract class NamedSignal : INamedSignal
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public abstract Module ParentModule { get; }
+    public abstract IModule ParentModule { get; }
 
     /// <summary>
     /// Name of the signal

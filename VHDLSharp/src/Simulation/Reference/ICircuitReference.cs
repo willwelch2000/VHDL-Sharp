@@ -11,7 +11,7 @@ public interface ICircuitReference
     /// <summary>
     /// Module used as top-level in circuit
     /// </summary>
-    public Module TopLevelModule { get; }
+    public IModule TopLevelModule { get; }
 
     /// <summary>
     /// Path of instantiations that leads to subcircuit
