@@ -52,7 +52,7 @@ public class LogicBehaviorTests
         LogicBehavior behavior = new(s1.And(s2));
 
         // Check Spice
-        string spice = behavior.ToSpice(s3, "0");
+        string spice = behavior.GetSpice(s3, "0");
         string expectedSpice = 
         """
         Rn0_0x0_res s1 n0_0x0_baseout 1m
@@ -67,7 +67,7 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check VHDL
-        string vhdl = behavior.ToVhdl(s3);
+        string vhdl = behavior.GetVhdlStatement(s3);
         string expectedVhdl = "s3 <= (s1 and s2);";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
 
@@ -122,8 +122,8 @@ public class LogicBehaviorTests
         Vector v4 = new("v4", module1, 2);
         Assert.IsTrue(behavior.IsCompatible(s3));
         Assert.IsFalse(behavior.IsCompatible(v4));
-        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.ToSpice(v4, "0"));
-        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.ToVhdl(v4));
+        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpice(v4, "0"));
+        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetVhdlStatement(v4));
         Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpiceSharpEntities(v4, "0"));
     }
 
@@ -146,7 +146,7 @@ public class LogicBehaviorTests
         Assert.AreEqual(3, behavior.Dimension.Value);
 
         // Check VHDL
-        string vhdl = behavior.ToVhdl(v3);
+        string vhdl = behavior.GetVhdlStatement(v3);
         string expectedVhdl = "v3 <= (v1 and v2);";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
     }

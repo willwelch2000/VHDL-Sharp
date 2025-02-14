@@ -11,17 +11,17 @@ using SpiceSharp.Entities;
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
-/// Behavior that uses sequential rather than combinational logic
-/// Maps <see cref="Condition"/> objects to <see cref="CombinationalBehavior"/> objects
-/// The output signal is assigned the value from the combinational behavior when the condition is met
+/// Behavior that uses sequential rather than combinational logic. 
+/// Maps <see cref="Condition"/> objects to <see cref="ICombinationalBehavior"/> objects. 
+/// The output signal is assigned the value from the combinational behavior when the condition is met. 
 /// Priority is used for the conditions
 /// </summary>
-public class DynamicBehavior : DigitalBehavior
+public class DynamicBehavior : Behavior
 {
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, CombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
@@ -38,7 +38,7 @@ public class DynamicBehavior : DigitalBehavior
     public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
-    public override string ToVhdl(INamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
@@ -48,15 +48,15 @@ public class DynamicBehavior : DigitalBehavior
         sb.AppendLine("begin");
 
         // First condition
-        (ILogicallyCombinable<Condition> firstCondition, CombinationalBehavior firstBehavior) = ConditionMappings.First();
+        (ILogicallyCombinable<Condition> firstCondition, ICombinationalBehavior firstBehavior) = ConditionMappings.First();
         sb.AppendLine($"\tif ({firstCondition.ToLogicString()}) then");
-        sb.AppendLine(firstBehavior.ToVhdl(outputSignal).AddIndentation(2));
+        sb.AppendLine(firstBehavior.GetVhdlStatement(outputSignal).AddIndentation(2));
 
         // Remaining conditions
-        foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
+        foreach ((ILogicallyCombinable<Condition> condition, ICombinationalBehavior behavior) in ConditionMappings.Skip(1))
         {
             sb.AppendLine($"\telse if ({condition.ToLogicString()}) then");
-            sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(2));
+            sb.AppendLine(behavior.GetVhdlStatement(outputSignal).AddIndentation(2));
         }
 
         sb.AppendLine("\tend if;");
@@ -81,7 +81,7 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

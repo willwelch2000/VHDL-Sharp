@@ -8,7 +8,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class DigitalBehavior : IHasParentModule
+public abstract class Behavior : IBehavior
 {
     private EventHandler? behaviorUpdated;
 
@@ -20,7 +20,7 @@ public abstract class DigitalBehavior : IHasParentModule
     /// <summary>
     /// Get VHDL representation given the assigned output signal
     /// </summary>
-    public abstract string ToVhdl(INamedSignal outputSignal);
+    public abstract string GetVhdlStatement(INamedSignal outputSignal);
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object
@@ -44,13 +44,7 @@ public abstract class DigitalBehavior : IHasParentModule
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public Module? ParentModule
-    {
-        get
-        {
-            return NamedInputSignals.FirstOrDefault()?.ParentModule;
-        }
-    }
+    public Module? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals
@@ -70,7 +64,7 @@ public abstract class DigitalBehavior : IHasParentModule
     /// <param name="outputSignal">Output signal for this behavior</param>
     /// <param name="uniqueId">Unique string provided to this instantiation so that it can have a unique name</param>
     /// <returns></returns>
-    public abstract string ToSpice(INamedSignal outputSignal, string uniqueId);
+    public abstract string GetSpice(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Get behavior as list of entities for Spice#

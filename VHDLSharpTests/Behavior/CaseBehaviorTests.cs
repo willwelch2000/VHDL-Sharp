@@ -52,7 +52,7 @@ public class CaseBehaviorTests
         Assert.IsFalse(behavior.IsCompatible(v2));
 
         // Check Spice
-        string spice = behavior.ToSpice(v1, "0");
+        string spice = behavior.GetSpice(v1, "0");
         string expectedSpice = 
         """
         Rn0_0x0_res VDD n0x0_case0_0 1m
@@ -297,7 +297,7 @@ public class CaseBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check VHDL
-        string vhdl = behavior.ToVhdl(v1);
+        string vhdl = behavior.GetVhdlStatement(v1);
         string expectedVhdl = 
         """
         process(selector) is

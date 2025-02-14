@@ -63,9 +63,9 @@ public abstract class NamedSignal : INamedSignal
     /// <summary>
     /// Behavior assigned to this signal in its module
     /// </summary>
-    public DigitalBehavior? Behavior
+    public IBehavior? Behavior
     {
-        get => ParentModule.SignalBehaviors.TryGetValue(this, out DigitalBehavior? value) ? value : null;
+        get => ParentModule.SignalBehaviors.TryGetValue(this, out IBehavior? value) ? value : null;
         set => AssignBehavior(value);
     }
 
@@ -131,7 +131,7 @@ public abstract class NamedSignal : INamedSignal
     /// Assign a specified behavior to the signal
     /// </summary>
     /// <param name="behavior"></param>
-    public void AssignBehavior(DigitalBehavior? behavior)
+    public void AssignBehavior(IBehavior? behavior)
     {
         if (behavior is null)
             ParentModule.SignalBehaviors.Remove(this);

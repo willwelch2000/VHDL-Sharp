@@ -12,7 +12,7 @@ namespace VHDLSharp.Behaviors;
 /// </summary>
 /// <param name="logicExpression">The logical expression that this refers to, as a <see cref="LogicExpression"/> or <see cref="ILogicallyCombinable{ISignal}"/></param>
 /// <exception cref="Exception"></exception>
-public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
+public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Behavior, ICombinationalBehavior
 {
     /// <summary>
     /// The logical expression that this refers to, as a <see cref="LogicExpression"/>
@@ -31,7 +31,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         // Don't call IsCompatible here since it does it in LogicExpression
         try
@@ -45,7 +45,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     }
 
     /// <inheritdoc/>
-    public override string ToVhdl(INamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");

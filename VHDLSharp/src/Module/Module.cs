@@ -72,7 +72,7 @@ public class Module : IHdlConvertible
     /// <summary>
     /// Mapping of module signal to behavior that defines it
     /// </summary>
-    public ObservableDictionary<INamedSignal, DigitalBehavior> SignalBehaviors { get; set; } = [];
+    public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
     /// List of ports for this module
@@ -259,9 +259,9 @@ public class Module : IHdlConvertible
         sb.AppendLine();
 
         // Behaviors
-        foreach ((INamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(1));
+            sb.AppendLine(behavior.GetVhdlStatement(outputSignal).AddIndentation(1));
         }
 
         // End
@@ -308,8 +308,8 @@ public class Module : IHdlConvertible
 
         // Add behaviors
         int i = 0;
-        foreach ((INamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
-            sb.AppendLine(behavior.ToSpice(signal, i++.ToString()).AddIndentation(indentation));
+        foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
+            sb.AppendLine(behavior.GetSpice(signal, i++.ToString()).AddIndentation(indentation));
         
         // Add large resistors from output/bidirectional ports to ground
         foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
@@ -359,7 +359,7 @@ public class Module : IHdlConvertible
 
         // Add behaviors
         int i = 0;
-        foreach ((INamedSignal signal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
         {
             foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i++.ToString()))
                 entities.Add(entity);
@@ -411,7 +411,7 @@ public class Module : IHdlConvertible
     {
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is (INamedSignal outputSignal, DigitalBehavior behavior))
+                if (newItem is (INamedSignal outputSignal, IBehavior behavior))
                 {
                     // Add InvokeModuleUpdated to each new behavior
                     behavior.BehaviorUpdated += InvokeModuleUpdated;
@@ -467,7 +467,7 @@ public class Module : IHdlConvertible
     private void CheckValid()
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
-        foreach ((INamedSignal outputSignal, DigitalBehavior behavior) in SignalBehaviors)
+        foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
             // TODO make better exception names
             if (outputSignal.ParentModule != this)

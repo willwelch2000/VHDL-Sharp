@@ -10,7 +10,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Behavior where a direct value is assigned to the signal
 /// </summary>
-public class ValueBehavior : CombinationalBehavior
+public class ValueBehavior : Behavior, ICombinationalBehavior
 {
     /// <summary>
     /// Generate new value behavior
@@ -44,7 +44,7 @@ public class ValueBehavior : CombinationalBehavior
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string ToVhdl(INamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
@@ -52,7 +52,7 @@ public class ValueBehavior : CombinationalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");

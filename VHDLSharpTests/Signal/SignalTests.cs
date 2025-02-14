@@ -97,7 +97,7 @@ public class SignalTests
 
         Assert.IsNull(s1.Behavior);
         s1.AssignBehavior(1);
-        DigitalBehavior behavior = s1.Behavior!;
+        IBehavior behavior = s1.Behavior!;
         Assert.IsTrue(behavior is ValueBehavior valueBehavior && valueBehavior.Value == 1);
 
         s1.Behavior = null;
@@ -108,7 +108,7 @@ public class SignalTests
         Assert.IsTrue(behavior is LogicBehavior logicBehavior && logicBehavior.LogicExpression.InnerExpression == s2);
 
         Literal literal = new(0, 1);
-        DigitalBehavior literalBehavior = new LogicBehavior(literal);
+        IBehavior literalBehavior = new LogicBehavior(literal);
         s1.AssignBehavior(literalBehavior);
         behavior = s1.Behavior!;
         Assert.IsTrue(behavior is LogicBehavior logicBehavior2 && logicBehavior2.LogicExpression.InnerExpression == literal);

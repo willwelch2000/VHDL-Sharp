@@ -12,7 +12,7 @@ namespace VHDLSharp.Behaviors;
 /// A behavior where an output signal is set based on a selector signal's value
 /// </summary>
 /// <param name="selector"></param>
-public class CaseBehavior(INamedSignal selector) : CombinationalBehavior
+public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehavior
 {
     private readonly LogicExpression?[] caseExpressions = new LogicExpression[1 << selector.Dimension.NonNullValue];
 
@@ -42,7 +42,7 @@ public class CaseBehavior(INamedSignal selector) : CombinationalBehavior
     public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
-    public override string ToVhdl(INamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
@@ -193,14 +193,14 @@ public class CaseBehavior(INamedSignal selector) : CombinationalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(INamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
-        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
+        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
 
     /// <inheritdoc/>
