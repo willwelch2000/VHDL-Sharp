@@ -17,5 +17,5 @@ public interface ICircuitReference
     /// Path of instantiations that leads to subcircuit
     /// Each instantiation must be in the previous one's module
     /// </summary>
-    public ReadOnlyCollection<Instantiation> Path { get; }
+    public ReadOnlyCollection<IInstantiation> Path { get; }
 }

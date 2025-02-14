@@ -40,7 +40,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     public Module TopLevelModule => Subcircuit.TopLevelModule;
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<Instantiation> Path => Subcircuit.Path;
+    public ReadOnlyCollection<IInstantiation> Path => Subcircuit.Path;
 
     /// <summary>
     /// Compare to another signal reference

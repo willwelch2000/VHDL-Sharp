@@ -1,6 +1,5 @@
 using System.Text;
 using SpiceSharp.Components;
-using SpiceSharp.Entities;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Modules;
@@ -8,7 +7,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Instantiation of one module inside of another (parent)
 /// </summary>
-public class Instantiation
+public class Instantiation : IInstantiation
 {
     private EventHandler? instantiatedModuleUpdated;
 
@@ -70,14 +69,14 @@ public class Instantiation
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>
     /// <returns></returns>
-    public string ToSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
+    public string GetSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
 
     /// <summary>
     /// Convert to VHDL. 
     /// For instantiation, not component declaration. 
     /// </summary>
     /// <returns></returns>
-    public string ToVhdl()
+    public string GetVhdlStatement()
     {
         StringBuilder sb = new();
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
@@ -91,24 +90,11 @@ public class Instantiation
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Get list of instantiations as list of entities for Spice#
-    /// </summary>
-    /// <param name="instantiations">Instantiations to add</param>
-    public static IEnumerable<IEntity> GetSpiceSharpEntities(IEnumerable<Instantiation> instantiations)
+    /// <inheritdoc/>
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<Module, SubcircuitDefinition> subcircuitDefinitions, int uniqueId)
     {
-        // Make subcircuit definitions for all distinct modules
-        Dictionary<Module, SubcircuitDefinition> subcircuitDefinitions = [];
-        foreach (Module submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            subcircuitDefinitions[submodule] = submodule.ToSpiceSharpSubcircuit();
-
-        // Add instantiations
-        int i = 0;
-        foreach (Instantiation instantiation in instantiations)
-        {
-            string[] nodes = [.. instantiation.InstantiatedModule.Ports.SelectMany(p => instantiation.PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-            yield return new Subcircuit($"X{i}", subcircuitDefinitions[instantiation.InstantiatedModule], nodes);
-        }
+        string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
+        return new Subcircuit($"X{uniqueId}", subcircuitDefinitions[InstantiatedModule], nodes);
     }
 
     /// <inheritdoc/>

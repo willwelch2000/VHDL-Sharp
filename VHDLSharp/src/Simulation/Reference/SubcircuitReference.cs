@@ -15,7 +15,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="topLevelModule"></param>
     /// <param name="path"></param>
-    public SubcircuitReference(Module topLevelModule, IEnumerable<Instantiation> path)
+    public SubcircuitReference(Module topLevelModule, IEnumerable<IInstantiation> path)
     {
         TopLevelModule = topLevelModule;
         Path = new([.. path]);
@@ -29,7 +29,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public Module TopLevelModule { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<Instantiation> Path { get; }
+    public ReadOnlyCollection<IInstantiation> Path { get; }
 
     /// <summary>
     /// Final module in path
@@ -47,7 +47,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         get
         {
             // Try to find instantiation
-            Instantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
+            IInstantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
             if (instantiation is not null)
                 return new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
 
@@ -65,7 +65,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="instantiation"></param>
     /// <returns></returns>
-    public SubcircuitReference GetChildSubcircuitReference(Instantiation instantiation) => new(TopLevelModule, [.. Path, instantiation]);
+    public SubcircuitReference GetChildSubcircuitReference(IInstantiation instantiation) => new(TopLevelModule, [.. Path, instantiation]);
 
     /// <summary>
     /// Try to get child subcircuit reference given instantiation name
@@ -76,7 +76,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public bool TryGetChildSubcircuitReference(string name, out SubcircuitReference? reference)
     {
         // Try to find instantiation
-        Instantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
+        IInstantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
         if (instantiation is not null)
         {
             reference = new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
@@ -166,7 +166,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     {
         HashCode hash = new();
         hash.Add(TopLevelModule);
-        foreach (Instantiation instantiation in Path)
+        foreach (IInstantiation instantiation in Path)
             hash.Add(instantiation);
         return hash.ToHashCode();
     }
@@ -174,7 +174,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     internal void CheckValid()
     {
         Module module = TopLevelModule;
-        foreach (Instantiation instantiation in Path)
+        foreach (IInstantiation instantiation in Path)
         {
             if (instantiation.ParentModule != module)
                 throw new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");

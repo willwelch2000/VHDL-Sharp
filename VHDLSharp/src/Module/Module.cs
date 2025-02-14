@@ -82,7 +82,7 @@ public class Module
     /// <summary>
     /// List of module instantiations inside of this module
     /// </summary>
-    public ObservableCollection<Instantiation> Instantiations { get; } = [];
+    public ObservableCollection<IInstantiation> Instantiations { get; } = [];
 
     /// <summary>
     /// Get all named signals used in this module
@@ -178,9 +178,9 @@ public class Module
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public Instantiation AddNewInstantiation(Module module, string name)
+    public IInstantiation AddNewI(Module module, string name)
     {
-        Instantiation instantiation = new(module, this, name);
+        IInstantiation instantiation = new Instantiation(module, this, name);
         Instantiations.Add(instantiation);
         return instantiation;
     }
@@ -254,8 +254,8 @@ public class Module
         sb.AppendLine("begin");
 
         // Add all instantiations
-        foreach (Instantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.ToVhdl().AddIndentation(1));
+        foreach (IInstantiation instantiation in Instantiations)
+            sb.AppendLine(instantiation.GetVhdlStatement().AddIndentation(1));
         sb.AppendLine();
 
         // Behaviors
@@ -302,8 +302,8 @@ public class Module
         sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(indentation));
 
         // Add all instantiations
-        foreach (Instantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.ToSpice().AddIndentation(indentation));
+        foreach (IInstantiation instantiation in Instantiations)
+            sb.AppendLine(instantiation.GetSpice().AddIndentation(indentation));
         sb.AppendLine();
 
         // Add behaviors
@@ -354,7 +354,7 @@ public class Module
         entities.Add(pmosModel);
 
         // Add instantiations
-        foreach (IEntity entity in Instantiation.GetSpiceSharpEntities(Instantiations))
+        foreach (IEntity entity in IInstantiation.GetSpiceSharpEntities(Instantiations))
             entities.Add(entity);
 
         // Add behaviors
@@ -428,7 +428,7 @@ public class Module
     {
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is Instantiation instantiation)
+                if (newItem is IInstantiation instantiation)
                 {
                     // Don't allow duplicate instantiation names in the list
                     if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
