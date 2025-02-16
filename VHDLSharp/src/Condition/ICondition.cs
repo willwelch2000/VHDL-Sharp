@@ -5,7 +5,7 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Conditions;
 
 /// <summary>
-/// Interface for a condition that can be used in a dynamic behavior
+/// Interface for a condition that can be combined with others and used in a dynamic behavior
 /// </summary>
 public interface ICondition : ILogicallyCombinable<ICondition>
 {

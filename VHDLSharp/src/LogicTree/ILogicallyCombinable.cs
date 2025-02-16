@@ -56,7 +56,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     {
         if (this is T t)
             return options.BaseFunction(t, additionalInput);
-        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(ToLogicString)}");
+        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(GenerateLogicalObject)}");
     }
 
     /// <summary>

@@ -36,7 +36,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
         // Don't call IsCompatible here since it does it in LogicExpression
         try
         {
-            return LogicExpression.ToSpice(outputSignal, uniqueId);
+            return LogicExpression.GetSpice(outputSignal, uniqueId);
         }
         catch (IncompatibleSignalException)
         {
