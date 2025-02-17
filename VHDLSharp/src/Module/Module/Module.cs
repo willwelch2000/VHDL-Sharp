@@ -22,11 +22,10 @@ public class Module : IModule
     /// </summary>
     public Module()
     {
-        Ports.CollectionChanged += InvokeModuleUpdated;
+        // The collection callbacks are considerd part of the objects responsibilities
+        // and include throwing exceptions when needed
         Ports.CollectionChanged += PortsListUpdated;
-        SignalBehaviors.CollectionChanged += InvokeModuleUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
-        Instantiations.CollectionChanged += InvokeModuleUpdated;
         Instantiations.CollectionChanged += InstantiationsListUpdated;
         UpdateNamedSignals();
     }
@@ -97,8 +96,6 @@ public class Module : IModule
     /// </summary>
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
-
-    IEnumerable<IModule> IModule.ModulesUsed => ModulesUsed;
 
     /// <summary>
     /// True if module is ready to be used
@@ -402,6 +399,10 @@ public class Module : IModule
         return false;
     }
     
+    /// <summary>
+    /// Should be surrounded in try-catch so that offending action can be undone
+    /// </summary>
+    /// <exception cref="Exception"></exception>
     private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
         CheckValid();
@@ -413,17 +414,34 @@ public class Module : IModule
     {
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is (INamedSignal outputSignal, IBehavior behavior))
+                if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                 {
                     // Add InvokeModuleUpdated to each new behavior
-                    behavior.BehaviorUpdated += InvokeModuleUpdated;
+                    kvp.Value.BehaviorUpdated += InvokeModuleUpdated;
 
                     // Throw error if a parent is overwriting a child or vice versa
                     List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
-                    foreach (ISingleNodeNamedSignal newItemSingleNode in outputSignal.ToSingleNodeSignals)
+                    foreach (ISingleNodeNamedSignal newItemSingleNode in kvp.Key.ToSingleNodeSignals)
                         if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
+                        {
+                            SignalBehaviors.Remove(kvp.Key);
                             throw new Exception("Module already defines behavior for part or all of this signal");
+                        }
                 }
+
+        try
+        {
+            InvokeModuleUpdated(sender, e);
+        }
+        catch (Exception)
+        { 
+            // Remove just-added signal-behavior
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
+                            SignalBehaviors.Remove(kvp);
+            throw;
+        }
     }
 
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
@@ -434,10 +452,27 @@ public class Module : IModule
                 {
                     // Don't allow duplicate instantiation names in the list
                     if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
+                    {
+                        Instantiations.Remove(instantiation);
                         throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+                    }
                     // Add InvokeModuleUpdated to each new instantiation
                     instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
                 }
+
+        try
+        {
+            InvokeModuleUpdated(sender, e);
+        }
+        catch (Exception)
+        { 
+            // Remove just-added instantiation
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is IInstantiation instantiation)
+                            Instantiations.Remove(instantiation);
+            throw;
+        }
     }
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
@@ -447,8 +482,25 @@ public class Module : IModule
                 if (newItem is IPort port)
                 {
                     if (Ports.Count(i => i.Signal == port.Signal) > 1)
+                    {
+                        Ports.Remove(port);
                         throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
+                    }
                 }
+
+        try
+        {
+            InvokeModuleUpdated(sender, e);
+        }
+        catch (Exception)
+        { 
+            // Remove just-added port
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is IPort port)
+                            Ports.Remove(port);
+            throw;
+        }
     }
 
     private string GetComponentDeclaration()

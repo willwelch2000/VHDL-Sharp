@@ -139,8 +139,18 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
         CheckCompatibleNewExpression(logicExpression);
+        var previousExp = caseExpressions[value];
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
-        RaiseBehaviorChanged(this, EventArgs.Empty);
+        
+        try
+        {
+            RaiseBehaviorChanged(this, EventArgs.Empty);
+        }
+        catch (Exception)
+        {
+            caseExpressions[value] = previousExp;
+            throw;
+        }
     }
 
     /// <summary>

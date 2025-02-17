@@ -77,7 +77,20 @@ public class DynamicBehavior : Behavior
 
     private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        CheckValid();
+        // TODO if there's a problem, undo the change and rethrow error
+        try
+        {
+            CheckValid();
+        }
+        catch (Exception)
+        {
+            // Undo change that caused error so that it hasn't been done
+            if (e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is (ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior))
+                        ConditionMappings.Remove((condition, behavior));
+            throw;
+        }
     }
 
     /// <inheritdoc/>

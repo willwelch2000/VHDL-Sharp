@@ -1,3 +1,4 @@
+using VHDLSharp.Behaviors;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -49,4 +50,10 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
 
     /// <inheritdoc/>
     public abstract string GetSpiceName();
+
+    /// <summary>
+    /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
+    /// </summary>
+    /// <param name="value"></param>
+    public void AssignBehavior(bool value) => AssignBehavior(new ValueBehavior(value ? 1 : 0));
 }

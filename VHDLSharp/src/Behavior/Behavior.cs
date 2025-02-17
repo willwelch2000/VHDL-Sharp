@@ -47,8 +47,9 @@ public abstract class Behavior : IBehavior
     public IModule? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
 
     /// <summary>
-    /// Checks that the behavior is valid given the input signals
-    /// Base version just checks that all input signals come from the same module
+    /// Checks that the behavior is valid given the input signals. 
+    /// Base version just checks that all input signals come from the same module. 
+    /// This should be wrapped in a try-catch so that whatever causes the problem can be undone
     /// </summary>
     /// <exception cref="Exception"></exception>
     protected virtual void CheckValid()

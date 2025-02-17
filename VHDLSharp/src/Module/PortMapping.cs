@@ -34,7 +34,8 @@ public class PortMappingException : Exception
 }
 
 /// <summary>
-/// Mapping of ports of a module to the signals it's connected to in an instantiation
+/// Mapping of ports of a module to the signals it's connected to in an instantiation.
+/// Handles throwing exceptions
 /// </summary>
 public class PortMapping : ObservableDictionary<IPort, INamedSignal>
 {
@@ -75,8 +76,22 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
         get => base[port];
         set
         {
+            INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
             base[port] = value;
-            CheckValid();
+
+            // If error is caused by CheckValid, undo it
+            try
+            {
+                CheckValid();
+            }
+            catch (Exception)
+            {
+                if (prevVal is null)
+                    Remove(port);
+                else
+                    base[port] = prevVal;
+                throw;
+            }
         }
     }
 
@@ -109,7 +124,21 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     /// <inheritdoc/>
     public override void Add(IPort port, INamedSignal signal)
     {
+        INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
         base.Add(port, signal);
-        CheckValid();
+
+        // If error is caused by CheckValid, undo it
+        try
+        {
+            CheckValid();
+        }
+        catch (Exception)
+        {
+            if (prevVal is null)
+                Remove(port);
+            else
+                base[port] = prevVal;
+            throw;
+        }
     }
 }
