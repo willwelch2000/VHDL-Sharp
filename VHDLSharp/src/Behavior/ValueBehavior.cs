@@ -10,7 +10,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Behavior where a direct value is assigned to the signal
 /// </summary>
-public class ValueBehavior : CombinationalBehavior
+public class ValueBehavior : Behavior, ICombinationalBehavior
 {
     /// <summary>
     /// Generate new value behavior
@@ -38,13 +38,13 @@ public class ValueBehavior : CombinationalBehavior
     public int Value { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> NamedInputSignals { get; } = [];
+    public override IEnumerable<INamedSignal> NamedInputSignals { get; } = [];
 
     /// <inheritdoc/>
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
@@ -52,27 +52,27 @@ public class ValueBehavior : CombinationalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         string toReturn = "";
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
-        foreach (SingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+        foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
             // TODO voltage sources could be standardized better
-            toReturn += $"V{Util.GetSpiceName(uniqueId, i, "value")} {singleNodeSignal.ToSpice()} 0 {((Value & 1<<i++) > 0 ? Util.VDD : 0)}\n";
+            toReturn += $"V{Util.GetSpiceName(uniqueId, i, "value")} {singleNodeSignal.GetSpiceName()} 0 {((Value & 1<<i++) > 0 ? Util.VDD : 0)}\n";
         return toReturn;
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
-        foreach (SingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
-            yield return new VoltageSource(Util.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.ToSpice(), "0", (Value & 1<<i++) > 0 ? Util.VDD : 0);
+        foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+            yield return new VoltageSource(Util.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? Util.VDD : 0);
     }
 }

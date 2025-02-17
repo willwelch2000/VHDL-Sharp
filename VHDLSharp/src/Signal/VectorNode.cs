@@ -5,25 +5,34 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Node in a vector
 /// </summary>
-/// <param name="vector">The vector it's a part of</param>
-/// <param name="node">The index in that vector</param>
-public class VectorNode(Vector vector, int node) : SingleNodeNamedSignal
+public class VectorNode : SingleNodeNamedSignal
 {
+    /// <summary>
+    /// Constructor given vector and node
+    /// </summary>
+    /// <param name="vector">The vector it's a part of</param>
+    /// <param name="node">The index in that vector</param>
+    internal VectorNode(Vector vector, int node)
+    {
+        Vector = vector;
+        Node = node;
+    }
+
     /// <summary>
     /// The vector it's a part of
     /// </summary>
-    public Vector Vector { get; } = vector;
+    public Vector Vector { get; }
 
     /// <summary>
     /// The index in the vector
     /// </summary>
-    public int Node { get; } = node;
+    public int Node { get; }
     
     /// <inheritdoc/>
     public override string Name => $"{Vector.Name}[{Node}]";
 
     /// <inheritdoc/>
-    public override Module ParentModule => Vector.ParentModule;
+    public override IModule ParentModule => Vector.ParentModule;
 
     /// <inheritdoc/>
     public override Vector? ParentSignal => Vector;
@@ -32,8 +41,8 @@ public class VectorNode(Vector vector, int node) : SingleNodeNamedSignal
     public override Vector TopLevelSignal => Vector;
 
     /// <inheritdoc/>
-    public override string ToSpice() => $"{Vector.Name}_{Node}";
+    public override string GetSpiceName() => $"{Vector.Name}_{Node}";
 
     /// <inheritdoc/>
-    public override string ToVhdl() => $"signal {Vector.Name}_{Node}\t: {VhdlType}";
+    public override string GetVhdlDeclaration() => $"signal {Vector.Name}_{Node}\t: {VhdlType}";
 }

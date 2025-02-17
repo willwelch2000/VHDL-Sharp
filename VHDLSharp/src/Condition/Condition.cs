@@ -5,17 +5,17 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Conditions;
 
 /// <summary>
-/// Condition that can be used in an if statement
+/// Condition that can be used in a dynamic behavior
 /// </summary>
-public abstract class Condition : ILogicallyCombinable<Condition>, IHasParentModule
+public abstract class Condition : ICondition
 {
     /// <inheritdoc/>
-    public IEnumerable<Condition> BaseObjects => [this];
+    public IEnumerable<ICondition> BaseObjects => [this];
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<Condition> other)
+    public bool CanCombine(ILogicallyCombinable<ICondition> other)
     {
-        Condition? otherCondition = other.BaseObjects.FirstOrDefault(c => c.ParentModule is not null);
+        ICondition? otherCondition = other.BaseObjects.FirstOrDefault(c => c.ParentModule is not null);
         return otherCondition is null || otherCondition.ParentModule == ParentModule;
     }
 
@@ -28,7 +28,7 @@ public abstract class Condition : ILogicallyCombinable<Condition>, IHasParentMod
     /// <summary>
     /// Get parent module based on named input signals
     /// </summary>
-    public Module? ParentModule => InputSignals.FirstOrDefault(s => s.ParentModule is not null)?.ParentModule;
+    public IModule? ParentModule => (InputSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal)?.ParentModule;
 
     /// <summary>
     /// Input signals to condition

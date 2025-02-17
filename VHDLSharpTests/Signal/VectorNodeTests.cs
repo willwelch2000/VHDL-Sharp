@@ -24,9 +24,9 @@ public class VectorNodeTests
 
         Assert.AreEqual("v1[0]", node0.Name);
         Assert.AreEqual(0, node0.Node);
-        Assert.AreEqual("v1_0", node0.ToSpice());
+        Assert.AreEqual("v1_0", node0.GetSpiceName());
         Assert.AreEqual("v1[0]", node0.ToLogicString());
-        Assert.AreEqual("signal v1_0\t: std_logic", node0.ToVhdl());
+        Assert.AreEqual("signal v1_0\t: std_logic", node0.GetVhdlDeclaration());
     }
 
     [TestMethod]

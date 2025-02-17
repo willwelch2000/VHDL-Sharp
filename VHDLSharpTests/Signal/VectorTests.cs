@@ -25,7 +25,7 @@ public class VectorTests()
         VectorNode[] vectorNodes = [.. v1.ChildSignals];
         Assert.AreEqual(4, vectorNodes.Length);
         Assert.AreEqual("v1", v1.ToLogicString());
-        Assert.AreEqual("signal v1\t: std_logic_vector(3 downto 0)", v1.ToVhdl());
+        Assert.AreEqual("signal v1\t: std_logic_vector(3 downto 0)", v1.GetVhdlDeclaration());
     }
 
     [TestMethod]
@@ -97,7 +97,7 @@ public class VectorTests()
 
         Assert.IsNull(v1.Behavior);
         v1.AssignBehavior(3);
-        DigitalBehavior behavior = v1.Behavior!;
+        IBehavior behavior = v1.Behavior!;
         Assert.IsTrue(behavior is ValueBehavior valueBehavior && valueBehavior.Value == 3);
 
         v1.Behavior = null;
@@ -108,7 +108,7 @@ public class VectorTests()
         Assert.IsTrue(behavior is LogicBehavior logicBehavior && logicBehavior.LogicExpression.InnerExpression == v2);
 
         Literal literal = new(12, 4);
-        DigitalBehavior literalBehavior = new LogicBehavior(literal);
+        IBehavior literalBehavior = new LogicBehavior(literal);
         v1.AssignBehavior(literalBehavior);
         behavior = v1.Behavior!;
         Assert.IsTrue(behavior is LogicBehavior logicBehavior2 && logicBehavior2.LogicExpression.InnerExpression == literal);

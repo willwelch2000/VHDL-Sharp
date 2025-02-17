@@ -21,10 +21,10 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string ToSpice(NamedSignal signal, string uniqueId)
+    public string GetSpice(INamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
-            return ToSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
+            return GetSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
             
         throw new Exception("Input signal must have dimension of 1");
     }
@@ -35,13 +35,13 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    protected abstract string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId); 
+    protected abstract string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId); 
 
     /// <inheritdoc/>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
-            return ToSpiceSharpEntitiesGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
+            return GetSpiceSharpEntitiesGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
             
         throw new Exception("Input signal must have dimension of 1");
     }
@@ -52,5 +52,5 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    protected abstract IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId);
+    protected abstract IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId);
 }

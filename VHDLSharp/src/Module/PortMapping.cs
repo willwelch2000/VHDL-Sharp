@@ -36,24 +36,24 @@ public class PortMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation
 /// </summary>
-public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentModule
+public class PortMapping : ObservableDictionary<IPort, INamedSignal>
 {
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public Module InstantiatedModule { get; }
+    public IModule InstantiatedModule { get; }
 
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public Module ParentModule { get; }
+    public IModule ParentModule { get; }
     
     /// <summary>
     /// Construct port mapping given instantiated module and parent module
     /// </summary>
     /// <param name="instantiatedModule">Module that is instantiated</param>
     /// <param name="parentModule">Module that contains instantiated module</param>
-    public PortMapping(Module instantiatedModule, Module parentModule)
+    public PortMapping(IModule instantiatedModule, IModule parentModule)
     {
         InstantiatedModule = instantiatedModule;
         InstantiatedModule.ModuleUpdated += ModuleUpdated;
@@ -63,14 +63,14 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentMo
     /// <summary>
     /// Get all ports that need assignment
     /// </summary>
-    public IEnumerable<Port> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
+    public IEnumerable<IPort> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
     /// <summary>
     /// Indexer for port mapping
     /// </summary>
     /// <param name="port"></param>
     /// <returns></returns>
-    public override NamedSignal this[Port port]
+    public override INamedSignal this[IPort port]
     {
         get => base[port];
         set
@@ -87,7 +87,7 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentMo
 
     private void CheckValid()
     {
-        foreach ((Port port, NamedSignal signal) in this)
+        foreach ((IPort port, INamedSignal signal) in this)
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
                 throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
@@ -107,7 +107,7 @@ public class PortMapping : ObservableDictionary<Port, NamedSignal>, IHasParentMo
     public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
 
     /// <inheritdoc/>
-    public override void Add(Port port, NamedSignal signal)
+    public override void Add(IPort port, INamedSignal signal)
     {
         base.Add(port, signal);
         CheckValid();

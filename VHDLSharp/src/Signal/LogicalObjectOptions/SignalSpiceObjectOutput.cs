@@ -5,20 +5,20 @@ using VHDLSharp.LogicTree;
 /// <summary>
 /// Class used as return value for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice
 /// </summary>
-public class SignalSpiceObjectOutput
+internal class SignalSpiceObjectOutput
 {
     /// <summary>
     /// Spice string output
     /// </summary>
-    public string SpiceString { get; set; } = "";
+    internal string SpiceString { get; set; } = "";
 
     /// <summary>
     /// How many nodes there are in this portion
     /// </summary>
-    public int Dimension { get; set; } = 0;
+    internal int Dimension { get; set; } = 0;
 
     /// <summary>
     /// Signal names of this portion
     /// </summary>
-    public string[] OutputSignalNames { get; set; } = [];
+    internal string[] OutputSignalNames { get; set; } = [];
 }

@@ -12,7 +12,7 @@ namespace VHDLSharp.Behaviors;
 /// A behavior where an output signal is set based on a selector signal's value
 /// </summary>
 /// <param name="selector"></param>
-public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
+public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehavior
 {
     private readonly LogicExpression?[] caseExpressions = new LogicExpression[1 << selector.Dimension.NonNullValue];
 
@@ -21,7 +21,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     /// <summary>
     /// Selector signal
     /// </summary>
-    public NamedSignal Selector { get; } = selector;
+    public INamedSignal Selector { get; } = selector;
 
     /// <summary>
     /// Expression for default case
@@ -33,7 +33,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is NamedSignal) ?? []).Select(o => (NamedSignal)o).Append(Selector).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is INamedSignal) ?? []).Select(o => (INamedSignal)o).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
@@ -42,7 +42,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
@@ -61,14 +61,14 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.ToLogicString()};");
+            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
         }
 
         // Default
         if (defaultExpression is not null)
         {
             sb.AppendLine($"\t\twhen others =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.ToLogicString()};");
+            sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.GetVhdl()};");
         }
 
         sb.AppendLine("\tend case;");
@@ -193,18 +193,18 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
-        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.ToSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
+        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
@@ -214,10 +214,10 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
     }
 
-    private IEnumerable<(NamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(NamedSignal outputSignal, string uniqueId)
+    private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)
     {
         // Loop through cases, generating intermediate signal names and logic behaviors to map to them
-        NamedSignal[] caseIntermediateSignals = new NamedSignal[caseExpressions.Length];
+        INamedSignal[] caseIntermediateSignals = new INamedSignal[caseExpressions.Length];
         int idCounter = 0;
         for (int i = 0; i < caseExpressions.Length; i++)
         {
@@ -226,7 +226,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
 
             // Generate intermediate signal matching dimension of output
             string intermediateName = Util.GetSpiceName(uniqueId, 0, $"case{i}");
-            NamedSignal signal;
+            INamedSignal signal;
             if (expression.Dimension.NonNullValue == 1)
                 signal = new Signal(intermediateName, outputSignal.ParentModule);
             else
@@ -237,8 +237,8 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
         }
 
         // The individual nodes of the selector signal and output signal
-        SingleNodeNamedSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
-        SingleNodeNamedSignal[] outputSignalSingleNodes = [.. outputSignal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] outputSignalSingleNodes = [.. outputSignal.ToSingleNodeSignals];
 
         // Here, do MUX for each dimension
         for (int dim = 0; dim < outputSignal.Dimension.NonNullValue; dim++)
@@ -262,7 +262,7 @@ public class CaseBehavior(NamedSignal selector) : CombinationalBehavior
                     );
                 }
 
-                SingleNodeNamedSignal singleNodeSignal = caseIntermediateSignals[i].ToSingleNodeSignals.ElementAt(dim);
+                ISingleNodeNamedSignal singleNodeSignal = caseIntermediateSignals[i].ToSingleNodeSignals.ElementAt(dim);
                 selectedExpressions[i] = new And<ISignal>([.. selectorExpressions, singleNodeSignal]);
             }
             

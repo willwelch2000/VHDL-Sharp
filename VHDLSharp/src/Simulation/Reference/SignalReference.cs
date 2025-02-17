@@ -16,7 +16,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// </summary>
     /// <param name="subcircuitReference"></param>
     /// <param name="signal"></param>
-    public SignalReference(SubcircuitReference subcircuitReference, NamedSignal signal)
+    public SignalReference(SubcircuitReference subcircuitReference, INamedSignal signal)
     {
         Subcircuit = subcircuitReference;
         Signal = signal;
@@ -34,13 +34,13 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// <summary>
     /// Signal being referenced--must be in <see cref="Subcircuit"/>
     /// </summary>
-    public NamedSignal Signal { get; }
+    public INamedSignal Signal { get; }
 
     /// <inheritdoc/>
-    public Module TopLevelModule => Subcircuit.TopLevelModule;
+    public IModule TopLevelModule => Subcircuit.TopLevelModule;
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<Instantiation> Path => Subcircuit.Path;
+    public ReadOnlyCollection<IInstantiation> Path => Subcircuit.Path;
 
     /// <summary>
     /// Compare to another signal reference
@@ -79,14 +79,14 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
     /// </summary>
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
-        foreach (SingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
-            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.ToSpice()]);
+        foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
+            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
     internal void CheckValid()
     {
         // Exception if last module doesn't contain signal
-        Module lastModule = Subcircuit.FinalModule;
+        IModule lastModule = Subcircuit.FinalModule;
         if (!lastModule.ContainsSignal(Signal))
             throw new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
     }

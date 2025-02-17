@@ -36,15 +36,15 @@ public class StimulusMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
+public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
 {
-    private readonly Module module;
+    private readonly IModule module;
     
     /// <summary>
     /// Construct port mapping given module that has stimuli applied to its ports
     /// </summary>
     /// <param name="module">Module that has stimuli applied to its ports</param>
-    public StimulusMapping(Module module)
+    public StimulusMapping(IModule module)
     {
         this.module = module;
         this.module.ModuleUpdated += ModuleUpdated;
@@ -53,10 +53,10 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
     /// <summary>
     /// Get all ports that need assignment
     /// </summary>
-    public IEnumerable<Port> PortsToAssign => module.Ports.Except(Keys);
+    public IEnumerable<IPort> PortsToAssign => module.Ports.Except(Keys);
 
     /// <inheritdoc/>
-    public override IStimulusSet this[Port port]
+    public override IStimulusSet this[IPort port]
     {
         get => base[port];
         set
@@ -73,7 +73,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
 
     private void CheckValid()
     {
-        foreach ((Port port, IStimulusSet stimulus) in this)
+        foreach ((IPort port, IStimulusSet stimulus) in this)
         {
             if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
                 throw new StimulusMappingException($"Port {port} must be input or bidirectional");
@@ -93,7 +93,7 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
     public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
 
     /// <inheritdoc/>
-    public override void Add(Port port, IStimulusSet stimulus)
+    public override void Add(IPort port, IStimulusSet stimulus)
     {
         base.Add(port, stimulus);
         CheckValid();

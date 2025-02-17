@@ -37,9 +37,9 @@ public static class Program
         module1.Ports.Add(p3);
         s3.Behavior = new LogicBehavior(s1.And(s2));
 
-        Console.WriteLine(module1.ToSpice());
+        Console.WriteLine(module1.GetSpice());
 
-        Circuit circuit = module1.ToSpiceSharpCircuit();
+        Circuit circuit = module1.GetSpiceSharpCircuit();
         IEntity[] entities = [.. circuit];
     }
 
@@ -76,7 +76,7 @@ public static class Program
         s1Stimulus.Points[0.51e-3] = true;
         setup.AssignStimulus(p1, s1Stimulus);
         setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
-        Console.WriteLine(setup.ToSpice());
+        Console.WriteLine(setup.GetSpice());
         SimulationResult[] results = [.. setup.Simulate()];
 
         // Plot data
@@ -153,9 +153,9 @@ public static class Program
         timeDefinedStimulus.Points[3e-6] = false;
         timeDefinedStimulus.Points[4e-6] = true;
 
-        Console.WriteLine(constStimulus.ToSpice(s1, "0"));
-        Console.WriteLine(pulseStimulus.ToSpice(s1, "1"));
-        Console.WriteLine(timeDefinedStimulus.ToSpice(s1, "2"));
+        Console.WriteLine(constStimulus.GetSpice(s1, "0"));
+        Console.WriteLine(pulseStimulus.GetSpice(s1, "1"));
+        Console.WriteLine(timeDefinedStimulus.GetSpice(s1, "2"));
     }
 
     public static void TestSpiceSharp()

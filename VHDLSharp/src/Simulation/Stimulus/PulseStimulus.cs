@@ -49,13 +49,13 @@ public class PulseStimulus : Stimulus
     public double Period { get; set; }
 
     /// <inheritdoc/>
-    protected override string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId) =>
-        $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.ToSpice()} 0 PULSE(0 {Util.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
+    protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
+        $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PULSE(0 {Util.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
 
     /// <inheritdoc/>
-    protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
+    protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         Pulse pulse = new(0, Util.VDD, DelayTime, Util.RiseFall, Util.RiseFall, PulseWidth, Period);
-        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pulse")}", signal.ToSpice(), "0", pulse);
+        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pulse")}", signal.GetSpiceName(), "0", pulse);
     }
 }

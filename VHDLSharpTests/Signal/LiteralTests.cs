@@ -17,7 +17,6 @@ public class LiteralTests
 
         Assert.AreEqual(5, literal.Value);
         Assert.AreEqual(4, literal.Dimension.NonNullValue);
-        Assert.IsNull(literal.ParentModule);
         Assert.IsNull(literal.ParentSignal);
         Assert.AreEqual(literal, literal.TopLevelSignal);
     }

@@ -12,7 +12,7 @@ namespace VHDLSharp.Behaviors;
 /// </summary>
 /// <param name="logicExpression">The logical expression that this refers to, as a <see cref="LogicExpression"/> or <see cref="ILogicallyCombinable{ISignal}"/></param>
 /// <exception cref="Exception"></exception>
-public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : CombinationalBehavior
+public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Behavior, ICombinationalBehavior
 {
     /// <summary>
     /// The logical expression that this refers to, as a <see cref="LogicExpression"/>
@@ -22,7 +22,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<NamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is NamedSignal).Select(o => (NamedSignal)o).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is INamedSignal).Select(o => (INamedSignal)o).Distinct();
 
     /// <summary>
     /// Works by getting dimension from first internal signal--they should all have the same dimension
@@ -31,12 +31,12 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         // Don't call IsCompatible here since it does it in LogicExpression
         try
         {
-            return LogicExpression.ToSpice(outputSignal, uniqueId);
+            return LogicExpression.GetSpice(outputSignal, uniqueId);
         }
         catch (IncompatibleSignalException)
         {
@@ -45,15 +45,15 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Comb
     }
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        return $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+        return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         // Don't call IsCompatible here since it does it in LogicExpression
         try
