@@ -107,7 +107,10 @@ public class Literal : ISignal
     public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
 
     /// <inheritdoc/>
-    public string ToLogicString() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
+    public string GetVhdlName() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
+
+    /// <inheritdoc/>
+    public string ToLogicString() => GetVhdlName();
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();

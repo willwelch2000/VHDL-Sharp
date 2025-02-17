@@ -39,6 +39,9 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     }
 
     /// <inheritdoc/>
+    public override string GetVhdlName() => Name;
+
+    /// <inheritdoc/>
     public override string ToLogicString() => Name;
 
     /// <inheritdoc/>

@@ -61,14 +61,14 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.ToLogicString()};");
+            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
         }
 
         // Default
         if (defaultExpression is not null)
         {
             sb.AppendLine($"\t\twhen others =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.ToLogicString()};");
+            sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.GetVhdl()};");
         }
 
         sb.AppendLine("\tend case;");

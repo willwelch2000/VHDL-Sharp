@@ -48,10 +48,17 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     }
 
     /// <summary>
+    /// Get VHDL representation of logical expression. 
+    /// Only includes the right-hand side of the VHDL statement
+    /// </summary>
+    /// <returns></returns>
+    public string GetVhdl() => InnerExpression.GenerateLogicalObject(SignalVhdlObjectOptions, new()).VhdlString;
+
+    /// <summary>
     /// Gets Spice representation of logical expression of signals
     /// </summary>
-    /// <param name="outputSignal"></param>
-    /// <param name="uniqueId"></param>
+    /// <param name="outputSignal">Output signal for this expression</param>
+    /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
     /// <returns></returns>
     public string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
@@ -167,6 +174,17 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         {
             signalSpiceSharpObjectOptions ??= ISignal.SignalSpiceSharpObjectOptions;
             return signalSpiceSharpObjectOptions!;
+        }
+    }
+
+    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput>? signalVhdlObjectOptions;
+
+    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> SignalVhdlObjectOptions
+    {
+        get
+        {
+            signalVhdlObjectOptions ??= ISignal.SignalVhdlObjectOptions;
+            return signalVhdlObjectOptions!;
         }
     }
 

@@ -51,7 +51,8 @@ public interface ISignal : ILogicallyCombinable<ISignal>
 
     /// <summary>
     /// If this has a dimension > 1, convert to a list of things with dimension 1. 
-    /// If it is dimension 1, then return itself
+    /// If it is dimension 1, then return itself.
+    /// The Spice and Spice# objects use these to find the Spice names
     /// </summary>
     public IEnumerable<ISingleNodeSignal> ToSingleNodeSignals
     {
@@ -62,6 +63,12 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             return this is ISingleNodeSignal singleNodeSignal ? [singleNodeSignal] : [];
         }
     }
+
+    /// <summary>
+    /// Get name for use in VHDL module
+    /// </summary>
+    /// <returns></returns>
+    public string GetVhdlName();
 
     /// <summary>
     /// Given several signals, returns true if they can be combined together
@@ -480,4 +487,55 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             return options;
         }
     }
+
+    internal static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> SignalVhdlObjectOptions
+    {
+        get
+        {
+            CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> options = new();
+
+            SignalVhdlObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalVhdlObjectInput additionalInput)
+            {
+                IEnumerable<SignalVhdlObjectOutput> innerOutputs = innerExpressions.Select(i => i.GenerateLogicalObject(options, new()));
+                return new()
+                {
+                    VhdlString = "(" + string.Join(" and ", innerOutputs.Select(i => i.VhdlString)) + ")"
+                };
+            }
+
+            SignalVhdlObjectOutput OrFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalVhdlObjectInput additionalInput)
+            {
+                IEnumerable<SignalVhdlObjectOutput> innerOutputs = innerExpressions.Select(i => i.GenerateLogicalObject(options, new()));
+                return new()
+                {
+                    VhdlString = "(" + string.Join(" or ", innerOutputs.Select(i => i.VhdlString)) + ")"
+                };
+            }
+
+            SignalVhdlObjectOutput NotFunction(ILogicallyCombinable<ISignal> innerExpression, SignalVhdlObjectInput additionalInput)
+            {
+                SignalVhdlObjectOutput innerOutput = innerExpression.GenerateLogicalObject(options, new());
+                return new()
+                {
+                    VhdlString = $"(not ({innerOutput.VhdlString}))"
+                };
+            }
+
+            SignalVhdlObjectOutput BaseFunction(ISignal innerExpression, SignalVhdlObjectInput additionalInput)
+            {
+                return new()
+                {
+                    VhdlString = innerExpression.GetVhdlName()
+                };
+            }
+
+            options.AndFunction = AndFunction;
+            options.OrFunction = OrFunction;
+            options.NotFunction = NotFunction;
+            options.BaseFunction = BaseFunction;
+
+            return options;
+        }
+    }
+
 }

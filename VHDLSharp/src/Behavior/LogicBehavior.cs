@@ -49,7 +49,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        return $"{outputSignal} <= {LogicExpression.ToLogicString()};";
+        return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
     }
 
     /// <inheritdoc/>

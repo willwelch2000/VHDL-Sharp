@@ -88,6 +88,9 @@ public class Vector : NamedSignal
     }
 
     /// <inheritdoc/>
+    public override string GetVhdlName() => Name;
+
+    /// <inheritdoc/>
     public override string ToLogicString() => Name;
 
     /// <inheritdoc/>

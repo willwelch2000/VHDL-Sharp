@@ -94,6 +94,9 @@ public abstract class NamedSignal : INamedSignal
     public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
 
     /// <inheritdoc/>
+    public abstract string GetVhdlName();
+
+    /// <inheritdoc/>
     public abstract string ToLogicString();
 
     /// <inheritdoc/>
