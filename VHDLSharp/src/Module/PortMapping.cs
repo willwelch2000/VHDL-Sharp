@@ -57,7 +57,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     public PortMapping(IModule instantiatedModule, IModule parentModule)
     {
         InstantiatedModule = instantiatedModule;
-        InstantiatedModule.ModuleUpdated += ModuleUpdated;
+        InstantiatedModule.ModuleUpdated += (sender, e) => CheckValid();
         ParentModule = parentModule;
     }
 
@@ -93,11 +93,6 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
                 throw;
             }
         }
-    }
-
-    private void ModuleUpdated(object? sender, EventArgs eventArgs)
-    {
-        CheckValid();
     }
 
     private void CheckValid()

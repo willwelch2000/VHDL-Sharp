@@ -98,8 +98,5 @@ public class Instantiation : IInstantiation
     }
 
     /// <inheritdoc/>
-    public override string ToString()
-    {
-        return $"{InstantiatedModule} in {ParentModule}";
-    }
+    public override string ToString() => $"{InstantiatedModule} in {ParentModule}";
 }

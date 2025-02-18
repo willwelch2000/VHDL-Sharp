@@ -22,7 +22,7 @@ public class Module : IModule
     /// </summary>
     public Module()
     {
-        // The collection callbacks are considerd part of the objects responsibilities
+        // The collection callbacks are considerd part of the objects' responsibilities
         // and include throwing exceptions when needed
         Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
@@ -253,9 +253,14 @@ public class Module : IModule
         sb.AppendLine("begin");
 
         // Add all instantiations
+        bool anyInstantiations = false;
         foreach (IInstantiation instantiation in Instantiations)
+        {
+            anyInstantiations = true;
             sb.AppendLine(instantiation.GetVhdlStatement().AddIndentation(1));
-        sb.AppendLine();
+        }
+        if (anyInstantiations)
+            sb.AppendLine();
 
         // Behaviors
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -292,7 +297,7 @@ public class Module : IModule
         int indentation = subcircuit ? 1 : 0;
 
         // Add all inner modules' subcircuit declarations
-        foreach (Module submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
+        foreach (IModule submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
             sb.AppendLine(submodule.GetSpice(true).AddIndentation(indentation) + "\n");
 
         // Add VDD node and PMOS/NMOS models
@@ -435,11 +440,19 @@ public class Module : IModule
         }
         catch (Exception)
         { 
-            // Remove just-added signal-behavior
+            // Undo anything added
             if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
                 foreach (object newItem in e.NewItems)
                     if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                            SignalBehaviors.Remove(kvp);
+                        SignalBehaviors.Remove(kvp);
+
+            // Undo anything replaced
+            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
+                foreach (object oldItem in e.OldItems)
+                    if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
+                        SignalBehaviors[kvp.Key] = kvp.Value;
+
+            // No other type of action (remove) needs to be handled/should cause errors
             throw;
         }
     }

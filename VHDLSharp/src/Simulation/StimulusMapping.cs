@@ -47,7 +47,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     public StimulusMapping(IModule module)
     {
         this.module = module;
-        this.module.ModuleUpdated += ModuleUpdated;
+        this.module.ModuleUpdated += (sender, e) => CheckValid();
     }
 
     /// <summary>
@@ -61,14 +61,23 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
         get => base[port];
         set
         {
+            IStimulusSet? prevVal = TryGetValue(port, out var val) ? val : null;
             base[port] = value;
-            CheckValid();
-        }
-    }
 
-    private void ModuleUpdated(object? sender, EventArgs eventArgs)
-    {
-        CheckValid();
+            // If error is caused by CheckValid, undo it
+            try
+            {
+                CheckValid();
+            }
+            catch (Exception)
+            {
+                if (prevVal is null)
+                    Remove(port);
+                else
+                    base[port] = prevVal;
+                throw;
+            }
+        }
     }
 
     private void CheckValid()
@@ -95,7 +104,21 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     /// <inheritdoc/>
     public override void Add(IPort port, IStimulusSet stimulus)
     {
+        IStimulusSet? prevVal = TryGetValue(port, out var val) ? val : null;
         base.Add(port, stimulus);
-        CheckValid();
+
+        // If error is caused by CheckValid, undo it
+        try
+        {
+            CheckValid();
+        }
+        catch (Exception)
+        {
+            if (prevVal is null)
+                Remove(port);
+            else
+                base[port] = prevVal;
+            throw;
+        }
     }
 }
