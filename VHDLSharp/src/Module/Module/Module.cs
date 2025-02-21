@@ -7,6 +7,7 @@ using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -15,7 +16,9 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Module : IModule
 {
-    private EventHandler? moduleUpdated;
+    private EventHandler? updated;
+
+    private readonly ValidityManager validityManager;
 
     /// <summary>
     /// Default constructor
@@ -28,6 +31,7 @@ public class Module : IModule
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InstantiationsListUpdated;
         UpdateNamedSignals();
+        validityManager = new(this);
     }
 
     /// <summary>
@@ -53,15 +57,17 @@ public class Module : IModule
     /// Event called when a property of the module is changed that could affect other objects, 
     /// such as port mapping
     /// </summary>
-    public event EventHandler? ModuleUpdated
+    public event EventHandler? Updated
     {
         add
         {
-            moduleUpdated -= value; // remove if already present
-            moduleUpdated += value;
+            updated -= value; // remove if already present
+            updated += value;
         }
-        remove => moduleUpdated -= value;
+        remove => updated -= value;
     }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
 
     /// <summary>
     /// Name of the module
@@ -410,13 +416,13 @@ public class Module : IModule
     /// <exception cref="Exception"></exception>
     private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
-        CheckValid();
         UpdateNamedSignals();
-        moduleUpdated?.Invoke(this, e);
+        updated?.Invoke(this, e);
     }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // Check for exceptions that would only occur when adding behaviors
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
@@ -434,6 +440,7 @@ public class Module : IModule
                         }
                 }
 
+        // Invoke module update and undo errors, if any
         try
         {
             InvokeModuleUpdated(sender, e);
@@ -459,20 +466,22 @@ public class Module : IModule
 
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is IInstantiation instantiation)
-                {
-                    // Don't allow duplicate instantiation names in the list
-                    if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
-                    {
-                        Instantiations.Remove(instantiation);
-                        throw new Exception($"The same instantiation ({newItem}) should not be added twice");
-                    }
-                    // Add InvokeModuleUpdated to each new instantiation
-                    instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
-                }
+        // // Check for exceptions that would only occur when adding instantiations
+        // if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+        //     foreach (object newItem in e.NewItems)
+        //         if (newItem is IInstantiation instantiation)
+        //         {
+        //             // Don't allow duplicate instantiation names in the list
+        //             if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
+        //             {
+        //                 Instantiations.Remove(instantiation);
+        //                 throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+        //             }
+        //             // Add InvokeModuleUpdated to each new instantiation
+        //             instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
+        //         }
 
+        // Invoke module update and undo errors, if any
         try
         {
             InvokeModuleUpdated(sender, e);
@@ -490,17 +499,19 @@ public class Module : IModule
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is IPort port)
-                {
-                    if (Ports.Count(i => i.Signal == port.Signal) > 1)
-                    {
-                        Ports.Remove(port);
-                        throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
-                    }
-                }
+        // // Check for exceptions that would only occur when adding instantiations
+        // if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+        //     foreach (object newItem in e.NewItems)
+        //         if (newItem is IPort port)
+        //         {
+        //             if (Ports.Count(i => i.Signal == port.Signal) > 1)
+        //             {
+        //                 Ports.Remove(port);
+        //                 throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
+        //             }
+        //         }
 
+        // Invoke module update and undo errors, if any
         try
         {
             InvokeModuleUpdated(sender, e);
@@ -532,7 +543,8 @@ public class Module : IModule
     }
 
     // Contains error-checking logic that can't be confined to one callback
-    private void CheckValid()
+    /// <inheritdoc/>
+    public void CheckValidity()
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -546,6 +558,22 @@ public class Module : IModule
                 throw new Exception($"Behavior must be compatible with output signal");
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
                 throw new Exception($"Output signal ({outputSignal}) must not be an input port");
+        }
+
+        // Don't allow duplicate instantiation names in the list
+        HashSet<string> instantiationNames = [];
+        if (!Instantiations.All(i => instantiationNames.Add(i.Name)))
+        {
+            string duplicate = Instantiations.First(i => Instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
+            throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
+        }
+                
+        // Don't allow ports with the same signal
+        HashSet<ISignal> portSignals = [];
+        if (!Ports.All(p => portSignals.Add(p.Signal)))
+        {
+            string duplicate = Ports.First(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1).Signal.Name;
+            throw new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
         }
     }
 

@@ -1,14 +1,14 @@
-namespace VHDLSharp.ValidityManager;
+namespace VHDLSharp.Validation;
 
 /// <summary>
 /// Class to manage validity checking in a hierarchy of objects that can change
 /// </summary>
 public class ValidityManager
 {
-    // entity this refers to--top of this tree
-    private readonly IValidityManageEntity entity;
+    // Entity this refers to--top of this tree
+    private readonly IValidityManagedEntity entity;
 
-    // children managers
+    // Children managers
     private readonly List<ValidityManager> children = [];
 
     // Event called when entity or child manager is updated
@@ -18,7 +18,7 @@ public class ValidityManager
     /// Constructor given entity to track
     /// </summary>
     /// <param name="entity"></param>
-    public ValidityManager(IValidityManageEntity entity)
+    public ValidityManager(IValidityManagedEntity entity)
     {
         this.entity = entity;
         entity.Updated += EntityUpdated;
@@ -29,7 +29,7 @@ public class ValidityManager
     /// A change in the child is treated as a change here
     /// </summary>
     /// <param name="child"></param>
-    public void AddChild(IValidityManageEntity child)
+    public void AddChild(IValidityManagedEntity child)
     {
         children.Add(child.ValidityManager);
     }

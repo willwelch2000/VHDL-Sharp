@@ -1,9 +1,9 @@
-namespace VHDLSharp.ValidityManager;
+namespace VHDLSharp.Validation;
 
 /// <summary>
 /// Interface for anything that can be used in a <see cref="ValidityManager"/>
 /// </summary>
-public interface IValidityManageEntity
+public interface IValidityManagedEntity
 {
     /// <summary>
     /// Event called when entity is updated

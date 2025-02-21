@@ -4,20 +4,15 @@ using SpiceSharp.Components;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule
+public interface IModule : IValidityManagedEntity
 {
-    /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects, 
-    /// such as port mapping
-    /// </summary>
-    public event EventHandler? ModuleUpdated;
-
     /// <summary>
     /// Name of the module
     /// </summary>

@@ -23,7 +23,7 @@ public class Instantiation : IInstantiation
         PortMapping = new(instantiatedModule, parentModule);
         ParentModule = parentModule;
         Name = name;
-        instantiatedModule.ModuleUpdated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
+        instantiatedModule.Updated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
     }
 
     /// <summary>
