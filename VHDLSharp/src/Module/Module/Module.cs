@@ -531,6 +531,7 @@ public class Module : IModule
         return sb.ToString();
     }
 
+    // Contains error-checking logic that can't be confined to one callback
     private void CheckValid()
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port

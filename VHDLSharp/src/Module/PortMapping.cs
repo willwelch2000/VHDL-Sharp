@@ -59,6 +59,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
         InstantiatedModule = instantiatedModule;
         InstantiatedModule.ModuleUpdated += (sender, e) => CheckValid();
         ParentModule = parentModule;
+        ParentModule.ModuleUpdated += (sender, e) => CheckValid();
     }
 
     /// <summary>
@@ -107,6 +108,8 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
                 throw new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
             if (signal.ParentModule != ParentModule)
                 throw new PortMappingException($"Signal must have module {ParentModule} as parent");
+            if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
+                throw new PortMappingException($"Output port cannot be assigned to parent module's input port");
         }
     }
 

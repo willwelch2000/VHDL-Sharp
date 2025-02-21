@@ -124,4 +124,24 @@ public class ModuleTests
         Assert.IsNull(s1.Behavior);
         Assert.AreEqual(2, m1.SignalBehaviors.Count);
     }
+
+    [TestMethod]
+    public void ModuleUpdatedCallbackTest()
+    {
+        Module m1 = new("m1");
+        Signal s1 = m1.GenerateSignal("s1");
+        bool test = false;
+        m1.ModuleUpdated += (sender, e) => test = true;
+        Assert.IsFalse(test);
+        s1.AssignBehavior(true);
+        Assert.IsTrue(test);
+    }
+
+    [TestMethod]
+    public void InstantiationTest()
+    {
+        Module instantiated = new("inst");
+        Port p1 = instantiated.AddNewPort("p1", PortDirection.Input);
+        Port p2 = instantiated.AddNewPort("p2", PortDirection.Output);
+    }
 }
