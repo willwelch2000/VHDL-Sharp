@@ -148,11 +148,7 @@ public class Module : IModule
     /// <returns></returns>
     public Port AddNewPort(string name, PortDirection direction)
     {
-        Port result = new()
-        {
-            Signal = new Signal(name, this),
-            Direction = direction
-        };
+        Port result = new(new Signal(name, this), direction);
         Ports.Add(result);
         return result;
     }
@@ -168,11 +164,7 @@ public class Module : IModule
         if (signal.ParentModule != this)
             throw new ArgumentException("Signal must have this module as parent");
         
-        Port result = new()
-        {
-            Signal = signal,
-            Direction = direction
-        };
+        Port result = new(signal, direction);
         Ports.Add(result);
         return result;
     }
@@ -551,7 +543,7 @@ public class Module : IModule
 
     // Contains error-checking logic that can't be confined to one callback
     /// <inheritdoc/>
-    public void CheckValidity()
+    void IValidityManagedEntity.CheckValidity()
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -575,12 +567,15 @@ public class Module : IModule
             throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
         }
                 
-        // Don't allow ports with the same signal
+        // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
-        if (!Ports.All(p => portSignals.Add(p.Signal)))
+        if (!Ports.All(p => portSignals.Add(p.Signal) && p.Signal.ParentModule == this))
         {
-            string duplicate = Ports.First(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1).Signal.Name;
-            throw new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+            string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
+            if (duplicate is not null)
+                throw new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+            else
+                throw new Exception("Port signals must have this module as parent");
         }
     }
 

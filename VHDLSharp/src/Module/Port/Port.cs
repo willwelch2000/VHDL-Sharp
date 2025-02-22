@@ -1,4 +1,5 @@
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -7,26 +8,31 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Port : IPort
 {
-    private INamedSignal? signal;
+    private readonly ValidityManager validityManager;
+
+    /// <summary>
+    /// Constructor given signal and direction
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="direction"></param>
+    public Port(INamedSignal signal, PortDirection direction)
+    {
+        Signal = signal;
+        Direction = direction;
+        validityManager = new(this);
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
 
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required INamedSignal Signal
-    {
-        get => signal ?? throw new("Should be impossible");
-        set
-        {
-            signal = value;
-            if (signal.ParentSignal is not null)
-                throw new Exception("Port signal should be top-level signal");
-        }
-    }
+    public INamedSignal Signal { get; }
 
     /// <summary>
     /// The direction that this port is with respect to the module
     /// </summary>
-    public required PortDirection Direction { get; set; }
+    public PortDirection Direction { get; }
 
     /// <summary>
     /// Get port as VHDL port declaration that goes in an entity declaration

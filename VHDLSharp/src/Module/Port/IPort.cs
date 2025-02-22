@@ -1,4 +1,5 @@
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -6,7 +7,7 @@ namespace VHDLSharp.Modules;
 /// Interface for anything that can be used as a port in a <see cref="IModule"/>
 /// TODO might not need interface for this
 /// </summary>
-public interface IPort
+public interface IPort : IValidityManagedEntity
 {
     /// <summary>
     /// The signal object that this refers to

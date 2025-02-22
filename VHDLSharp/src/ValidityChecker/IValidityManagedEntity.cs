@@ -9,7 +9,11 @@ public interface IValidityManagedEntity
     /// <summary>
     /// Event called when entity is updated
     /// </summary>
-    public event EventHandler? Updated;
+    public event EventHandler? Updated
+    {
+        add {}
+        remove {}
+    }
 
     /// <summary>
     /// Linked validity manager object--should be created during construction
@@ -20,5 +24,5 @@ public interface IValidityManagedEntity
     /// Function called when validation is necessary. 
     /// Should raise Exception if there's a problem
     /// </summary>
-    public void CheckValidity();
+    public void CheckValidity() {}
 }
