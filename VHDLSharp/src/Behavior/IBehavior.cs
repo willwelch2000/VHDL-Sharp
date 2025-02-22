@@ -2,14 +2,13 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Interface defining a behavior that can make up a module
 /// </summary>
-public interface IBehavior : IValidityManagedEntity
+public interface IBehavior
 {
     /// <summary>
     /// Get all of the named input signals used in this behavior

@@ -1,38 +1,23 @@
 using VHDLSharp.Signals;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
 /// A signal that is a port of a module
 /// </summary>
-public class Port : IPort
+/// <param name="signal"></param>
+/// <param name="direction"></param>
+public class Port(INamedSignal signal, PortDirection direction) : IPort
 {
-    private readonly ValidityManager validityManager;
-
-    /// <summary>
-    /// Constructor given signal and direction
-    /// </summary>
-    /// <param name="signal"></param>
-    /// <param name="direction"></param>
-    public Port(INamedSignal signal, PortDirection direction)
-    {
-        Signal = signal;
-        Direction = direction;
-        validityManager = new(this);
-    }
-
-    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
-
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public INamedSignal Signal { get; }
+    public INamedSignal Signal { get; } = signal;
 
     /// <summary>
     /// The direction that this port is with respect to the module
     /// </summary>
-    public PortDirection Direction { get; }
+    public PortDirection Direction { get; } = direction;
 
     /// <summary>
     /// Get port as VHDL port declaration that goes in an entity declaration

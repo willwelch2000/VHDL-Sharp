@@ -9,7 +9,7 @@ namespace VHDLSharp.Behaviors;
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class Behavior : IBehavior
+public abstract class Behavior : IBehavior, IValidityManagedEntity
 {
     private EventHandler? updated;
 

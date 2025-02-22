@@ -1,5 +1,6 @@
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -57,9 +58,11 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     public PortMapping(IModule instantiatedModule, IModule parentModule)
     {
         InstantiatedModule = instantiatedModule;
-        InstantiatedModule.Updated += (sender, e) => CheckValid();
+        if (InstantiatedModule is IValidityManagedEntity instantiatedAsEntity)
+            instantiatedAsEntity.Updated += (sender, e) => CheckValid();
         ParentModule = parentModule;
-        ParentModule.Updated += (sender, e) => CheckValid();
+        if (ParentModule is IValidityManagedEntity parentAsEntity)
+            parentAsEntity.Updated += (sender, e) => CheckValid();
     }
 
     /// <summary>

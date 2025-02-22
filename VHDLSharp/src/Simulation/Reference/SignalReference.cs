@@ -3,6 +3,7 @@ using SpiceSharp.Simulations.Base;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
@@ -23,7 +24,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
         CheckValid();
 
         // Check valid whenever module is updated
-        TopLevelModule.Updated += (sender, e) => CheckValid();
+        if (TopLevelModule is IValidityManagedEntity validityManagedEntity)
+            validityManagedEntity.Updated += (sender, e) => CheckValid();
     }
 
     /// <summary>

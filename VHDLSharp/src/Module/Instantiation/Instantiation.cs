@@ -1,6 +1,7 @@
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -23,7 +24,8 @@ public class Instantiation : IInstantiation
         PortMapping = new(instantiatedModule, parentModule);
         ParentModule = parentModule;
         Name = name;
-        instantiatedModule.Updated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
+        if (instantiatedModule is IValidityManagedEntity validityManagedEntity)
+            validityManagedEntity.Updated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
@@ -22,7 +23,8 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         CheckValid();
 
         // Check valid whenever module is updated
-        TopLevelModule.Updated += (sender, e) => CheckValid();
+        if (TopLevelModule is IValidityManagedEntity validityManagedEntity)
+            validityManagedEntity.Updated += (sender, e) => CheckValid();
     }
 
     /// <inheritdoc/>

@@ -11,7 +11,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule : IValidityManagedEntity
+public interface IModule
 {
     /// <summary>
     /// Name of the module

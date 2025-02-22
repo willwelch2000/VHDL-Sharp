@@ -36,6 +36,17 @@ public class ValidityManager
     }
 
     /// <summary>
+    /// Add child entity for tracking.
+    /// A change in the child is treated as a change here
+    /// </summary>
+    /// <param name="child"></param>
+    public void AddChildIfEntity(object child)
+    {
+        if (child is IValidityManagedEntity entityChild)
+            AddChild(entityChild);
+    }
+
+    /// <summary>
     /// Remove child entity for tracking
     /// </summary>
     /// <param name="child"></param>
@@ -43,6 +54,16 @@ public class ValidityManager
     {
         children.Remove(child.ValidityManager);
         child.Updated -= ChildUpdated;
+    }
+
+    /// <summary>
+    /// Remove child entity for tracking
+    /// </summary>
+    /// <param name="child"></param>
+    public void RemoveChildIfEntity(object child)
+    {
+        if (child is IValidityManagedEntity entityChild)
+            RemoveChild(entityChild);
     }
 
     // Called when entity is updated

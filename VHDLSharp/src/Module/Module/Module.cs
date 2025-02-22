@@ -14,7 +14,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// A digital module--a circuit that has some functionality
 /// </summary>
-public class Module : IModule
+public class Module : IModule, IValidityManagedEntity
 {
     private EventHandler? updated;
 
@@ -415,7 +415,7 @@ public class Module : IModule
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // Check for exceptions that would only occur when adding behaviors
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+        if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                 {
@@ -429,15 +429,15 @@ public class Module : IModule
                         }
                         
                     // Track each new behavior in validity manager
-                    validityManager.AddChild(kvp.Value);
+                    validityManager.AddChildIfEntity(kvp.Value);
                 }
         
         // If something has been removed, remove--unless the behavior is present somewhere else
         // TODO make test case of this
-        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
                 if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp && !SignalBehaviors.Contains(kvp))
-                    validityManager.RemoveChild(kvp.Value);
+                    validityManager.RemoveChildIfEntity(kvp.Value);
 
         // Invoke module update and undo errors, if any
         try
@@ -465,20 +465,27 @@ public class Module : IModule
 
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // // Check for exceptions that would only occur when adding instantiations
-        // if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-        //     foreach (object newItem in e.NewItems)
-        //         if (newItem is IInstantiation instantiation)
-        //         {
-        //             // Don't allow duplicate instantiation names in the list
-        //             if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
-        //             {
-        //                 Instantiations.Remove(instantiation);
-        //                 throw new Exception($"The same instantiation ({newItem}) should not be added twice");
-        //             }
-        //             // Add InvokeModuleUpdated to each new instantiation
-        //             instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
-        //         }
+        // Check for exceptions that would only occur when adding instantiations
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is IInstantiation instantiation)
+                {
+                    // // Don't allow duplicate instantiation names in the list
+                    // // TODO might should move to main checkvalid in case instantiation changes name
+                    // if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
+                    // {
+                    //     Instantiations.Remove(instantiation);
+                    //     throw new Exception($"The same instantiation ({newItem}) should not be added twice");
+                    // }
+                    // Track each new instantiation in validity manager
+                    validityManager.AddChildIfEntity(instantiation);
+                }
+        
+        // If something has been removed, remove from tracking
+        // TODO make test case of this
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                validityManager.RemoveChildIfEntity(oldItem);
 
         // Invoke module update and undo errors, if any
         try
@@ -498,17 +505,15 @@ public class Module : IModule
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // // Check for exceptions that would only occur when adding instantiations
-        // if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-        //     foreach (object newItem in e.NewItems)
-        //         if (newItem is IPort port)
-        //         {
-        //             if (Ports.Count(i => i.Signal == port.Signal) > 1)
-        //             {
-        //                 Ports.Remove(port);
-        //                 throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
-        //             }
-        //         }
+        // Track each new port, if a validity-managed entity
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                validityManager.AddChildIfEntity(newItem);
+        
+        // If something has been removed, remove from tracking
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                validityManager.RemoveChildIfEntity(oldItem);
 
         // Invoke module update and undo errors, if any
         try
@@ -541,7 +546,7 @@ public class Module : IModule
         return sb.ToString();
     }
 
-    // Contains error-checking logic that can't be confined to one callback
+    // Contains error-checking logic that can't be done just in one callback--must be checked whenever there's an update
     /// <inheritdoc/>
     void IValidityManagedEntity.CheckValidity()
     {

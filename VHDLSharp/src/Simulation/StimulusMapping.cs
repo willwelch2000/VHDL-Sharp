@@ -1,5 +1,6 @@
 using VHDLSharp.Modules;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
@@ -47,7 +48,8 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     public StimulusMapping(IModule module)
     {
         this.module = module;
-        this.module.Updated += (sender, e) => CheckValid();
+        if (module is IValidityManagedEntity moduleAsEntity)
+            moduleAsEntity.Updated += (sender, e) => CheckValid();
     }
 
     /// <summary>
