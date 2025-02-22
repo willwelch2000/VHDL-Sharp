@@ -131,7 +131,7 @@ public class ModuleTests
         Module m1 = new("m1");
         Signal s1 = m1.GenerateSignal("s1");
         bool test = false;
-        m1.ModuleUpdated += (sender, e) => test = true;
+        m1.Updated += (sender, e) => test = true;
         Assert.IsFalse(test);
         s1.AssignBehavior(true);
         Assert.IsTrue(test);

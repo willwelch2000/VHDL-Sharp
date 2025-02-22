@@ -23,7 +23,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
         CheckValid();
 
         // Check valid whenever module is updated
-        TopLevelModule.ModuleUpdated += (object? sender, EventArgs e) => CheckValid();
+        TopLevelModule.Updated += (sender, e) => CheckValid();
     }
 
     /// <summary>

@@ -117,10 +117,10 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
     
     /// <inheritdoc/>
-    protected override void CheckValid()
+    protected override void CheckValidity()
     {
         // Check parent modules
-        base.CheckValid();
+        base.CheckValidity();
         // Combine dimensions of individual expressions
         IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.Dimension);
         // Check that only 1 non-null value is present
@@ -142,6 +142,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         var previousExp = caseExpressions[value];
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
         
+        // Invoke update and undo errors, if any
         try
         {
             RaiseBehaviorChanged(this, EventArgs.Empty);

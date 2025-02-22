@@ -427,9 +427,6 @@ public class Module : IModule
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                 {
-                    // Add InvokeModuleUpdated to each new behavior
-                    kvp.Value.BehaviorUpdated += InvokeModuleUpdated;
-
                     // Throw error if a parent is overwriting a child or vice versa
                     List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
                     foreach (ISingleNodeNamedSignal newItemSingleNode in kvp.Key.ToSingleNodeSignals)
@@ -438,7 +435,17 @@ public class Module : IModule
                             SignalBehaviors.Remove(kvp.Key);
                             throw new Exception("Module already defines behavior for part or all of this signal");
                         }
+                        
+                    // Track each new behavior in validity manager
+                    validityManager.AddChild(kvp.Value);
                 }
+        
+        // If something has been removed, remove--unless the behavior is present somewhere else
+        // TODO make test case of this
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp && !SignalBehaviors.Contains(kvp))
+                    validityManager.RemoveChild(kvp.Value);
 
         // Invoke module update and undo errors, if any
         try

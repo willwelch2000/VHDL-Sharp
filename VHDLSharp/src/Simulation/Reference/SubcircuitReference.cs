@@ -22,7 +22,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         CheckValid();
 
         // Check valid whenever module is updated
-        TopLevelModule.ModuleUpdated += (object? sender, EventArgs e) => CheckValid();
+        TopLevelModule.Updated += (sender, e) => CheckValid();
     }
 
     /// <inheritdoc/>

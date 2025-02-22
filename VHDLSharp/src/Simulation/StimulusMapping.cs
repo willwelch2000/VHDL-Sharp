@@ -47,7 +47,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     public StimulusMapping(IModule module)
     {
         this.module = module;
-        this.module.ModuleUpdated += (sender, e) => CheckValid();
+        this.module.Updated += (sender, e) => CheckValid();
     }
 
     /// <summary>

@@ -66,10 +66,10 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    protected override void CheckValid()
+    protected override void CheckValidity()
     {
         // Check parent modules
-        base.CheckValid();
+        base.CheckValidity();
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
             throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
@@ -77,10 +77,10 @@ public class DynamicBehavior : Behavior
 
     private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // TODO if there's a problem, undo the change and rethrow error
+        // Invoke update and undo errors, if any
         try
         {
-            CheckValid();
+            RaiseBehaviorChanged(this, EventArgs.Empty);
         }
         catch (Exception)
         {

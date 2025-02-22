@@ -1,66 +1,24 @@
 namespace VHDLSharp.Validation;
 
 /// <summary>
-/// Class to manage validity checking in a hierarchy of objects that can change
+/// Interface for anything that can be used in a <see cref="ValidityManager"/>.
+/// It is assumed that anything implementing this validates itself for the information it has
 /// </summary>
-public class ValidityManager
+public interface IValidityManagedEntity
 {
-    // Entity this refers to--top of this tree
-    private readonly IValidityManagedEntity entity;
-
-    // Children managers
-    private readonly List<ValidityManager> children = [];
-
-    // Event called when entity or child manager is updated
-    private event EventHandler? Updated;
+    /// <summary>
+    /// Event called when entity is updated
+    /// </summary>
+    public event EventHandler? Updated;
 
     /// <summary>
-    /// Constructor given entity to track
+    /// Linked validity manager object--should be created during construction
     /// </summary>
-    /// <param name="entity"></param>
-    public ValidityManager(IValidityManagedEntity entity)
-    {
-        this.entity = entity;
-        entity.Updated += EntityUpdated;
-    }
+    public ValidityManager ValidityManager { get; }
 
     /// <summary>
-    /// Add child entity to track.
-    /// A change in the child is treated as a change here
+    /// Function called when validation is necessary. 
+    /// Should raise Exception if there's a problem
     /// </summary>
-    /// <param name="child"></param>
-    public void AddChild(IValidityManagedEntity child)
-    {
-        children.Add(child.ValidityManager);
-    }
-
-    // Called when entity is updated
-    private void EntityUpdated(object? sender, EventArgs e)
-    {
-        entity.CheckValidity();
-        foreach (ValidityManager child in children)
-        {
-            child.CheckValidityFromParent();
-        }
-        Updated?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void ChildUpdated(object? sender, EventArgs e)
-    {
-        IEnumerable<ValidityManager> childrenToCheck = sender is ValidityManager senderAsChecker ? children.Except([senderAsChecker]) : children;
-        foreach (ValidityManager child in childrenToCheck)
-        {
-            child.CheckValidityFromParent();
-        }
-        Updated?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void CheckValidityFromParent()
-    {
-        entity.CheckValidity();
-        foreach (ValidityManager child in children)
-        {
-            child.CheckValidityFromParent();
-        }
-    }
+    public void CheckValidity();
 }

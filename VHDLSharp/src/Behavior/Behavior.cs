@@ -2,6 +2,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -10,8 +11,18 @@ namespace VHDLSharp.Behaviors;
 /// </summary>
 public abstract class Behavior : IBehavior
 {
-    private EventHandler? behaviorUpdated;
+    private EventHandler? updated;
 
+    private readonly ValidityManager validityManager;
+
+    /// <summary>
+    /// Default constructor
+    /// </summary>
+    public Behavior()
+    {
+        validityManager = new(this);
+    }
+    
     /// <summary>
     /// Get all of the named input signals used in this behavior
     /// </summary>
@@ -30,14 +41,14 @@ public abstract class Behavior : IBehavior
     /// <summary>
     /// Event called when a property of the behavior is changed that could affect other objects
     /// </summary>
-    public event EventHandler? BehaviorUpdated
+    public event EventHandler? Updated
     {
         add
         {
-            behaviorUpdated -= value; // remove if already present
-            behaviorUpdated += value;
+            updated -= value; // remove if already present
+            updated += value;
         }
-        remove => behaviorUpdated -= value;
+        remove => updated -= value;
     }
 
     /// <summary>
@@ -52,13 +63,17 @@ public abstract class Behavior : IBehavior
     /// This should be wrapped in a try-catch so that whatever causes the problem can be undone
     /// </summary>
     /// <exception cref="Exception"></exception>
-    protected virtual void CheckValid()
+    protected virtual void CheckValidity()
     {
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
             throw new Exception("Input signals should all come from the same module");
     }
 
+    void IValidityManagedEntity.CheckValidity() => CheckValidity();
+
+    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
+    
     /// <summary>
     /// Convert to spice
     /// </summary>
@@ -76,11 +91,11 @@ public abstract class Behavior : IBehavior
     public abstract IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
-    /// Call this method to raise the <see cref="BehaviorUpdated"/> event
+    /// Call this method to raise the <see cref="Updated"/> event
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected void RaiseBehaviorChanged(object? sender, EventArgs e) => behaviorUpdated?.Invoke(sender, e);
+    protected void RaiseBehaviorChanged(object? sender, EventArgs e) => updated?.Invoke(sender, e);
 
     /// <summary>
     /// Check that a given output signal is compatible with this

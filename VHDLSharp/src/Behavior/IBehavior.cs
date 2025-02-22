@@ -2,13 +2,14 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Interface defining a behavior that can make up a module
 /// </summary>
-public interface IBehavior
+public interface IBehavior : IValidityManagedEntity
 {
     /// <summary>
     /// Get all of the named input signals used in this behavior
@@ -24,11 +25,6 @@ public interface IBehavior
     /// Dimension of behavior, as a <see cref="Dimension"/> object
     /// </summary>
     public Dimension Dimension { get; }
-
-    /// <summary>
-    /// Event called when a property of the behavior is changed that could affect other objects
-    /// </summary>
-    public event EventHandler? BehaviorUpdated;
 
     /// <summary>
     /// Module this behavior refers to, found from the signals
