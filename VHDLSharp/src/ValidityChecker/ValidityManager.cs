@@ -11,8 +11,10 @@ public class ValidityManager
     // Children managers
     private readonly List<ValidityManager> children = [];
 
-    // Event called when entity or child manager is updated
-    private event EventHandler? Updated;
+    /// <summary>
+    /// Event called when entity or child manager is updated
+    /// </summary>
+    public event EventHandler? EntityOrChildUpdated;
 
     /// <summary>
     /// Constructor given entity to track
@@ -75,7 +77,7 @@ public class ValidityManager
         {
             child.CheckValidityFromParent();
         }
-        Updated?.Invoke(this, EventArgs.Empty);
+        EntityOrChildUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     // Called when child ValidityManager is updated
@@ -88,7 +90,7 @@ public class ValidityManager
         {
             child.CheckValidityFromParent();
         }
-        Updated?.Invoke(this, EventArgs.Empty);
+        EntityOrChildUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     // Called by parent ValidityManager

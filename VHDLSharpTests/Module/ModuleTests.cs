@@ -130,18 +130,34 @@ public class ModuleTests
     {
         Module m1 = new("m1");
         Signal s1 = m1.GenerateSignal("s1");
-        bool test = false;
-        m1.Updated += (sender, e) => test = true;
-        Assert.IsFalse(test);
-        s1.AssignBehavior(true);
-        Assert.IsTrue(test);
-    }
+        Vector v1 = m1.GenerateVector("v1", 2);
+        bool callback = false;
+        bool childCallback = false;
+        m1.Updated += (sender, e) => callback = true;
+        m1.ModuleOrChildUpdated += (sender, e) => childCallback = true;
 
+        // Callback by assigning behavior
+        Assert.IsFalse(callback);
+        s1.AssignBehavior(true);
+        Assert.IsTrue(callback);
+
+        // Callback by assigning new behavior
+        callback = false;
+        CaseBehavior caseBehavior = new(v1);
+        s1.AssignBehavior(caseBehavior);
+        Assert.IsTrue(callback);
+
+        // Callback by changing behavior
+        callback = false;
+        caseBehavior.AddCase(0, new Literal(0, 1));
+        Assert.IsFalse(callback);
+        Assert.IsTrue(childCallback);
+    }
+    
     [TestMethod]
-    public void InstantiationTest()
+    public void ExceptionCallingTest()
     {
-        Module instantiated = new("inst");
-        Port p1 = instantiated.AddNewPort("p1", PortDirection.Input);
-        Port p2 = instantiated.AddNewPort("p2", PortDirection.Output);
+        Module m1 = new("m1");
+
     }
 }

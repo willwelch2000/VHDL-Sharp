@@ -18,6 +18,8 @@ public class Module : IModule, IValidityManagedEntity
 {
     private EventHandler? updated;
 
+    private EventHandler? moduleOrChildUpdated;
+
     private readonly ValidityManager validityManager;
 
     /// <summary>
@@ -32,6 +34,7 @@ public class Module : IModule, IValidityManagedEntity
         Instantiations.CollectionChanged += InstantiationsListUpdated;
         UpdateNamedSignals();
         validityManager = new(this);
+        validityManager.EntityOrChildUpdated += (sender, e) => moduleOrChildUpdated?.Invoke(sender, e);
     }
 
     /// <summary>
@@ -65,6 +68,19 @@ public class Module : IModule, IValidityManagedEntity
             updated += value;
         }
         remove => updated -= value;
+    }
+    
+    /// <summary>
+    /// Event called when the module is updated or something belonging to the module is updated
+    /// </summary>
+    public event EventHandler? ModuleOrChildUpdated
+    {
+        add
+        {
+            moduleOrChildUpdated -= value; // remove if already present
+            moduleOrChildUpdated += value;
+        }
+        remove => moduleOrChildUpdated -= value;
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
