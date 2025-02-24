@@ -424,7 +424,6 @@ public class Module : IModule, IValidityManagedEntity
     /// <exception cref="Exception"></exception>
     private void InvokeModuleUpdated(object? sender, EventArgs e)
     {
-        UpdateNamedSignals();
         updated?.Invoke(this, e);
     }
 
@@ -600,6 +599,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Invoke event for update to this or child
         moduleOrChildUpdated?.Invoke(this, EventArgs.Empty);
+        UpdateNamedSignals();
     }
 
     // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed

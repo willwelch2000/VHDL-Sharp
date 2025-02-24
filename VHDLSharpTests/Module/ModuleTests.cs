@@ -117,12 +117,33 @@ public class ModuleTests
         s4.AssignBehavior(s4Behavior);
         Assert.ThrowsException<Exception>(() => s4.AssignBehavior(3)); // Too high dimension
         Assert.ThrowsException<Exception>(() => s4.AssignBehavior(s3.Not())); // Signal from another dimension as input
+        Assert.ThrowsException<Exception>(() => m2.SignalBehaviors[s1] = new ValueBehavior(1)); // Assigning signal in wrong module
 
         // Check that s4 is still correct and s1 has no behavior
         Assert.AreEqual(s4Behavior, s4.Behavior);
         Assert.AreEqual(s4Behavior, m1.SignalBehaviors[s4]);
         Assert.IsNull(s1.Behavior);
         Assert.AreEqual(2, m1.SignalBehaviors.Count);
+    }
+
+    [TestMethod]
+    public void InvalidPortTest()
+    {
+        Module m1 = new("m1");
+        Module m2 = new("m2");
+
+        Signal s1 = m1.GenerateSignal("s1");
+        Signal s2 = new("s2", m2);
+
+        m1.AddNewPort(s1, PortDirection.Input);
+
+        Port p1 = new(s1, PortDirection.Output);
+        Assert.ThrowsException<Exception>(() => m1.Ports.Add(p1)); // Duplicate signal
+        Assert.IsFalse(m1.Ports.Contains(p1));
+
+        Port p2 = new(s2, PortDirection.Input);
+        Assert.ThrowsException<Exception>(() => m1.Ports.Add(p2)); // Signal from another module
+        Assert.IsFalse(m1.Ports.Contains(p2));
     }
 
     [TestMethod]
