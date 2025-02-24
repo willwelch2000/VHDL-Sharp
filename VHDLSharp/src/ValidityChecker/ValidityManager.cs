@@ -8,13 +8,13 @@ public class ValidityManager
     // Entity this refers to--top of this tree
     private readonly IValidityManagedEntity entity;
 
-    // Children managers
-    private readonly List<ValidityManager> children = [];
+    // Children managers--int is count of how many times its been added
+    private readonly Dictionary<ValidityManager, int> children = [];
 
     /// <summary>
     /// Event called when entity or child manager is updated
     /// </summary>
-    public event EventHandler? EntityOrChildUpdated;
+    private event EventHandler? EntityOrChildUpdated;
 
     /// <summary>
     /// Constructor given entity to track
@@ -33,12 +33,18 @@ public class ValidityManager
     /// <param name="child"></param>
     public void AddChild(IValidityManagedEntity child)
     {
-        children.Add(child.ValidityManager);
-        child.Updated += ChildUpdated;
+        var manager = child.ValidityManager;
+        if (children.ContainsKey(manager))
+            children[manager] += 1;
+        else
+        {
+            children[manager] = 1;
+            child.Updated += ChildUpdated;
+        }
     }
 
     /// <summary>
-    /// Add child entity for tracking.
+    /// Add child entity for tracking if correct type.
     /// A change in the child is treated as a change here
     /// </summary>
     /// <param name="child"></param>
@@ -54,8 +60,15 @@ public class ValidityManager
     /// <param name="child"></param>
     public void RemoveChild(IValidityManagedEntity child)
     {
-        children.Remove(child.ValidityManager);
-        child.Updated -= ChildUpdated;
+        var manager = child.ValidityManager;
+        if (children.TryGetValue(manager, out int count))
+            if (count == 1)
+            {
+                children.Remove(manager);
+                child.Updated -= ChildUpdated;
+            }
+            else
+                children[manager] -= 1;
     }
 
     /// <summary>
@@ -73,7 +86,7 @@ public class ValidityManager
     {
         // Check entity and all children, then invoke updated event so parent knows
         entity.CheckValidity();
-        foreach (ValidityManager child in children)
+        foreach (ValidityManager child in children.Keys)
         {
             child.CheckValidityFromParent();
         }
@@ -85,7 +98,7 @@ public class ValidityManager
     {
         // Check entity and all children but the one that called it, then invoke updated event so parent knows
         entity.CheckValidity();
-        IEnumerable<ValidityManager> childrenToCheck = sender is ValidityManager senderAsChecker ? children.Except([senderAsChecker]) : children;
+        IEnumerable<ValidityManager> childrenToCheck = sender is ValidityManager senderAsChecker ? children.Keys.Except([senderAsChecker]) : children.Keys;
         foreach (ValidityManager child in childrenToCheck)
         {
             child.CheckValidityFromParent();
@@ -98,7 +111,7 @@ public class ValidityManager
     {
         // Check entity and all children, don't invoke updated event
         entity.CheckValidity();
-        foreach (ValidityManager child in children)
+        foreach (ValidityManager child in children.Keys)
         {
             child.CheckValidityFromParent();
         }

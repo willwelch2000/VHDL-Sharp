@@ -21,7 +21,8 @@ public interface IValidityManagedEntity
     public ValidityManager ValidityManager { get; }
 
     /// <summary>
-    /// Function called when validation is necessary. 
+    /// Function called when validation is necessary.
+    /// Called when entity or child entity is updated. 
     /// Should raise Exception if there's a problem
     /// </summary>
     public void CheckValidity() {}

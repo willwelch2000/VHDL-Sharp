@@ -34,7 +34,6 @@ public class Module : IModule, IValidityManagedEntity
         Instantiations.CollectionChanged += InstantiationsListUpdated;
         UpdateNamedSignals();
         validityManager = new(this);
-        validityManager.EntityOrChildUpdated += (sender, e) => moduleOrChildUpdated?.Invoke(sender, e);
     }
 
     /// <summary>
@@ -91,7 +90,8 @@ public class Module : IModule, IValidityManagedEntity
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Mapping of module signal to behavior that defines it
+    /// Mapping of module signal to behavior that defines it.
+    /// To remove a behavior, remove kvp
     /// </summary>
     public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors { get; set; } = [];
 
@@ -448,11 +448,10 @@ public class Module : IModule, IValidityManagedEntity
                     validityManager.AddChildIfEntity(kvp.Value);
                 }
         
-        // If something has been removed, remove--unless the behavior is present somewhere else
-        // TODO make test case of this
+        // If something has been removed, remove behavior from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
-                if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp && !SignalBehaviors.Contains(kvp))
+                if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                     validityManager.RemoveChildIfEntity(kvp.Value);
 
         // Invoke module update and undo errors, if any
@@ -598,6 +597,9 @@ public class Module : IModule, IValidityManagedEntity
             else
                 throw new Exception("Port signals must have this module as parent");
         }
+
+        // Invoke event for update to this or child
+        moduleOrChildUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed

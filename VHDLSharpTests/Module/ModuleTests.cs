@@ -130,6 +130,7 @@ public class ModuleTests
     {
         Module m1 = new("m1");
         Signal s1 = m1.GenerateSignal("s1");
+        Signal s2 = m1.GenerateSignal("s2");
         Vector v1 = m1.GenerateVector("v1", 2);
         bool callback = false;
         bool childCallback = false;
@@ -140,24 +141,58 @@ public class ModuleTests
         Assert.IsFalse(callback);
         s1.AssignBehavior(true);
         Assert.IsTrue(callback);
+        Assert.IsTrue(childCallback);
 
         // Callback by assigning new behavior
         callback = false;
-        CaseBehavior caseBehavior = new(v1);
-        s1.AssignBehavior(caseBehavior);
+        childCallback = false;
+        CaseBehavior caseBehavior1 = new(v1);
+        s1.AssignBehavior(caseBehavior1);
         Assert.IsTrue(callback);
+        Assert.IsTrue(childCallback);
 
-        // Callback by changing behavior
+        // Child callback by changing behavior
         callback = false;
-        caseBehavior.AddCase(0, new Literal(0, 1));
+        childCallback = false;
+        caseBehavior1.AddCase(0, new Literal(0, 1));
         Assert.IsFalse(callback);
+        Assert.IsTrue(childCallback);
+
+        // Replace with new case behavior, confirm that it does child callback with new but not old
+        CaseBehavior caseBehavior2 = new(v1);
+        s1.AssignBehavior(caseBehavior2);
+        childCallback = false;
+        caseBehavior1.AddCase(1, new Literal(0, 1));
+        Assert.IsFalse(childCallback);
+        caseBehavior2.AddCase(1, new Literal(0, 1));
+        Assert.IsTrue(childCallback);
+
+        // Test adding behavior to multiple, removing from one--it should still do the callback when changed
+        s2.AssignBehavior(caseBehavior2);
+        s1.AssignBehavior(caseBehavior1);
+        childCallback = false;
+        caseBehavior2.AddCase(1, new Literal(0, 1));
         Assert.IsTrue(childCallback);
     }
     
     [TestMethod]
-    public void ExceptionCallingTest()
+    public void ParentChildBehaviorOverwriteTest()
     {
         Module m1 = new("m1");
+        Vector v1 = m1.GenerateVector("v1", 2);
+        VectorNode v1Node0 = v1[0];
 
+        // Child overwriting parent
+        v1.AssignBehavior(2);
+        Assert.ThrowsException<Exception>(() => v1Node0.AssignBehavior(0));
+        Assert.IsTrue(m1.SignalBehaviors.ContainsKey(v1));
+        Assert.IsFalse(m1.SignalBehaviors.ContainsKey(v1Node0));
+
+        // Parent overwriting child
+        v1.RemoveBehavior();
+        v1Node0.AssignBehavior(0);
+        Assert.ThrowsException<Exception>(() => v1.AssignBehavior(1));
+        Assert.IsTrue(m1.SignalBehaviors.ContainsKey(v1Node0));
+        Assert.IsFalse(m1.SignalBehaviors.ContainsKey(v1));
     }
 }

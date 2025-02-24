@@ -66,7 +66,13 @@ public abstract class NamedSignal : INamedSignal
     public IBehavior? Behavior
     {
         get => ParentModule.SignalBehaviors.TryGetValue(this, out IBehavior? value) ? value : null;
-        set => AssignBehavior(value);
+        set
+        {
+            if (value is null)
+                RemoveBehavior();
+            else
+                AssignBehavior(value);
+        }
     }
 
     /// <summary>
@@ -134,23 +140,32 @@ public abstract class NamedSignal : INamedSignal
     /// Assign a specified behavior to the signal
     /// </summary>
     /// <param name="behavior"></param>
-    public void AssignBehavior(IBehavior? behavior)
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(IBehavior behavior)
     {
-        if (behavior is null)
-            ParentModule.SignalBehaviors.Remove(this);
-        else
-            ParentModule.SignalBehaviors[this] = behavior;
+        ParentModule.SignalBehaviors[this] = behavior;
+        return behavior;
     }
 
     /// <summary>
     /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
     /// </summary>
     /// <param name="value"></param>
-    public void AssignBehavior(int value) => AssignBehavior(new ValueBehavior(value));
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(int value) => AssignBehavior(new ValueBehavior(value));
 
     /// <summary>
     /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
     /// </summary>
     /// <param name="expression"></param>
-    public void AssignBehavior(ILogicallyCombinable<ISignal> expression) => AssignBehavior(new LogicBehavior(expression));
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(ILogicallyCombinable<ISignal> expression) => AssignBehavior(new LogicBehavior(expression));
+
+    /// <summary>
+    /// Remove behavior assignment from this signal
+    /// </summary>
+    public void RemoveBehavior()
+    {
+        ParentModule.SignalBehaviors.Remove(this);
+    }
 }
