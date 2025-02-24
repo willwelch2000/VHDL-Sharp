@@ -7,10 +7,16 @@ namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Instantiation of one module inside of another (parent)
+/// TODO options:
+/// 1. Combine PortMapping into this, make this a dictionary
+/// 2. Move all error-checking into PortMapping, don't add any module as child here
+///     This seems weird bc it feels like instantiated module should be child
+/// 3. Move all error-checking here away from PortMapping, add instantiated module as child
+/// 4. Add instantiated module as child here, but keep error-checking in PortMapping
 /// </summary>
-public class Instantiation : IInstantiation
+public class Instantiation : IInstantiation, IValidityManagedEntity
 {
-    private EventHandler? instantiatedModuleUpdated;
+    private readonly ValidityManager validityManager;
 
     /// <summary>
     /// Create new instantiation given instantiated module and parent module
@@ -24,9 +30,12 @@ public class Instantiation : IInstantiation
         PortMapping = new(instantiatedModule, parentModule);
         ParentModule = parentModule;
         Name = name;
-        if (instantiatedModule is IValidityManagedEntity validityManagedEntity)
-            validityManagedEntity.Updated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
+        validityManager = new(this);
+        validityManager.AddChildIfEntity(instantiatedModule);
+        validityManager.AddChildIfEntity(PortMapping);
     }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
 
     /// <summary>
     /// Module that is instantiated
@@ -52,19 +61,6 @@ public class Instantiation : IInstantiation
     /// Name used for spice instantiation
     /// </summary>
     public string SpiceName => $"X{Name}";
-
-    /// <summary>
-    /// Event called whenever referenced module is updated
-    /// </summary>
-    public event EventHandler? InstantiatedModuleUpdated
-    {
-        add
-        {
-            instantiatedModuleUpdated -= value; // remove if already present
-            instantiatedModuleUpdated += value;
-        }
-        remove => instantiatedModuleUpdated -= value;
-    }
 
     /// <summary>
     /// Convert to spice. 

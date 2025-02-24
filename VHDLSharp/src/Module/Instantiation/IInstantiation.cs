@@ -34,11 +34,6 @@ public interface IInstantiation
     public string SpiceName => $"X{Name}";
 
     /// <summary>
-    /// Event called whenever referenced module is updated
-    /// </summary>
-    public event EventHandler? InstantiatedModuleUpdated;
-
-    /// <summary>
     /// Convert to spice. 
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>

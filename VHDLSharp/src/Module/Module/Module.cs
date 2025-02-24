@@ -56,8 +56,8 @@ public class Module : IModule, IValidityManagedEntity
     }
 
     /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects, 
-    /// such as port mapping
+    /// Event called when a property of this module (not a child) is changed 
+    /// that could affect other objects, such as port mapping
     /// </summary>
     public event EventHandler? Updated
     {
