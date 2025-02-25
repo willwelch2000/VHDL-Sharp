@@ -7,6 +7,36 @@ using VHDLSharp.Validation;
 namespace VHDLSharp.Modules;
 
 /// <summary>
+/// Exception related to mapping ports
+/// </summary>
+public class PortMappingException : Exception
+{
+    /// <summary>
+    /// Parameterless constructor
+    /// </summary>
+    public PortMappingException() : base("A port mapping exception has occurred.")
+    {
+    }
+
+    /// <summary>
+    /// Constructor that accepts a custom message
+    /// </summary>
+    /// <param name="message"></param>
+    public PortMappingException(string message) : base(message)
+    {
+    }
+
+    /// <summary>
+    /// Constructor that accepts a custom message and inner exception
+    /// </summary>
+    /// <param name="message"></param>
+    /// <param name="innerException"></param>
+    public PortMappingException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
+}
+
+/// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
 /// Changes are rejected if they cause a validation error (or an exception in anything linked to IValidityManagedEntity.Updated)
 /// </summary>
