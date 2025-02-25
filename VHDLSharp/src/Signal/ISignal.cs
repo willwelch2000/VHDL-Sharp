@@ -7,7 +7,9 @@ using VHDLSharp.Utility;
 namespace VHDLSharp.Signals;
 
 /// <summary>
-/// Interface for any type of signal that can be used in an expression
+/// Interface for any type of signal that can be used in an expression.
+/// It is assumed that parent-child relationships, as well as the parent module, are not changed after construction.
+/// An implementation that breaks this rule could cause validation issues. 
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>
 {

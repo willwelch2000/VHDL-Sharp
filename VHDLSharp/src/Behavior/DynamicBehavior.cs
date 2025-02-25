@@ -80,7 +80,7 @@ public class DynamicBehavior : Behavior
         // Invoke update and undo errors, if any
         try
         {
-            RaiseBehaviorChanged(this, EventArgs.Empty);
+            InvokeBehaviorUpdated(this, EventArgs.Empty);
         }
         catch (Exception)
         {

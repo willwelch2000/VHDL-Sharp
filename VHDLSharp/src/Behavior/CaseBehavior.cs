@@ -145,7 +145,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         // Invoke update and undo errors, if any
         try
         {
-            RaiseBehaviorChanged(this, EventArgs.Empty);
+            InvokeBehaviorUpdated(this, EventArgs.Empty);
         }
         catch (Exception)
         {

@@ -444,7 +444,7 @@ public class Module : IModule, IValidityManagedEntity
                         }
                         
                     // Track each new behavior in validity manager
-                    validityManager.AddChildIfEntity(kvp.Value);
+                    validityManager.AddTrackedObjectIfEntity(kvp.Value);
                 }
         
         // If something has been removed, remove behavior from tracking
@@ -492,7 +492,7 @@ public class Module : IModule, IValidityManagedEntity
                     //     throw new Exception($"The same instantiation ({newItem}) should not be added twice");
                     // }
                     // Track each new instantiation in validity manager
-                    validityManager.AddChildIfEntity(instantiation);
+                    validityManager.AddTrackedObjectIfEntity(instantiation);
                 }
         
         // If something has been removed, remove from tracking
@@ -522,7 +522,7 @@ public class Module : IModule, IValidityManagedEntity
         // Track each new port, if a validity-managed entity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                validityManager.AddChildIfEntity(newItem);
+                validityManager.AddTrackedObjectIfEntity(newItem);
         
         // If something has been removed, remove from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)

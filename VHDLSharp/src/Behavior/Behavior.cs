@@ -13,6 +13,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
 {
     private EventHandler? updated;
 
+    // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
+    // It also doesn't track the signals, because they are not supposed to change their parent module
     private readonly ValidityManager validityManager;
 
     /// <summary>
@@ -59,8 +61,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals. 
-    /// Base version just checks that all input signals come from the same module. 
-    /// This should be wrapped in a try-catch so that whatever causes the problem can be undone
+    /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
     protected virtual void CheckValidity()
@@ -95,7 +96,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected void RaiseBehaviorChanged(object? sender, EventArgs e) => updated?.Invoke(sender, e);
+    protected void InvokeBehaviorUpdated(object? sender, EventArgs e) => updated?.Invoke(sender, e);
 
     /// <summary>
     /// Check that a given output signal is compatible with this

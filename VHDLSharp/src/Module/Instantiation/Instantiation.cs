@@ -31,8 +31,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         ParentModule = parentModule;
         Name = name;
         validityManager = new(this);
-        validityManager.AddChildIfEntity(instantiatedModule);
-        validityManager.AddChildIfEntity(PortMapping);
+        validityManager.AddTrackedObjectIfEntity(instantiatedModule);
+        validityManager.AddTrackedObjectIfEntity(PortMapping);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => validityManager;

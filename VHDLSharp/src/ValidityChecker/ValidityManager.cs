@@ -20,13 +20,13 @@ public class ValidityManager
     // Entity this refers to--top of this tree
     private readonly IValidityManagedEntity entity;
 
-    // Children managers--int is count of how many times its been added
-    private readonly Dictionary<ValidityManager, int> children = [];
+    // Managers of tracked entities--int is count of how many times its been added
+    private readonly Dictionary<ValidityManager, int> trackedEntityManagers = [];
 
     /// <summary>
-    /// Event called when entity or child manager is updated
+    /// Event called when entity or tracked manager is updated
     /// </summary>
-    private event EventHandler<ValidityManagerEventArgs>? EntityOrChildUpdated;
+    private event EventHandler<ValidityManagerEventArgs>? ThisOrTrackedEntityUpdated;
 
     private Guid? mostRecentGuid = null;
 
@@ -41,58 +41,58 @@ public class ValidityManager
     }
 
     /// <summary>
-    /// Add child entity for tracking.
-    /// A change in the child is treated as a change here
+    /// Add entity for tracking.
+    /// A change in the tracked entity is treated as a change here
     /// </summary>
-    /// <param name="child"></param>
-    public void AddChild(IValidityManagedEntity child)
+    /// <param name="tracked"></param>
+    public void AddTrackedEntity(IValidityManagedEntity tracked)
     {
-        var manager = child.ValidityManager;
-        if (children.ContainsKey(manager))
-            children[manager] += 1;
+        var manager = tracked.ValidityManager;
+        if (trackedEntityManagers.ContainsKey(manager))
+            trackedEntityManagers[manager] += 1;
         else
         {
-            children[manager] = 1;
-            manager.EntityOrChildUpdated += RespondToUpdateFromChild;
+            trackedEntityManagers[manager] = 1;
+            manager.ThisOrTrackedEntityUpdated += RespondToUpdateFromTracked;
         }
     }
 
     /// <summary>
-    /// Add child entity for tracking if correct type.
-    /// A change in the child is treated as a change here
+    /// Add entity for tracking if correct type.
+    /// A change in the tracked entity is treated as a change here
     /// </summary>
-    /// <param name="child"></param>
-    public void AddChildIfEntity(object child)
+    /// <param name="tracked"></param>
+    public void AddTrackedObjectIfEntity(object tracked)
     {
-        if (child is IValidityManagedEntity entityChild)
-            AddChild(entityChild);
+        if (tracked is IValidityManagedEntity trackedEntity)
+            AddTrackedEntity(trackedEntity);
     }
 
     /// <summary>
-    /// Remove child entity for tracking
+    /// Remove entity for tracking
     /// </summary>
-    /// <param name="child"></param>
-    public void RemoveChild(IValidityManagedEntity child)
+    /// <param name="tracked"></param>
+    public void RemoveTrackedEntity(IValidityManagedEntity tracked)
     {
-        var manager = child.ValidityManager;
-        if (children.TryGetValue(manager, out int count))
+        var manager = tracked.ValidityManager;
+        if (trackedEntityManagers.TryGetValue(manager, out int count))
             if (count == 1)
             {
-                children.Remove(manager);
-                manager.EntityOrChildUpdated -= RespondToUpdateFromChild;
+                trackedEntityManagers.Remove(manager);
+                manager.ThisOrTrackedEntityUpdated -= RespondToUpdateFromTracked;
             }
             else
-                children[manager] -= 1;
+                trackedEntityManagers[manager] -= 1;
     }
 
     /// <summary>
-    /// Remove child entity for tracking
+    /// Remove entity for tracking if correct type
     /// </summary>
-    /// <param name="child"></param>
-    public void RemoveChildIfEntity(object child)
+    /// <param name="tracked"></param>
+    public void RemoveChildIfEntity(object tracked)
     {
-        if (child is IValidityManagedEntity entityChild)
-            RemoveChild(entityChild);
+        if (tracked is IValidityManagedEntity trackedEntity)
+            RemoveTrackedEntity(trackedEntity);
     }
 
     // Called when entity is updated
@@ -104,11 +104,11 @@ public class ValidityManager
 
         // Check entity, then invoke updated event with new GUID so parent knows
         entity.CheckValidity();
-        EntityOrChildUpdated?.Invoke(this, new(guid));
+        ThisOrTrackedEntityUpdated?.Invoke(this, new(guid));
     }
 
-    // Called when child is updated
-    private void RespondToUpdateFromChild(object? sender, ValidityManagerEventArgs e)
+    // Called when tracked entity is updated
+    private void RespondToUpdateFromTracked(object? sender, ValidityManagerEventArgs e)
     {
         // Check if this is a new GUID before doing anything--if not, this is a repeat
         if (mostRecentGuid.Equals(e.Guid))
@@ -116,7 +116,7 @@ public class ValidityManager
 
         // Check entity, then invoke updated event so parent knows
         entity.CheckValidity();
-        EntityOrChildUpdated?.Invoke(this, e);
+        ThisOrTrackedEntityUpdated?.Invoke(this, e);
 
         // Save GUID
         mostRecentGuid = e.Guid;
