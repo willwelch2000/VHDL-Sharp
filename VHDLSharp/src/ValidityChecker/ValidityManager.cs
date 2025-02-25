@@ -1,6 +1,18 @@
 namespace VHDLSharp.Validation;
 
 /// <summary>
+/// Event arguments for a validity manager event
+/// </summary>
+/// <param name="guid">Globally unique identifier used to differentiate events</param>
+public class ValidityManagerEventArgs(Guid guid) : EventArgs
+{
+    /// <summary>
+    /// Globally unique identifier used to differentiate events
+    /// </summary>
+    public Guid Guid => guid;
+}
+
+/// <summary>
 /// Class to manage validity checking in a hierarchy of objects that can change
 /// </summary>
 public class ValidityManager
@@ -14,7 +26,9 @@ public class ValidityManager
     /// <summary>
     /// Event called when entity or child manager is updated
     /// </summary>
-    private event EventHandler? EntityOrChildUpdated;
+    private event EventHandler<ValidityManagerEventArgs>? EntityOrChildUpdated;
+
+    private Guid? mostRecentGuid = null;
 
     /// <summary>
     /// Constructor given entity to track
@@ -23,7 +37,7 @@ public class ValidityManager
     public ValidityManager(IValidityManagedEntity entity)
     {
         this.entity = entity;
-        entity.Updated += EntityUpdated;
+        entity.Updated += RespondToUpdateFromEntity;
     }
 
     /// <summary>
@@ -39,7 +53,7 @@ public class ValidityManager
         else
         {
             children[manager] = 1;
-            child.Updated += ChildUpdated;
+            manager.EntityOrChildUpdated += RespondToUpdateFromChild;
         }
     }
 
@@ -65,7 +79,7 @@ public class ValidityManager
             if (count == 1)
             {
                 children.Remove(manager);
-                child.Updated -= ChildUpdated;
+                manager.EntityOrChildUpdated -= RespondToUpdateFromChild;
             }
             else
                 children[manager] -= 1;
@@ -82,38 +96,29 @@ public class ValidityManager
     }
 
     // Called when entity is updated
-    private void EntityUpdated(object? sender, EventArgs e)
+    private void RespondToUpdateFromEntity(object? sender, EventArgs e)
     {
-        // Check entity and all children, then invoke updated event so parent knows
+        // Make new GUID and store
+        Guid guid = Guid.NewGuid();
+        mostRecentGuid = guid;
+
+        // Check entity, then invoke updated event with new GUID so parent knows
         entity.CheckValidity();
-        foreach (ValidityManager child in children.Keys)
-        {
-            child.CheckValidityFromParent();
-        }
-        EntityOrChildUpdated?.Invoke(this, EventArgs.Empty);
+        EntityOrChildUpdated?.Invoke(this, new(guid));
     }
 
-    // Called when child ValidityManager is updated
-    private void ChildUpdated(object? sender, EventArgs e)
+    // Called when child is updated
+    private void RespondToUpdateFromChild(object? sender, ValidityManagerEventArgs e)
     {
-        // Check entity and all children but the one that called it, then invoke updated event so parent knows
-        entity.CheckValidity();
-        IEnumerable<ValidityManager> childrenToCheck = sender is ValidityManager senderAsChecker ? children.Keys.Except([senderAsChecker]) : children.Keys;
-        foreach (ValidityManager child in childrenToCheck)
-        {
-            child.CheckValidityFromParent();
-        }
-        EntityOrChildUpdated?.Invoke(this, EventArgs.Empty);
-    }
+        // Check if this is a new GUID before doing anything--if not, this is a repeat
+        if (mostRecentGuid.Equals(e.Guid))
+            return;
 
-    // Called by parent ValidityManager
-    private void CheckValidityFromParent()
-    {
-        // Check entity and all children, don't invoke updated event
+        // Check entity, then invoke updated event so parent knows
         entity.CheckValidity();
-        foreach (ValidityManager child in children.Keys)
-        {
-            child.CheckValidityFromParent();
-        }
+        EntityOrChildUpdated?.Invoke(this, e);
+
+        // Save GUID
+        mostRecentGuid = e.Guid;
     }
 }
