@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Utility;
@@ -18,6 +19,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 {
     private readonly ValidityManager validityManager;
 
+    private readonly ObservableCollection<object> trackedEntities;
+
     /// <summary>
     /// Create new instantiation given instantiated module and parent module
     /// </summary>
@@ -30,9 +33,12 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         PortMapping = new(instantiatedModule, parentModule);
         ParentModule = parentModule;
         Name = name;
-        validityManager = new(this);
-        validityManager.AddTrackedObjectIfEntity(instantiatedModule);
-        validityManager.AddTrackedObjectIfEntity(PortMapping);
+
+        // Initialize validity manager and list of tracked entities
+        trackedEntities = [];
+        trackedEntities.Add(instantiatedModule);
+        trackedEntities.Add(PortMapping);
+        validityManager = new(this, trackedEntities);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => validityManager;

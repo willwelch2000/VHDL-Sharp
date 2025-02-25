@@ -22,6 +22,8 @@ public class Module : IModule, IValidityManagedEntity
 
     private readonly ValidityManager validityManager;
 
+    private readonly ObservableCollection<object> trackedEntities;
+
     /// <summary>
     /// Default constructor
     /// </summary>
@@ -33,7 +35,10 @@ public class Module : IModule, IValidityManagedEntity
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations.CollectionChanged += InstantiationsListUpdated;
         UpdateNamedSignals();
-        validityManager = new(this);
+
+        // Initialize validity manager and list of tracked entities
+        trackedEntities = [];
+        validityManager = new(this, trackedEntities);
     }
 
     /// <summary>
@@ -444,14 +449,14 @@ public class Module : IModule, IValidityManagedEntity
                         }
                         
                     // Track each new behavior in validity manager
-                    validityManager.AddTrackedObjectIfEntity(kvp.Value);
+                    trackedEntities.Add(kvp.Value);
                 }
         
         // If something has been removed, remove behavior from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
                 if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                    validityManager.RemoveChildIfEntity(kvp.Value);
+                    trackedEntities.Remove(kvp.Value);
 
         // Invoke module update and undo errors, if any
         try
@@ -492,14 +497,14 @@ public class Module : IModule, IValidityManagedEntity
                     //     throw new Exception($"The same instantiation ({newItem}) should not be added twice");
                     // }
                     // Track each new instantiation in validity manager
-                    validityManager.AddTrackedObjectIfEntity(instantiation);
+                    trackedEntities.Add(instantiation);
                 }
         
         // If something has been removed, remove from tracking
         // TODO make test case of this
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
-                validityManager.RemoveChildIfEntity(oldItem);
+                trackedEntities.Remove(oldItem);
 
         // Invoke module update and undo errors, if any
         try
@@ -522,12 +527,12 @@ public class Module : IModule, IValidityManagedEntity
         // Track each new port, if a validity-managed entity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                validityManager.AddTrackedObjectIfEntity(newItem);
+                trackedEntities.Add(newItem);
         
         // If something has been removed, remove from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
-                validityManager.RemoveChildIfEntity(oldItem);
+                trackedEntities.Remove(oldItem);
 
         // Invoke module update and undo errors, if any
         try

@@ -3,6 +3,7 @@ using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
 using VHDLSharp.Validation;
+using System.Collections.ObjectModel;
 
 namespace VHDLSharp.Behaviors;
 
@@ -13,16 +14,19 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
 {
     private EventHandler? updated;
 
+    private readonly ValidityManager validityManager;
+    
     // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
     // It also doesn't track the signals, because they are not supposed to change their parent module
-    private readonly ValidityManager validityManager;
+    private readonly ObservableCollection<object> trackedEntities;
 
     /// <summary>
     /// Default constructor
     /// </summary>
     public Behavior()
     {
-        validityManager = new(this);
+        trackedEntities = [];
+        validityManager = new(this, trackedEntities);
     }
     
     /// <summary>

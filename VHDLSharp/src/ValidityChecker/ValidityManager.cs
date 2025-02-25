@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+
 namespace VHDLSharp.Validation;
 
 /// <summary>
@@ -33,11 +36,51 @@ public class ValidityManager
     /// <summary>
     /// Constructor given entity to track
     /// </summary>
-    /// <param name="entity"></param>
-    public ValidityManager(IValidityManagedEntity entity)
+    /// <param name="entity">Entity that owns this manager</param>
+    /// <param name="trackedEntities">Entities being tracked by the main entity. Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
+    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<object> trackedEntities)
     {
         this.entity = entity;
         entity.Updated += RespondToUpdateFromEntity;
+        trackedEntities.CollectionChanged += TrackedEntitiesCollectionChanged;
+        foreach (object trackedEntity in trackedEntities)
+            AddTrackedObjectIfEntity(trackedEntity);
+    }
+
+    private void TrackedEntitiesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                if (e.NewItems is not null)
+                    foreach (object newItem in e.NewItems)
+                        AddTrackedObjectIfEntity(newItem);
+                break;
+
+            case NotifyCollectionChangedAction.Remove:
+                if (e.OldItems is not null)
+                    foreach (object oldItem in e.OldItems)
+                        RemoveTrackedObjectIfEntity(oldItem);
+                break;
+
+            case NotifyCollectionChangedAction.Reset:
+                foreach (ValidityManager manager in trackedEntityManagers.Keys)
+                    manager.ThisOrTrackedEntityUpdated -= RespondToUpdateFromTracked;
+                trackedEntityManagers.Clear();
+                break;
+
+            case NotifyCollectionChangedAction.Move:
+                break;
+
+            case NotifyCollectionChangedAction.Replace:
+                if (e.NewItems is not null)
+                    foreach (object newItem in e.NewItems)
+                        AddTrackedObjectIfEntity(newItem);
+                if (e.OldItems is not null)
+                    foreach (object oldItem in e.OldItems)
+                        RemoveTrackedObjectIfEntity(oldItem);
+                break;
+        }
     }
 
     /// <summary>
@@ -45,7 +88,7 @@ public class ValidityManager
     /// A change in the tracked entity is treated as a change here
     /// </summary>
     /// <param name="tracked"></param>
-    public void AddTrackedEntity(IValidityManagedEntity tracked)
+    private void AddTrackedEntity(IValidityManagedEntity tracked)
     {
         var manager = tracked.ValidityManager;
         if (trackedEntityManagers.ContainsKey(manager))
@@ -62,7 +105,7 @@ public class ValidityManager
     /// A change in the tracked entity is treated as a change here
     /// </summary>
     /// <param name="tracked"></param>
-    public void AddTrackedObjectIfEntity(object tracked)
+    private void AddTrackedObjectIfEntity(object tracked)
     {
         if (tracked is IValidityManagedEntity trackedEntity)
             AddTrackedEntity(trackedEntity);
@@ -72,7 +115,7 @@ public class ValidityManager
     /// Remove entity for tracking
     /// </summary>
     /// <param name="tracked"></param>
-    public void RemoveTrackedEntity(IValidityManagedEntity tracked)
+    private void RemoveTrackedEntity(IValidityManagedEntity tracked)
     {
         var manager = tracked.ValidityManager;
         if (trackedEntityManagers.TryGetValue(manager, out int count))
@@ -89,7 +132,7 @@ public class ValidityManager
     /// Remove entity for tracking if correct type
     /// </summary>
     /// <param name="tracked"></param>
-    public void RemoveChildIfEntity(object tracked)
+    private void RemoveTrackedObjectIfEntity(object tracked)
     {
         if (tracked is IValidityManagedEntity trackedEntity)
             RemoveTrackedEntity(trackedEntity);
