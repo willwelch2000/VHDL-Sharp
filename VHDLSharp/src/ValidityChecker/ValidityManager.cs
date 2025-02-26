@@ -157,11 +157,11 @@ public class ValidityManager
         if (mostRecentGuid.Equals(e.Guid))
             return;
 
+        // Save GUID
+        mostRecentGuid = e.Guid;
+
         // Check entity, then invoke updated event so parent knows
         entity.CheckValidity();
         ThisOrTrackedEntityUpdated?.Invoke(this, e);
-
-        // Save GUID
-        mostRecentGuid = e.Guid;
     }
 }
