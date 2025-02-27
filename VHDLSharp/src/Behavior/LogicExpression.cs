@@ -14,6 +14,7 @@ namespace VHDLSharp.Behaviors;
 /// Basically just wraps <see cref="ILogicallyCombinable{ISignal}"/>
 /// </summary>
 /// <param name="expression">Input expression</param>
+// We don't need to check expression because it can't be created if the signals aren't compatible
 public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogicallyCombinable<ISignal>
 {
     /// <summary>

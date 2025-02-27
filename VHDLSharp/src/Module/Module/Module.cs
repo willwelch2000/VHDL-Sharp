@@ -422,15 +422,6 @@ public class Module : IModule, IValidityManagedEntity
             return namedSignals.Contains(signal.TopLevelSignal);
         return false;
     }
-    
-    /// <summary>
-    /// Should be surrounded in try-catch so that offending action can be undone
-    /// </summary>
-    /// <exception cref="Exception"></exception>
-    private void InvokeModuleUpdated(object? sender, EventArgs e)
-    {
-        updated?.Invoke(this, e);
-    }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -461,7 +452,7 @@ public class Module : IModule, IValidityManagedEntity
         // Invoke module update and undo errors, if any
         try
         {
-            InvokeModuleUpdated(sender, e);
+            updated?.Invoke(this, e);
         }
         catch (Exception)
         { 
@@ -509,7 +500,7 @@ public class Module : IModule, IValidityManagedEntity
         // Invoke module update and undo errors, if any
         try
         {
-            InvokeModuleUpdated(sender, e);
+            updated?.Invoke(this, e);
         }
         catch (Exception)
         { 
@@ -537,7 +528,7 @@ public class Module : IModule, IValidityManagedEntity
         // Invoke module update and undo errors, if any
         try
         {
-            InvokeModuleUpdated(sender, e);
+            updated?.Invoke(this, e);
         }
         catch (Exception)
         { 

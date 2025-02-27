@@ -8,12 +8,6 @@ namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Instantiation of one module inside of another (parent)
-/// TODO options:
-/// 1. Combine PortMapping into this, make this a dictionary
-/// 2. Move all error-checking into PortMapping, don't add any module as child here
-///     This seems weird bc it feels like instantiated module should be child
-/// 3. Move all error-checking here away from PortMapping, add instantiated module as child
-/// 4. Add instantiated module as child here, but keep error-checking in PortMapping
 /// </summary>
 public class Instantiation : IInstantiation, IValidityManagedEntity
 {
@@ -35,8 +29,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         Name = name;
 
         // Initialize validity manager and list of tracked entities
+        // PortMapping is included, so no additional error-checking is needed, because PortMapping being valid implies this is valid
         trackedEntities = [];
-        trackedEntities.Add(instantiatedModule);
         trackedEntities.Add(PortMapping);
         validityManager = new(this, trackedEntities);
     }

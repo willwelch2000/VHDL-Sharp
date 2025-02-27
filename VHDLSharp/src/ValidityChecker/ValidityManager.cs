@@ -29,15 +29,19 @@ public class ValidityManager
     /// <summary>
     /// Event called when entity or tracked manager is updated
     /// </summary>
-    private event EventHandler<ValidityManagerEventArgs>? ThisOrTrackedEntityUpdated;
+    public event EventHandler<ValidityManagerEventArgs>? ThisOrTrackedEntityUpdated;
 
     private Guid? mostRecentGuid = null;
 
     /// <summary>
-    /// Constructor given entity to track
+    /// Constructor given main entity and observable collection of entities to track.
+    /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
+    /// The tracked objects should be guaranteed to be fully valid if no error is thrown. 
+    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid
     /// </summary>
     /// <param name="entity">Entity that owns this manager</param>
-    /// <param name="trackedEntities">Entities being tracked by the main entity. Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
+    /// <param name="trackedEntities">Entities being tracked by the main entity. 
+    /// Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
     public ValidityManager(IValidityManagedEntity entity, ObservableCollection<object> trackedEntities)
     {
         this.entity = entity;

@@ -99,6 +99,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     /// <inheritdoc/>
     public bool Remove(KeyValuePair<TKey, TValue> item)
     {
+        // TODO put undoing logic in here and everywhere collectionChanged is invoked
         bool removed = backendDictionary.Remove(item.Key);
         if (removed)
             collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item));

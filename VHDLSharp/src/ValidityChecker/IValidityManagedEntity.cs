@@ -2,7 +2,8 @@ namespace VHDLSharp.Validation;
 
 /// <summary>
 /// Interface for anything that can be used in a <see cref="ValidityManager"/>.
-/// It is assumed that anything implementing this validates itself for the information it has
+/// It is assumed that anything implementing this validates itself for the information it has.
+/// In other words, if there is no exception thrown by this object, it should be guaranteed to be valid
 /// </summary>
 public interface IValidityManagedEntity
 {
