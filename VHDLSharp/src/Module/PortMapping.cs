@@ -39,6 +39,7 @@ public class PortMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
 /// Handles throwing exceptions
+/// TODO override methods that call collectionChanged to undo bad things happening
 /// </summary>
 public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity
 {
