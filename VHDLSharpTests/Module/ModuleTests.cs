@@ -147,6 +147,33 @@ public class ModuleTests
     }
 
     [TestMethod]
+    public void InvalidInstantiationTest()
+    {
+        Module m1 = new("m1");
+        Module m2 = new("m2");
+        Module m3 = new("m3");
+
+        IInstantiation i1 = m1.AddNewInstantiation(m2, "i1");
+
+        // Duplicate instantiation
+        Assert.ThrowsException<Exception>(() => m1.Instantiations.Add(i1));
+        Assert.IsTrue(m1.Instantiations.Count(i => i == i1) == 1);
+
+        // Same module and name
+        Assert.ThrowsException<Exception>(() => m1.AddNewInstantiation(m2, "i1"));
+        Assert.IsTrue(m1.Instantiations.Count(i => i.Name == "i1") == 1);
+
+        // Different module but same name
+        Assert.ThrowsException<Exception>(() => m1.AddNewInstantiation(m3, "i1"));
+        Assert.IsTrue(m1.Instantiations.Count(i => i.Name == "i1") == 1);
+
+        // Try valid versions of these
+        m1.AddNewInstantiation(m2, "i2");
+        m1.AddNewInstantiation(m3, "i3");
+        Assert.IsTrue(m1.Instantiations.Count == 3);
+    }
+
+    [TestMethod]
     public void ModuleUpdatedCallbackTest()
     {
         Module m1 = new("m1");

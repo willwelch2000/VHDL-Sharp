@@ -70,7 +70,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     public bool ContainsKey(TKey key) => backendDictionary.ContainsKey(key);
 
     /// <inheritdoc/>
-    public bool Remove(TKey key)
+    public virtual bool Remove(TKey key)
     {
         backendDictionary.TryGetValue(key, out TValue? oldValue);
         bool removed = backendDictionary.Remove(key);

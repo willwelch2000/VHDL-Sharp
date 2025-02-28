@@ -8,7 +8,9 @@ namespace VHDLSharp.Validation;
 public interface IValidityManagedEntity
 {
     /// <summary>
-    /// Event called when entity is updated
+    /// Event called when entity is updated.
+    /// In general, implementing classes should reject changes that cause an exception when this event is called.
+    /// A reasonable strategy is to wrap the invocation in a try-catch that undoes the action and rethrows the exception
     /// </summary>
     public event EventHandler? Updated
     {

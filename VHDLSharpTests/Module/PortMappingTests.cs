@@ -1,4 +1,5 @@
 using VHDLSharp.Modules;
+using VHDLSharp.Signals;
 using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
@@ -12,10 +13,7 @@ public class PortMappingTests
         int callbackCount = 0;
         int childCallbackCount = 0;
         Module parent = new("parent");
-        // Port parentP2 = parent.AddNewPort("p2", PortDirection.Output);
         Module instance = new("instance");
-        // Port instanceP1 = instance.AddNewPort("p1", PortDirection.Input);
-        // Port instanceP2 = instance.AddNewPort("p2", PortDirection.Output);
         PortMapping mapping = new(instance, parent);
         ((IValidityManagedEntity)mapping).Updated += (s, e) => callbackCount++;
         ((IValidityManagedEntity)mapping).ValidityManager.ThisOrTrackedEntityUpdated += (s, e) => childCallbackCount++;
@@ -32,5 +30,25 @@ public class PortMappingTests
         int a = callbackCount;
         Assert.AreEqual(1, callbackCount);
         Assert.AreEqual(3, childCallbackCount);
+    }
+
+    [TestMethod]
+    public void InvalidOperationTest()
+    {
+        Module parent = new("parent");
+        Module instance = new("instance");
+        PortMapping mapping = new(instance, parent);
+        Vector parentV1 = parent.GenerateVector("v1", 3);
+        Vector parentV2 = parent.GenerateVector("v2", 2);
+        Port instanceP1 = instance.AddNewPort("p1", 2, PortDirection.Output);
+
+        // Incompatible signals--confirm it doesn't recognize the change
+        Assert.ThrowsException<PortMappingException>(() => mapping[instanceP1] = parentV1);
+        Assert.IsFalse(mapping.ContainsKey(instanceP1));
+
+        mapping[instanceP1] = parentV2;
+        // Make v2 an input port in parent, confirm that causes error
+        Assert.ThrowsException<PortMappingException>(() => parent.AddNewPort(parentV2, PortDirection.Input));
+        Assert.IsFalse(parent.Ports.Any(p => p.Signal == parentV2));
     }
 }

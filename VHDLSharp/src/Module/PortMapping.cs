@@ -38,8 +38,7 @@ public class PortMappingException : Exception
 
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
-/// Handles throwing exceptions
-/// TODO override methods that call collectionChanged to undo bad things happening
+/// Changes are rejected if they cause a validation error (or an exception in anything linked to IValidityManagedEntity.Updated)
 /// </summary>
 public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity
 {
@@ -60,7 +59,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
         ParentModule = parentModule;
         trackedEntities = [instantiatedModule, parentModule];
         manager = new(this, trackedEntities);
-        CollectionChanged += (s, e) => updated?.Invoke(this, e);
+        CollectionChanged += HandleCollectionChanged;
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
@@ -93,34 +92,6 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
-    /// <summary>
-    /// Indexer for port mapping
-    /// </summary>
-    /// <param name="port"></param>
-    /// <returns></returns>
-    public override INamedSignal this[IPort port]
-    {
-        get => base[port];
-        set
-        {
-            INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
-
-            // If error is caused by update (called by ObservableDictionary), undo it
-            try
-            {
-                base[port] = value;
-            }
-            catch (Exception)
-            {
-                if (prevVal is null)
-                    Remove(port);
-                else
-                    base[port] = prevVal;
-                throw;
-            }
-        }
-    }
-
     void IValidityManagedEntity.CheckValidity()
     {
         foreach ((IPort port, INamedSignal signal) in this)
@@ -143,23 +114,26 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     /// <returns></returns>
     public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
-
-    /// <inheritdoc/>
-    public override void Add(IPort port, INamedSignal signal)
+    
+    private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
-
-        // If error is caused by update (called by ObservableDictionary), undo it
         try
         {
-            base.Add(port, signal);
+            updated?.Invoke(this, e);
         }
-        catch (Exception)
+        catch
         {
-            if (prevVal is null)
-                Remove(port);
-            else
-                base[port] = prevVal;
+            // Undo anything added
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is KeyValuePair<IPort, INamedSignal> kvp)
+                        Remove(kvp);
+
+            // Undo anything replaced
+            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
+                foreach (object oldItem in e.OldItems)
+                    if (oldItem is KeyValuePair<IPort, INamedSignal> kvp)
+                        this[kvp.Key] = kvp.Value;
             throw;
         }
     }

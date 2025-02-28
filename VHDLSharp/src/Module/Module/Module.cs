@@ -96,17 +96,20 @@ public class Module : IModule, IValidityManagedEntity
 
     /// <summary>
     /// Mapping of module signal to behavior that defines it.
-    /// To remove a behavior, remove kvp
+    /// To remove a behavior, remove kvp.
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
     public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
-    /// List of ports for this module
+    /// List of ports for this module. 
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
     public ObservableCollection<IPort> Ports { get; } = [];
 
     /// <summary>
     /// List of module instantiations inside of this module
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
     public ObservableCollection<IInstantiation> Instantiations { get; } = [];
 
@@ -162,7 +165,7 @@ public class Module : IModule, IValidityManagedEntity
     public Vector GenerateVector(string name, int dimension) => new(name, this, dimension);
 
     /// <summary>
-    /// Create a port with a new signal and add the new port to the list of ports
+    /// Create a port with a new single-dimension signal and add the new port to the list of ports
     /// </summary>
     /// <param name="name"></param>
     /// <param name="direction"></param>
@@ -170,6 +173,21 @@ public class Module : IModule, IValidityManagedEntity
     public Port AddNewPort(string name, PortDirection direction)
     {
         Port result = new(new Signal(name, this), direction);
+        Ports.Add(result);
+        return result;
+    }
+
+    /// <summary>
+    /// Create a port with a new signal of a given dimension and add the new port to the list of ports
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="dimension">Dimension for new signal</param>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    public Port AddNewPort(string name, int dimension, PortDirection direction)
+    {
+        NamedSignal signal = dimension == 1 ? new Signal(name, this) : new Vector(name, this, dimension);
+        Port result = new(signal, direction);
         Ports.Add(result);
         return result;
     }
@@ -479,20 +497,10 @@ public class Module : IModule, IValidityManagedEntity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is IInstantiation instantiation)
-                {
-                    // // Don't allow duplicate instantiation names in the list
-                    // // TODO might should move to main checkvalid in case instantiation changes name
-                    // if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
-                    // {
-                    //     Instantiations.Remove(instantiation);
-                    //     throw new Exception($"The same instantiation ({newItem}) should not be added twice");
-                    // }
                     // Track each new instantiation in validity manager
                     trackedEntities.Add(instantiation);
-                }
         
         // If something has been removed, remove from tracking
-        // TODO make test case of this
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
                 trackedEntities.Remove(oldItem);
