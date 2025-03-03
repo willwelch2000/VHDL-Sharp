@@ -7,6 +7,7 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Simulations;
 using SpiceSharp.Entities;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp;
 

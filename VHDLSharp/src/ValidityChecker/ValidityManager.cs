@@ -34,7 +34,7 @@ public class ValidityManager
     private Guid? mostRecentGuid = null;
 
     /// <summary>
-    /// Constructor given main entity and observable collection of entities to track.
+    /// Constructor given main entity and observable collection of objects to track.
     /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
     /// The tracked objects by rule are guaranteed to be fully valid if no error is thrown. If they are dynamic, they should implement IValidityManagedEntity. 
     /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid.
@@ -46,10 +46,31 @@ public class ValidityManager
     public ValidityManager(IValidityManagedEntity entity, ObservableCollection<object> trackedEntities)
     {
         this.entity = entity;
-        entity.Updated += RespondToUpdateFromEntity;
-        trackedEntities.CollectionChanged += TrackedEntitiesCollectionChanged;
-        foreach (object trackedEntity in trackedEntities)
-            AddTrackedObjectIfEntity(trackedEntity);
+        FollowTrackedEntityCollection(trackedEntities);
+    }
+
+    /// <summary>
+    /// Constructor given main entity and observable collection of <see cref="IValidityManagedEntity"/> to track.
+    /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
+    /// The tracked objects by rule are guaranteed to be fully valid if no error is thrown. If they are dynamic, they should implement IValidityManagedEntity. 
+    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid.
+    /// The main entity should still add all objects that should trigger an update, as it is unknown how the tracked object will work
+    /// </summary>
+    /// <param name="entity">Entity that owns this manager</param>
+    /// <param name="trackedEntities">Entities being tracked by the main entity. 
+    /// Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
+    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<IValidityManagedEntity> trackedEntities)
+    {
+        this.entity = entity;
+        FollowTrackedEntityCollection(trackedEntities);
+    }
+    
+    /// <summary>
+    /// Constructor given just entity--used by generic type extension
+    /// </summary>
+    protected ValidityManager(IValidityManagedEntity entity)
+    {
+        this.entity = entity;
     }
 
     private void TrackedEntitiesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -168,5 +189,35 @@ public class ValidityManager
         // Check entity, then invoke updated event so parent knows
         entity.CheckValidity();
         ThisOrTrackedEntityUpdated?.Invoke(this, e);
+    }
+
+    /// <summary>
+    /// Follow a collection of tracked entities
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="trackedEntityCollection">collection of entities to be tracked</param>
+    protected void FollowTrackedEntityCollection<T>(ObservableCollection<T> trackedEntityCollection) where T : notnull
+    {
+        entity.Updated += RespondToUpdateFromEntity;
+        trackedEntityCollection.CollectionChanged += TrackedEntitiesCollectionChanged;
+        foreach (T trackedEntity in trackedEntityCollection)
+            AddTrackedObjectIfEntity(trackedEntity);
+    }
+}
+
+/// <summary>
+/// Generic type extension of <see cref="ValidityManager"/> that allows tracking a specific type of <see cref="ObservableCollection{T}"/>
+/// </summary>
+/// <typeparam name="T">Type of collection</typeparam>
+public class ValidityManager<T> : ValidityManager where T : notnull
+{
+    /// <summary>
+    /// Constructor given main entity to follow and collection of tracked entities
+    /// </summary>
+    /// <param name="entity"></param>
+    /// <param name="trackedEntities"></param>
+    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<T> trackedEntities) : base(entity)
+    {
+        FollowTrackedEntityCollection(trackedEntities);
     }
 }

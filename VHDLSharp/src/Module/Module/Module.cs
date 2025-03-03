@@ -33,11 +33,11 @@ public class Module : IModule, IValidityManagedEntity
         // and include throwing exceptions when needed
         Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
-        Instantiations.CollectionChanged += InstantiationsListUpdated;
+        Instantiations = new(this);
         UpdateNamedSignals();
 
         // Initialize validity manager and list of tracked entities
-        trackedEntities = [];
+        trackedEntities = [Instantiations];
         validityManager = new(this, trackedEntities);
     }
 
@@ -122,7 +122,7 @@ public class Module : IModule, IValidityManagedEntity
     /// List of module instantiations inside of this module
     /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
-    public ObservableCollection<IInstantiation> Instantiations { get; } = [];
+    public InstantiationCollection Instantiations { get; }
 
     /// <summary>
     /// Get all named signals used in this module. 
@@ -225,12 +225,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public IInstantiation AddNewInstantiation(Module module, string name)
-    {
-        IInstantiation instantiation = new Instantiation(module, this, name);
-        Instantiations.Add(instantiation);
-        return instantiation;
-    }
+    public IInstantiation AddNewInstantiation(Module module, string name) => Instantiations.Add(module, name);
 
     /// <summary>
     /// Convert to string
@@ -297,21 +292,14 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         // Component declarations
-        foreach (Module module in ModulesUsed)
-            sb.AppendLine(module.GetComponentDeclaration());
+        foreach (IModule module in ModulesUsed)
+            sb.AppendLine(module.GetVhdlComponentDeclaration());
 
         // Begin
         sb.AppendLine("begin");
 
         // Add all instantiations
-        bool anyInstantiations = false;
-        foreach (IInstantiation instantiation in Instantiations)
-        {
-            anyInstantiations = true;
-            sb.AppendLine(instantiation.GetVhdlStatement().AddIndentation(1));
-        }
-        if (anyInstantiations)
-            sb.AppendLine();
+        sb.Append(Instantiations.GetVhdl().AddIndentation(1));
 
         // Behaviors
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -347,9 +335,8 @@ public class Module : IModule, IValidityManagedEntity
 
         int indentation = subcircuit ? 1 : 0;
 
-        // Add all inner modules' subcircuit declarations
-        foreach (IModule submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
-            sb.AppendLine(submodule.GetSpice(true).AddIndentation(indentation) + "\n");
+        foreach (string subcircuitDeclaration in Instantiations.GetSpiceSubcircuitDeclarations())
+            sb.AppendLine(subcircuitDeclaration.AddIndentation(indentation));
 
         // Add VDD node and PMOS/NMOS models
         sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
@@ -357,9 +344,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(indentation));
 
         // Add all instantiations
-        foreach (IInstantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.GetSpice().AddIndentation(indentation));
-        sb.AppendLine();
+        sb.Append(Instantiations.GetSpiceInstantiationStatements().AddIndentation(indentation));
 
         // Add behaviors
         int i = 0;
@@ -409,7 +394,7 @@ public class Module : IModule, IValidityManagedEntity
         entities.Add(pmosModel);
 
         // Add instantiations
-        foreach (IEntity entity in IInstantiation.GetSpiceSharpEntities(Instantiations))
+        foreach (IEntity entity in Instantiations.GetSpiceSharpEntities())
             entities.Add(entity);
 
         // Add behaviors
@@ -505,35 +490,36 @@ public class Module : IModule, IValidityManagedEntity
         }
     }
 
-    private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        // Check for exceptions that would only occur when adding instantiations
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is IInstantiation instantiation)
-                    // Track each new instantiation in validity manager
-                    trackedEntities.Add(instantiation);
+    // private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    // {
+    //     // Check for exceptions that would only occur when adding instantiations
+    //     if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+    //         foreach (object newItem in e.NewItems)
+    //             if (newItem is IInstantiation instantiation)
+    //                 // Track each new instantiation in validity manager
+    //                 trackedEntities.Add(instantiation);
         
-        // If something has been removed, remove from tracking
-        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
-            foreach (object oldItem in e.OldItems)
-                trackedEntities.Remove(oldItem);
+    //     // If something has been removed, remove from tracking
+    //     if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+    //         foreach (object oldItem in e.OldItems)
+    //             trackedEntities.Remove(oldItem);
 
-        // Invoke module update and undo errors, if any
-        try
-        {
-            updated?.Invoke(this, e);
-        }
-        catch (Exception)
-        { 
-            // Remove just-added instantiation
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is IInstantiation instantiation)
-                            Instantiations.Remove(instantiation);
-            throw;
-        }
-    }
+    //     // Invoke module update and undo errors, if any
+    //     try
+    //     {
+    //         updated?.Invoke(this, e);
+    //     }
+    //     catch (Exception)
+    //     { 
+    //         // Remove just-added instantiation
+    //         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+    //             foreach (object newItem in e.NewItems)
+    //                 if (newItem is IInstantiation instantiation)
+    //                     // TODO consider making undo actions update-free
+    //                     Instantiations.Remove(instantiation);
+    //         throw;
+    //     }
+    // }
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -563,7 +549,8 @@ public class Module : IModule, IValidityManagedEntity
         }
     }
 
-    private string GetComponentDeclaration()
+    /// <inheritdoc/>
+    public string GetVhdlComponentDeclaration()
     {
         StringBuilder sb = new();
 
@@ -596,13 +583,13 @@ public class Module : IModule, IValidityManagedEntity
                 throw new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
-        // Don't allow duplicate instantiation names in the list
-        HashSet<string> instantiationNames = [];
-        if (!Instantiations.All(i => instantiationNames.Add(i.Name)))
-        {
-            string duplicate = Instantiations.First(i => Instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
-            throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
-        }
+        // // Don't allow duplicate instantiation names in the list
+        // HashSet<string> instantiationNames = [];
+        // if (!Instantiations.All(i => instantiationNames.Add(i.Name)))
+        // {
+        //     string duplicate = Instantiations.First(i => Instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
+        //     throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
+        // }
                 
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
