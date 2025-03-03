@@ -36,8 +36,9 @@ public class ValidityManager
     /// <summary>
     /// Constructor given main entity and observable collection of entities to track.
     /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
-    /// The tracked objects should be guaranteed to be fully valid if no error is thrown. 
-    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid
+    /// The tracked objects by rule are guaranteed to be fully valid if no error is thrown. If they are dynamic, they should implement IValidityManagedEntity. 
+    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid.
+    /// The main entity should still add all objects that should trigger an update, as it is unknown how the tracked object will work
     /// </summary>
     /// <param name="entity">Entity that owns this manager</param>
     /// <param name="trackedEntities">Entities being tracked by the main entity. 

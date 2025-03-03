@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using VHDLSharp.Modules;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -37,8 +39,14 @@ public class StimulusMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
+public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity
 {
+    private readonly ValidityManager manager;
+
+    private readonly ObservableCollection<object> trackedEntities;
+    
+    private EventHandler? updated;
+    
     private readonly IModule module;
     
     /// <summary>
@@ -48,8 +56,24 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     public StimulusMapping(IModule module)
     {
         this.module = module;
-        if (module is IValidityManagedEntity moduleAsEntity)
-            moduleAsEntity.Updated += (sender, e) => CheckValid();
+        trackedEntities = [module];
+        manager = new(this, trackedEntities);
+        CollectionChanged += HandleCollectionChanged;
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Event called when mapping is updated
+    /// </summary>
+    event EventHandler? IValidityManagedEntity.Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
     }
 
     /// <summary>
@@ -57,32 +81,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => module.Ports.Except(Keys);
 
-    /// <inheritdoc/>
-    public override IStimulusSet this[IPort port]
-    {
-        get => base[port];
-        set
-        {
-            IStimulusSet? prevVal = TryGetValue(port, out var val) ? val : null;
-            base[port] = value;
-
-            // If error is caused by CheckValid, undo it
-            try
-            {
-                CheckValid();
-            }
-            catch (Exception)
-            {
-                if (prevVal is null)
-                    Remove(port);
-                else
-                    base[port] = prevVal;
-                throw;
-            }
-        }
-    }
-
-    private void CheckValid()
+    void IValidityManagedEntity.CheckValidity()
     {
         foreach ((IPort port, IStimulusSet stimulus) in this)
         {
@@ -102,24 +101,29 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>
     /// </summary>
     /// <returns></returns>
     public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
-
-    /// <inheritdoc/>
-    public override void Add(IPort port, IStimulusSet stimulus)
+    
+    private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        IStimulusSet? prevVal = TryGetValue(port, out var val) ? val : null;
-        base.Add(port, stimulus);
-
-        // If error is caused by CheckValid, undo it
         try
         {
-            CheckValid();
+            updated?.Invoke(this, e);
         }
-        catch (Exception)
+        catch
         {
-            if (prevVal is null)
-                Remove(port);
-            else
-                base[port] = prevVal;
+            // Undo anything added
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is KeyValuePair<IPort, IStimulusSet> kvp)
+                        Remove(kvp);
+
+            // Undo anything replaced
+            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
+                foreach (object oldItem in e.OldItems)
+                    if (oldItem is KeyValuePair<IPort, IStimulusSet> kvp)
+                        this[kvp.Key] = kvp.Value;
+
+            // Remove/clear/move action shouldn't cause issues
+
             throw;
         }
     }

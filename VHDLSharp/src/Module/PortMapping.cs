@@ -134,6 +134,9 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
                 foreach (object oldItem in e.OldItems)
                     if (oldItem is KeyValuePair<IPort, INamedSignal> kvp)
                         this[kvp.Key] = kvp.Value;
+
+            // Remove/clear/move action shouldn't cause issues
+
             throw;
         }
     }

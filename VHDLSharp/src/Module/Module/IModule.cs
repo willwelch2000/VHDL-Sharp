@@ -83,7 +83,7 @@ public interface IModule
     public string GetSpice(bool subcircuit);
 
     /// <summary>
-    /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
+    /// Convert module to a singleton Spice# <see cref="SubcircuitDefinition"/> object
     /// </summary>
     /// <returns></returns>
     public SubcircuitDefinition GetSpiceSharpSubcircuit();

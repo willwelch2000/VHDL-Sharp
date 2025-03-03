@@ -11,7 +11,7 @@ public interface IInstantiation
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public IModule InstantiatedModule { get; }
+    public IModule InstantiatedModule => PortMapping.InstantiatedModule;
 
     /// <summary>
     /// Mapping of module's ports to parent's signals (connections to module)
@@ -21,7 +21,7 @@ public interface IInstantiation
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public IModule ParentModule { get; }
+    public IModule ParentModule => PortMapping.ParentModule;
 
     /// <summary>
     /// Name of instantiation
@@ -52,9 +52,8 @@ public interface IInstantiation
     /// generate a Spice# subcircuit object for this instantiation
     /// </summary>
     /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects</param>
-    /// <param name="uniqueId">Unique id to use for name</param>
     /// <returns></returns>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions, int uniqueId);
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions);
 
     /// <inheritdoc/>
     public string ToString();
@@ -71,10 +70,7 @@ public interface IInstantiation
             subcircuitDefinitions[submodule] = submodule.GetSpiceSharpSubcircuit();
 
         // Add instantiations
-        int i = 0;
         foreach (IInstantiation instantiation in instantiations)
-        {
-            yield return instantiation.GetSpiceSharpSubcircuit(subcircuitDefinitions, i++);
-        }
+            yield return instantiation.GetSpiceSharpSubcircuit(subcircuitDefinitions);
     }
 }

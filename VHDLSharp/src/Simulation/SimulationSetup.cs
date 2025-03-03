@@ -6,14 +6,25 @@ using SpiceSharp.Entities;
 using SpiceSharp.Simulations;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
 /// <summary>
 /// Class representing a simulation setup
 /// </summary>
-public class SimulationSetup
+public class SimulationSetup : IValidityManagedEntity
 {
+    private readonly ValidityManager manager;
+
+    private readonly ObservableCollection<object> trackedEntities;
+
+    private EventHandler? updated;
+
+    private double length = 1e-3;
+
+    private double stepSize = 1e-6;
+
     /// <summary>
     /// Create simulation setup given module to simulate
     /// </summary>
@@ -22,8 +33,25 @@ public class SimulationSetup
     {
         StimulusMapping = new(module);
         Module = module;
+        trackedEntities = [StimulusMapping, module];
+        manager = new(this, trackedEntities);
         SignalsToMonitor = [];
-        SignalsToMonitor.CollectionChanged += CheckValidNewItem;
+        SignalsToMonitor.CollectionChanged += SignalsListUpdated;
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Event called when a property of this setup is changed that could affect other objects
+    /// </summary>
+    public event EventHandler? Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
     }
 
     /// <summary>
@@ -44,12 +72,28 @@ public class SimulationSetup
     /// <summary>
     /// How long the simulation should be
     /// </summary>
-    public double Length { get; set; } = 1e-3;
+    public double Length
+    {
+        get => length;
+        set
+        {
+            updated?.Invoke(this, EventArgs.Empty);
+            length = value;
+        }
+    }
 
     /// <summary>
     /// Time between steps
     /// </summary>
-    public double StepSize { get; set; } = 1e-6;
+    public double StepSize
+    {
+        get => stepSize;
+        set
+        {
+            updated?.Invoke(this, EventArgs.Empty);
+            stepSize = value;
+        }
+    }
 
     /// <summary>
     /// Assign a stimulus set to a port
@@ -122,12 +166,14 @@ public class SimulationSetup
         return results;
     }
 
-    private void CheckValidNewItem(object? sender, NotifyCollectionChangedEventArgs e)
+    private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // Check that reference has correct top-level module
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is SignalReference signalReference && signalReference.TopLevelModule != Module)
                     throw new Exception($"Added signal reference must use module {Module} as top-level module");
+
+        updated?.Invoke(this, e);
     }
 }

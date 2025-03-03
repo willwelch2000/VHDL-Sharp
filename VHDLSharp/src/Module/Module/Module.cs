@@ -53,11 +53,22 @@ public class Module : IModule, IValidityManagedEntity
     /// <summary>
     /// Construct module given port names and directions
     /// </summary>
-    /// <param name="ports">tuple of name and direction for port</param>
+    /// <param name="ports">Tuples of name and direction for port</param>
     public Module(IEnumerable<(string, PortDirection)> ports) : this()
     {
         foreach ((string name, PortDirection direction) in ports)
             AddNewPort(name, direction);
+    }
+
+    /// <summary>
+    /// Construct module given port names and directions
+    /// </summary>
+    /// <param name="name">Name for module</param>
+    /// <param name="ports">Tuples of name and direction for port</param>
+    public Module(string name, IEnumerable<(string, PortDirection)> ports) : this(name)
+    {
+        foreach ((string portName, PortDirection direction) in ports)
+            AddNewPort(portName, direction);
     }
 
     /// <summary>
@@ -233,6 +244,9 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdl()
     {
+        if (!Complete)
+            throw new Exception("Module not yet complete");
+
         StringBuilder sb = new();
 
         // Header
