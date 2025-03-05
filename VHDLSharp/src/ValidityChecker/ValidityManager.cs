@@ -16,83 +16,107 @@ public class ValidityManagerEventArgs(Guid guid) : EventArgs
 }
 
 /// <summary>
-/// Class to manage validity checking in a hierarchy of objects that can change
+/// Class to manage validity-checking for an object that implements <see cref="IValidityManagedEntity"/>
 /// </summary>
-public class ValidityManager
+public abstract class ValidityManager
 {
-    // Entity this refers to--top of this tree
     private readonly IValidityManagedEntity entity;
 
-    // Managers of tracked entities--int is count of how many times its been added
-    private readonly Dictionary<ValidityManager, int> trackedEntityManagers = [];
-
     /// <summary>
-    /// Event called when entity or tracked manager is updated
+    /// True children of the main object that implement <see cref="IValidityManagedEntity"/>
     /// </summary>
-    public event EventHandler<ValidityManagerEventArgs>? ThisOrTrackedEntityUpdated;
+    protected abstract IEnumerable<IValidityManagedEntity> ChildrenEntities { get; }
+
+    // Managers of observed entities, including children and additional observed--int is count of how many times it's been added
+    private readonly Dictionary<ValidityManager, int> observedEntityManagers = [];
 
     private Guid? mostRecentGuid = null;
 
     /// <summary>
-    /// Constructor given main entity and observable collection of objects to track.
-    /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
-    /// The tracked objects by rule are guaranteed to be fully valid if no error is thrown. If they are dynamic, they should implement IValidityManagedEntity. 
-    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid.
-    /// The main entity should still add all objects that should trigger an update, as it is unknown how the tracked object will work
+    /// Event called when entity or observed manager is updated
     /// </summary>
-    /// <param name="entity">Entity that owns this manager</param>
-    /// <param name="trackedEntities">Entities being tracked by the main entity. 
-    /// Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
-    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<object> trackedEntities)
-    {
-        this.entity = entity;
-        FollowTrackedEntityCollection(trackedEntities);
-    }
+    public event EventHandler<ValidityManagerEventArgs>? ThisOrObservedEntityUpdated;
+
+    // private IEnumerable<IValidityManagedEntity> ChildrenAsEntities => ChildrenEntities.Where(c => c is IValidityManagedEntity).Select(c => (IValidityManagedEntity)c);
 
     /// <summary>
-    /// Constructor given main entity and observable collection of <see cref="IValidityManagedEntity"/> to track.
-    /// Objects in the tracked entity collection should follow this rule: they must be valid for the main entity to be valid.
-    /// The tracked objects by rule are guaranteed to be fully valid if no error is thrown. If they are dynamic, they should implement IValidityManagedEntity. 
-    /// The main entity can "offload" its error checking to the tracked object if the necessary error-checking is rendered unneccessary if the tracked object is valid.
-    /// The main entity should still add all objects that should trigger an update, as it is unknown how the tracked object will work
+    /// Constructor given main entity, children, and entities to observe.
+    /// Child entities are any that must be valid for the main entity to be considered valid. They also trigger an update here when <see cref="CheckAfterUpdate"/> is activated. 
+    /// Observed entities are those that trigger an update here when <see cref="CheckAfterUpdate"/> is activated but are not true children of the main entity. 
+    /// In other words, an invalid observed entity does not necessarily imply that the main entity is invalid, but an invalid child does. 
     /// </summary>
-    /// <param name="entity">Entity that owns this manager</param>
-    /// <param name="trackedEntities">Entities being tracked by the main entity. 
-    /// Objects are discarded if they don't implement <see cref="IValidityManagedEntity"/></param>
-    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<IValidityManagedEntity> trackedEntities)
-    {
-        this.entity = entity;
-        FollowTrackedEntityCollection(trackedEntities);
-    }
-    
-    /// <summary>
-    /// Constructor given just entity--used by generic type extension
-    /// </summary>
+    /// <param name="entity">Main entity to follow</param>
     protected ValidityManager(IValidityManagedEntity entity)
     {
         this.entity = entity;
     }
 
-    private void TrackedEntitiesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    /// <summary>
+    /// If true, throws an error after an invalid modification is made
+    /// </summary>
+    public static bool CheckAfterUpdate { get; set; } = false;
+
+    /// <summary>
+    /// Checks if this entity, and its recursive children, are valid
+    /// </summary>
+    /// <returns>True if valid, false if not</returns>
+    public bool IsValid() => entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
+
+    /// <summary>
+    /// If this entity is invalid, this provides all the issues it has
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<Issue> Issues()
+    {
+        if (!entity.CheckTopLevelValidity(out string? explanation))
+        {
+            yield return new()
+            {
+                TopLevelEntity = entity,
+                Explanation = explanation
+            };
+        }
+
+        foreach (Issue issue in ChildrenEntities.SelectMany(c => c.ValidityManager.Issues()))
+        {
+            issue.FaultChain.AddFirst(issue.TopLevelEntity);
+            issue.TopLevelEntity = entity;
+            yield return issue;
+        }
+    }
+
+    /// <summary>
+    /// Follow a collection of observed entities
+    /// </summary>
+    /// <param name="observedEntityCollection">collection of entities to be observed</param>
+    protected void FollowObservedEntityCollection<T>(ObservableCollection<T> observedEntityCollection) where T : notnull
+    {
+        entity.Updated += RespondToUpdateFromEntity;
+        observedEntityCollection.CollectionChanged += ObservedEntitiesCollectionChanged;
+        foreach (object observedEntity in observedEntityCollection)
+            AddObservedObjectIfEntity(observedEntity);
+    }
+
+    private void ObservedEntitiesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
                 if (e.NewItems is not null)
                     foreach (object newItem in e.NewItems)
-                        AddTrackedObjectIfEntity(newItem);
+                        AddObservedObjectIfEntity(newItem);
                 break;
 
             case NotifyCollectionChangedAction.Remove:
                 if (e.OldItems is not null)
                     foreach (object oldItem in e.OldItems)
-                        RemoveTrackedObjectIfEntity(oldItem);
+                        RemoveObservedObjectIfEntity(oldItem);
                 break;
 
             case NotifyCollectionChangedAction.Reset:
-                foreach (ValidityManager manager in trackedEntityManagers.Keys)
-                    manager.ThisOrTrackedEntityUpdated -= RespondToUpdateFromTracked;
-                trackedEntityManagers.Clear();
+                foreach (ValidityManager manager in observedEntityManagers.Keys)
+                    manager.ThisOrObservedEntityUpdated -= RespondToUpdateFromObserved;
+                observedEntityManagers.Clear();
                 break;
 
             case NotifyCollectionChangedAction.Move:
@@ -101,70 +125,72 @@ public class ValidityManager
             case NotifyCollectionChangedAction.Replace:
                 if (e.NewItems is not null)
                     foreach (object newItem in e.NewItems)
-                        AddTrackedObjectIfEntity(newItem);
+                        AddObservedObjectIfEntity(newItem);
                 if (e.OldItems is not null)
                     foreach (object oldItem in e.OldItems)
-                        RemoveTrackedObjectIfEntity(oldItem);
+                        RemoveObservedObjectIfEntity(oldItem);
                 break;
         }
     }
 
     /// <summary>
-    /// Add entity for tracking.
-    /// A change in the tracked entity is treated as a change here
+    /// Add entity for observing.
+    /// A change in the observed entity is treated as a change here
     /// </summary>
-    /// <param name="tracked"></param>
-    private void AddTrackedEntity(IValidityManagedEntity tracked)
+    /// <param name="observed"></param>
+    private void AddObservededEntity(IValidityManagedEntity observed)
     {
-        var manager = tracked.ValidityManager;
-        if (trackedEntityManagers.ContainsKey(manager))
-            trackedEntityManagers[manager] += 1;
+        var manager = observed.ValidityManager;
+        if (observedEntityManagers.ContainsKey(manager))
+            observedEntityManagers[manager] += 1;
         else
         {
-            trackedEntityManagers[manager] = 1;
-            manager.ThisOrTrackedEntityUpdated += RespondToUpdateFromTracked;
+            observedEntityManagers[manager] = 1;
+            manager.ThisOrObservedEntityUpdated += RespondToUpdateFromObserved;
         }
     }
 
     /// <summary>
-    /// Add entity for tracking if correct type.
-    /// A change in the tracked entity is treated as a change here
+    /// Add entity for observing if correct type.
+    /// A change in the observed entity is treated as a change here
     /// </summary>
-    /// <param name="tracked"></param>
-    private void AddTrackedObjectIfEntity(object tracked)
+    /// <param name="observed"></param>
+    private void AddObservedObjectIfEntity(object observed)
     {
-        if (tracked is IValidityManagedEntity trackedEntity)
-            AddTrackedEntity(trackedEntity);
+        if (observed is IValidityManagedEntity observedEntity)
+            AddObservededEntity(observedEntity);
     }
 
     /// <summary>
-    /// Remove entity for tracking
+    /// Remove entity for observing
     /// </summary>
-    /// <param name="tracked"></param>
-    private void RemoveTrackedEntity(IValidityManagedEntity tracked)
+    /// <param name="observed"></param>
+    private void RemoveObservedEntity(IValidityManagedEntity observed)
     {
-        var manager = tracked.ValidityManager;
-        if (trackedEntityManagers.TryGetValue(manager, out int count))
+        var manager = observed.ValidityManager;
+        if (observedEntityManagers.TryGetValue(manager, out int count))
             if (count == 1)
             {
-                trackedEntityManagers.Remove(manager);
-                manager.ThisOrTrackedEntityUpdated -= RespondToUpdateFromTracked;
+                observedEntityManagers.Remove(manager);
+                manager.ThisOrObservedEntityUpdated -= RespondToUpdateFromObserved;
             }
             else
-                trackedEntityManagers[manager] -= 1;
+                observedEntityManagers[manager] -= 1;
     }
 
     /// <summary>
-    /// Remove entity for tracking if correct type
+    /// Remove entity for observing if correct type
     /// </summary>
-    /// <param name="tracked"></param>
-    private void RemoveTrackedObjectIfEntity(object tracked)
+    /// <param name="observed"></param>
+    private void RemoveObservedObjectIfEntity(object observed)
     {
-        if (tracked is IValidityManagedEntity trackedEntity)
-            RemoveTrackedEntity(trackedEntity);
+        if (observed is IValidityManagedEntity observedEntity)
+            RemoveObservedEntity(observedEntity);
     }
 
     // Called when entity is updated
+    // TODO might should change so that no updates happen if bool is false
+    // If this change is made, the NamedSignals caching in Module must change
     private void RespondToUpdateFromEntity(object? sender, EventArgs e)
     {
         // Make new GUID and store
@@ -172,12 +198,13 @@ public class ValidityManager
         mostRecentGuid = guid;
 
         // Check entity, then invoke updated event with new GUID so parent knows
-        entity.CheckValidity();
-        ThisOrTrackedEntityUpdated?.Invoke(this, new(guid));
+        if (CheckAfterUpdate && !entity.CheckTopLevelValidity(out string? explanation))
+            throw new Exception(explanation);
+        ThisOrObservedEntityUpdated?.Invoke(this, new(guid));
     }
 
-    // Called when tracked entity is updated
-    private void RespondToUpdateFromTracked(object? sender, ValidityManagerEventArgs e)
+    // Called when observed entity is updated
+    private void RespondToUpdateFromObserved(object? sender, ValidityManagerEventArgs e)
     {
         // Check if this is a new GUID before doing anything--if not, this is a repeat
         if (mostRecentGuid.Equals(e.Guid))
@@ -187,37 +214,36 @@ public class ValidityManager
         mostRecentGuid = e.Guid;
 
         // Check entity, then invoke updated event so parent knows
-        entity.CheckValidity();
-        ThisOrTrackedEntityUpdated?.Invoke(this, e);
-    }
-
-    /// <summary>
-    /// Follow a collection of tracked entities
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="trackedEntityCollection">collection of entities to be tracked</param>
-    protected void FollowTrackedEntityCollection<T>(ObservableCollection<T> trackedEntityCollection) where T : notnull
-    {
-        entity.Updated += RespondToUpdateFromEntity;
-        trackedEntityCollection.CollectionChanged += TrackedEntitiesCollectionChanged;
-        foreach (T trackedEntity in trackedEntityCollection)
-            AddTrackedObjectIfEntity(trackedEntity);
+        if (CheckAfterUpdate && !entity.CheckTopLevelValidity(out string? explanation))
+            throw new Exception(explanation);
+        ThisOrObservedEntityUpdated?.Invoke(this, e);
     }
 }
 
 /// <summary>
-/// Generic type extension of <see cref="ValidityManager"/> that allows tracking a specific type of <see cref="ObservableCollection{T}"/>
+/// Class to manage validity-checking for an object that implements <see cref="IValidityManagedEntity"/>
 /// </summary>
-/// <typeparam name="T">Type of collection</typeparam>
 public class ValidityManager<T> : ValidityManager where T : notnull
 {
+    private readonly ObservableCollection<T> childrenEntitiesAsT;
+
+    /// <inheritdoc/>
+    protected override IEnumerable<IValidityManagedEntity> ChildrenEntities => childrenEntitiesAsT.Where(c => c is IValidityManagedEntity).Select(c => (IValidityManagedEntity)c);
+
     /// <summary>
-    /// Constructor given main entity to follow and collection of tracked entities
+    /// Constructor given main entity, children, and entities to observe.
+    /// Child entities are any that must be valid for the main entity to be considered valid. They also trigger an update here when CheckAfterUpdate is activated. 
+    /// Observed entities are those that trigger an update here when CheckAfterUpdate is activated but are not true children of the main entity. 
+    /// In other words, an invalid observed entity does not necessarily imply that the main entity is invalid, but an invalid child does. 
     /// </summary>
-    /// <param name="entity"></param>
-    /// <param name="trackedEntities"></param>
-    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<T> trackedEntities) : base(entity)
+    /// <param name="entity">Main entity to follow</param>
+    /// <param name="childrenEntities">List of children to include in validity-checking. Children also trigger updates here when CheckAfterUpdate is activated</param>
+    /// <param name="additionalObservedEntities">List of additional entities that invoke recheck of validity when CheckAfterUpdate is activated</param>
+    public ValidityManager(IValidityManagedEntity entity, ObservableCollection<T> childrenEntities, ObservableCollection<T>? additionalObservedEntities = null) : base(entity)
     {
-        FollowTrackedEntityCollection(trackedEntities);
+        this.childrenEntitiesAsT = childrenEntities;
+        FollowObservedEntityCollection(childrenEntities);
+        if (additionalObservedEntities is not null)
+            FollowObservedEntityCollection(additionalObservedEntities);
     }
 }

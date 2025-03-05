@@ -29,7 +29,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         // Initialize validity manager and list of tracked entities
         // PortMapping is included, so no additional error-checking is needed, because PortMapping being valid implies this is valid
         trackedEntities = [PortMapping];
-        validityManager = new(this, trackedEntities);
+        validityManager = new ValidityManager<object>(this, trackedEntities);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => validityManager;

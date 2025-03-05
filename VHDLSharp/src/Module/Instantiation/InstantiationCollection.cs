@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
@@ -16,7 +17,7 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
 {
     private readonly ObservableCollection<IInstantiation> instantiations;
 
-    private readonly ValidityManager<IInstantiation> validityManager;
+    private readonly ValidityManager validityManager;
 
     private EventHandler? updated;
 
@@ -24,7 +25,7 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     {
         ParentModule = parentModule;
         instantiations = [];
-        validityManager = new(this, instantiations);
+        validityManager = new ValidityManager<IInstantiation>(this, instantiations);
         instantiations.CollectionChanged += InstantiationsListUpdated;
     }
 
@@ -51,15 +52,18 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         remove => updated -= value;
     }
 
-    void IValidityManagedEntity.CheckValidity()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
         // Don't allow duplicate instantiation names
         HashSet<string> instantiationNames = [];
         if (!instantiations.All(i => instantiationNames.Add(i.Name)))
         {
             string duplicate = instantiations.First(i => instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
-            throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
+            explanation = $"An instantiation already exists with name \"{duplicate}\"";
+            return false;
         }
+        explanation = null;
+        return true;
     }
 
     /// <summary>

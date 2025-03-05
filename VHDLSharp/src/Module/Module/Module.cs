@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
@@ -16,13 +17,17 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class Module : IModule, IValidityManagedEntity
 {
-    private EventHandler? updated;
-
-    private EventHandler? moduleOrChildUpdated;
+    private static bool ignoreValidity = false;
 
     private readonly ValidityManager validityManager;
 
-    private readonly ObservableCollection<object> trackedEntities;
+    private readonly ObservableCollection<object> childrenEntities;
+
+    private readonly ObservableCollection<object> additionalObservedEntities;
+
+    private EventHandler? updated;
+
+    private EventHandler? moduleOrChildUpdated;
 
     /// <summary>
     /// Default constructor
@@ -37,8 +42,12 @@ public class Module : IModule, IValidityManagedEntity
         UpdateNamedSignals();
 
         // Initialize validity manager and list of tracked entities
-        trackedEntities = [Instantiations];
-        validityManager = new(this, trackedEntities);
+        childrenEntities = [Instantiations];
+        additionalObservedEntities = [];
+        validityManager = new ValidityManager<object>(this, childrenEntities, additionalObservedEntities);
+
+        validityManager.ThisOrObservedEntityUpdated += (s, e) => moduleOrChildUpdated?.Invoke(s, e);
+        validityManager.ThisOrObservedEntityUpdated += (s, e) => UpdateNamedSignals();
     }
 
     /// <summary>
@@ -70,7 +79,7 @@ public class Module : IModule, IValidityManagedEntity
         foreach ((string portName, PortDirection direction) in ports)
             AddNewPort(portName, direction);
     }
-
+    
     /// <summary>
     /// Event called when a property of this module (not a child) is changed 
     /// that could affect other objects, such as port mapping
@@ -98,7 +107,8 @@ public class Module : IModule, IValidityManagedEntity
         remove => moduleOrChildUpdated -= value;
     }
 
-    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
+    /// <inheritdoc/>
+    public ValidityManager ValidityManager => validityManager;
 
     /// <summary>
     /// Name of the module
@@ -159,6 +169,8 @@ public class Module : IModule, IValidityManagedEntity
             return true;
         }
     }
+
+    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -239,7 +251,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdl()
     {
-        if (!Complete)
+        if (ConsiderValid || !Complete)
             throw new Exception("Module not yet complete");
 
         StringBuilder sb = new();
@@ -249,6 +261,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
         // Submodules
+        ignoreValidity = true; // Subcircuits and this already checked
         foreach (var module in ModulesUsed)
         {
             sb.AppendLine(module.GetVhdlNoSubmodules());
@@ -257,6 +270,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Main module
         sb.AppendLine(GetVhdlNoSubmodules());
+        ignoreValidity = false;
 
         return sb.ToString();
     }
@@ -268,7 +282,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdlNoSubmodules()
     {
-        if (!Complete)
+        if (!ConsiderValid || !Complete)
             throw new Exception("Module not yet complete");
 
         StringBuilder sb = new();
@@ -324,7 +338,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <exception cref="Exception"></exception>
     public string GetSpice(bool subcircuit)
     {
-        if (!Complete)
+        if (!ConsiderValid || !Complete)
             throw new Exception("Module not yet complete");
 
         StringBuilder sb = new();
@@ -378,7 +392,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public SubcircuitDefinition GetSpiceSharpSubcircuit()
     {
-        if (!Complete)
+        if (!ConsiderValid || !Complete)
             throw new Exception("Module not yet complete");
 
         EntityCollection entities = [];
@@ -430,123 +444,46 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public bool ContainsSignal(INamedSignal signal)
     {
-        INamedSignal[] namedSignals = [.. NamedSignals];
         // True if directly contained
         if (NamedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
         if (signal is ISingleNodeNamedSignal)
-            return namedSignals.Contains(signal.TopLevelSignal);
+            return NamedSignals.Contains(signal.TopLevelSignal);
         return false;
     }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Check for exceptions that would only occur when adding behaviors
+        // Track each new behavior in validity manager
         if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                {
-                    // Throw error if a parent is overwriting a child or vice versa
-                    List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
-                    foreach (ISingleNodeNamedSignal newItemSingleNode in kvp.Key.ToSingleNodeSignals)
-                        if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
-                        {
-                            SignalBehaviors.Remove(kvp.Key);
-                            throw new Exception("Module already defines behavior for part or all of this signal");
-                        }
-                        
-                    // Track each new behavior in validity manager
-                    trackedEntities.Add(kvp.Value);
-                }
+                    childrenEntities.Add(kvp.Value);
         
         // If something has been removed, remove behavior from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
                 if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                    trackedEntities.Remove(kvp.Value);
+                    childrenEntities.Remove(kvp.Value);
 
-        // Invoke module update and undo errors, if any
-        try
-        {
-            updated?.Invoke(this, e);
-        }
-        catch (Exception)
-        { 
-            // Undo anything added
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                        SignalBehaviors.Remove(kvp);
-
-            // Undo anything replaced
-            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
-                foreach (object oldItem in e.OldItems)
-                    if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                        SignalBehaviors[kvp.Key] = kvp.Value;
-
-            // No other type of action (remove) needs to be handled/should cause errors
-            throw;
-        }
+        // Invoke module update
+        updated?.Invoke(this, e);
     }
-
-    // private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    // {
-    //     // Check for exceptions that would only occur when adding instantiations
-    //     if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-    //         foreach (object newItem in e.NewItems)
-    //             if (newItem is IInstantiation instantiation)
-    //                 // Track each new instantiation in validity manager
-    //                 trackedEntities.Add(instantiation);
-        
-    //     // If something has been removed, remove from tracking
-    //     if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
-    //         foreach (object oldItem in e.OldItems)
-    //             trackedEntities.Remove(oldItem);
-
-    //     // Invoke module update and undo errors, if any
-    //     try
-    //     {
-    //         updated?.Invoke(this, e);
-    //     }
-    //     catch (Exception)
-    //     { 
-    //         // Remove just-added instantiation
-    //         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-    //             foreach (object newItem in e.NewItems)
-    //                 if (newItem is IInstantiation instantiation)
-    //                     // TODO consider making undo actions update-free
-    //                     Instantiations.Remove(instantiation);
-    //         throw;
-    //     }
-    // }
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // Track each new port, if a validity-managed entity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                trackedEntities.Add(newItem);
+                childrenEntities.Add(newItem);
         
         // If something has been removed, remove from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
-                trackedEntities.Remove(oldItem);
+                childrenEntities.Remove(oldItem);
 
-        // Invoke module update and undo errors, if any
-        try
-        {
-            updated?.Invoke(this, e);
-        }
-        catch (Exception)
-        { 
-            // Remove just-added port
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is IPort port)
-                            Ports.Remove(port);
-            throw;
-        }
+        updated?.Invoke(this, e);
     }
 
     /// <inheritdoc/>
@@ -565,46 +502,56 @@ public class Module : IModule, IValidityManagedEntity
         return sb.ToString();
     }
 
-    // Contains error-checking logic that can't be done just in one callback--must be checked whenever there's an update
     /// <inheritdoc/>
-    void IValidityManagedEntity.CheckValidity()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            // TODO make better exception names
             if (outputSignal.ParentModule != this)
-                throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
+            {
+                explanation = $"Output signal {outputSignal.Name} must have this module ({Name}) as parent";
+                return false;
+            }
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
-                throw new Exception($"Behavior must have this module as parent");
+            {
+                explanation = $"Behavior must have this module as parent";
+                return false;
+            }
             if (!behavior.IsCompatible(outputSignal))
-                throw new Exception($"Behavior must be compatible with output signal");
+            {
+                explanation = $"Behavior must be compatible with output signal";
+                return false;
+            }
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
-                throw new Exception($"Output signal ({outputSignal}) must not be an input port");
+            {
+                explanation = $"Output signal ({outputSignal}) must not be an input port";
+                return false;
+            }
         }
 
-        // // Don't allow duplicate instantiation names in the list
-        // HashSet<string> instantiationNames = [];
-        // if (!Instantiations.All(i => instantiationNames.Add(i.Name)))
-        // {
-        //     string duplicate = Instantiations.First(i => Instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
-        //     throw new Exception($"An instantiation already exists with name \"{duplicate}\"");
-        // }
-                
+        // Throw error if a signal has two assignments
+        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
+        if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
+        {
+            explanation = "Module defines an overlapping parent and child output signal";
+            return false;
+        }
+
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
         if (!Ports.All(p => portSignals.Add(p.Signal) && p.Signal.ParentModule == this))
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
-                throw new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+                explanation = $"The same signal (\"{duplicate}\") cannot be added as two different ports";
             else
-                throw new Exception("Port signals must have this module as parent");
+                explanation = "Port signals must have this module as parent";
+            return false;
         }
 
-        // Invoke event for update to this or child
-        moduleOrChildUpdated?.Invoke(this, EventArgs.Empty);
-        UpdateNamedSignals();
+        explanation = null;
+        return true;
     }
 
     // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed

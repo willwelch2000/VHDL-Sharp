@@ -1,40 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
-
-/// <summary>
-/// Exception related to mapping ports
-/// </summary>
-public class PortMappingException : Exception
-{
-    /// <summary>
-    /// Parameterless constructor
-    /// </summary>
-    public PortMappingException() : base("A port mapping exception has occurred.")
-    {
-    }
-
-    /// <summary>
-    /// Constructor that accepts a custom message
-    /// </summary>
-    /// <param name="message"></param>
-    public PortMappingException(string message) : base(message)
-    {
-    }
-
-    /// <summary>
-    /// Constructor that accepts a custom message and inner exception
-    /// </summary>
-    /// <param name="message"></param>
-    /// <param name="innerException"></param>
-    public PortMappingException(string message, Exception innerException) : base(message, innerException)
-    {
-    }
-}
 
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
@@ -58,8 +29,8 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
         InstantiatedModule = instantiatedModule;
         ParentModule = parentModule;
         trackedEntities = [instantiatedModule, parentModule];
-        manager = new(this, trackedEntities);
-        CollectionChanged += HandleCollectionChanged;
+        manager = new ValidityManager<object>(this, trackedEntities);
+        CollectionChanged += (s, e) => updated?.Invoke(this, e);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
@@ -92,21 +63,38 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
-    void IValidityManagedEntity.CheckValidity()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
         foreach ((IPort port, INamedSignal signal) in this)
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
-                throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
+            {
+                explanation = "Port {port} and signal {signal} must have the same dimension";
+                return false;
+            }
             if (port.Signal.ParentModule != InstantiatedModule)
-                throw new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
+            {
+                explanation = "Ports must have the specified module ({InstantiatedModule}) as parent";
+                return false;
+            }
             if (!InstantiatedModule.Ports.Contains(port))
-                throw new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
+            {
+                explanation = "Port {port} must be in the list of ports of specified module {InstantiatedModule}";
+                return false;
+            }
             if (signal.ParentModule != ParentModule)
-                throw new PortMappingException($"Signal must have module {ParentModule} as parent");
+            {
+                explanation = "Signal must have module {ParentModule} as parent";
+                return false;
+            }
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
-                throw new PortMappingException($"Output port cannot be assigned to parent module's input port");
+            {
+                explanation = "Output port cannot be assigned to parent module's input port";
+                return false;
+            }
         }
+        explanation = null;
+        return true;
     }
 
     /// <summary>
@@ -114,30 +102,4 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     /// <returns></returns>
     public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
-    
-    private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        try
-        {
-            updated?.Invoke(this, e);
-        }
-        catch
-        {
-            // Undo anything added
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is KeyValuePair<IPort, INamedSignal> kvp)
-                        Remove(kvp);
-
-            // Undo anything replaced
-            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
-                foreach (object oldItem in e.OldItems)
-                    if (oldItem is KeyValuePair<IPort, INamedSignal> kvp)
-                        this[kvp.Key] = kvp.Value;
-
-            // Remove/clear/move action shouldn't cause issues
-
-            throw;
-        }
-    }
 }

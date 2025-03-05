@@ -1,9 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace VHDLSharp.Validation;
 
 /// <summary>
 /// Interface for anything that can be used in a <see cref="ValidityManager"/>.
-/// It is assumed that anything implementing this validates itself for the information it has.
-/// In other words, if there is no exception thrown by this object, it should be guaranteed to be valid
 /// </summary>
 public interface IValidityManagedEntity
 {
@@ -24,9 +24,13 @@ public interface IValidityManagedEntity
     public ValidityManager ValidityManager { get; }
 
     /// <summary>
-    /// Function called when validation is necessary.
-    /// Called when entity or child entity is updated. 
-    /// Should raise Exception if there's a problem
+    /// Returns true if this entity is valid, not taking child entities into account
     /// </summary>
-    public void CheckValidity() {}
+    /// <param name="explanation">Explanation for issue--can be null if returning true</param>
+    /// <returns>True for valid, false for invalid</returns>
+    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) // TODO consider making explanation an array
+    {
+        explanation = null;
+        return true;
+    }
 }
