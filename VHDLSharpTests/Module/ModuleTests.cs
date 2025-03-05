@@ -183,7 +183,7 @@ public class ModuleTests
         bool callback = false;
         bool childCallback = false;
         m1.Updated += (sender, e) => callback = true;
-        m1.ModuleOrChildUpdated += (sender, e) => childCallback = true;
+        m1.ValidityManager.ChangeDetectedInMainOrTrackedEntity += (sender, e) => childCallback = true;
 
         // Callback by assigning behavior
         Assert.IsFalse(callback);

@@ -13,7 +13,7 @@ public class TestNode : IValidityManagedEntity
     public TestNode()
     {
         TrackedEntities = [];
-        manager = new(this, TrackedEntities);
+        manager = new ValidityManager<object>(this, TrackedEntities);
     }
 
     public ValidityManager ValidityManager => manager;

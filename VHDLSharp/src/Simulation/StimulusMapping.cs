@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Modules;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -57,7 +58,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     {
         this.module = module;
         trackedEntities = [module];
-        manager = new(this, trackedEntities);
+        manager = new ValidityManager<object>(this, trackedEntities);
         CollectionChanged += HandleCollectionChanged;
     }
 
@@ -81,19 +82,22 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => module.Ports.Except(Keys);
 
-    void IValidityManagedEntity.CheckValidity()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
+        explanation = null;
         foreach ((IPort port, IStimulusSet stimulus) in this)
         {
             if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
-                throw new StimulusMappingException($"Port {port} must be input or bidirectional");
+                explanation = $"Port {port} must be input or bidirectional";
             if (!port.Signal.Dimension.Compatible(stimulus.Dimension))
-                throw new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");
+                explanation = $"Port {port} and signal {stimulus} must have the same dimension";
             if (port.Signal.ParentModule != module)
-                throw new StimulusMappingException($"Ports must have the specified module {module} as parent");
+                explanation = $"Ports must have the specified module {module} as parent";
             if (!module.Ports.Contains(port))
-                throw new StimulusMappingException($"Port {port} must be in the list of ports of specified module {module}");
+                explanation = $"Port {port} must be in the list of ports of specified module {module}";
         }
+
+        return explanation is null;
     }
 
     /// <summary>

@@ -16,6 +16,25 @@ public class ValidityManagerEventArgs(Guid guid) : EventArgs
 }
 
 /// <summary>
+/// Types of monitoring that can be performed by the manager
+/// </summary>
+public enum MonitorMode
+{
+    /// <summary>
+    /// No alerts when main or tracked entity is changed
+    /// </summary>
+    Inactive,
+    /// <summary>
+    /// Raise alerts when main or tracked entity is changed
+    /// </summary>
+    AlertUpdates,
+    /// <summary>
+    /// Raise alerts when main or tracked entity is changed and throw exception when invalid
+    /// </summary>
+    AlertUpdatesAndThrowException
+}
+
+/// <summary>
 /// Class to manage validity-checking for an object that implements <see cref="IValidityManagedEntity"/>
 /// </summary>
 public abstract class ValidityManager
@@ -33,16 +52,15 @@ public abstract class ValidityManager
     private Guid? mostRecentGuid = null;
 
     /// <summary>
-    /// Event called when entity or observed manager is updated
+    /// Event called when entity or observed manager is updated, only if <see cref="MonitorMode"/> is true.
+    /// Not called if <see cref="MonitorMode"/> is <see cref="MonitorMode.Inactive"/>
     /// </summary>
-    public event EventHandler<ValidityManagerEventArgs>? ThisOrObservedEntityUpdated;
-
-    // private IEnumerable<IValidityManagedEntity> ChildrenAsEntities => ChildrenEntities.Where(c => c is IValidityManagedEntity).Select(c => (IValidityManagedEntity)c);
+    public event EventHandler<ValidityManagerEventArgs>? ChangeDetectedInMainOrTrackedEntity;
 
     /// <summary>
     /// Constructor given main entity, children, and entities to observe.
-    /// Child entities are any that must be valid for the main entity to be considered valid. They also trigger an update here when <see cref="CheckAfterUpdate"/> is activated. 
-    /// Observed entities are those that trigger an update here when <see cref="CheckAfterUpdate"/> is activated but are not true children of the main entity. 
+    /// Child entities are any that must be valid for the main entity to be considered valid. They also trigger an update here when <see cref="MonitorMode"/> is activated. 
+    /// Observed entities are those that trigger an update here when <see cref="MonitorMode"/> is activated but are not true children of the main entity. 
     /// In other words, an invalid observed entity does not necessarily imply that the main entity is invalid, but an invalid child does. 
     /// </summary>
     /// <param name="entity">Main entity to follow</param>
@@ -52,9 +70,9 @@ public abstract class ValidityManager
     }
 
     /// <summary>
-    /// If true, throws an error after an invalid modification is made
+    /// Monitoring mode that controls if changes raise alerts on <see cref="ChangeDetectedInMainOrTrackedEntity"/> and/or throw exceptions if invalid
     /// </summary>
-    public static bool CheckAfterUpdate { get; set; } = false;
+    public static MonitorMode MonitorMode { get; set; } = MonitorMode.Inactive;
 
     /// <summary>
     /// Checks if this entity, and its recursive children, are valid
@@ -115,7 +133,7 @@ public abstract class ValidityManager
 
             case NotifyCollectionChangedAction.Reset:
                 foreach (ValidityManager manager in observedEntityManagers.Keys)
-                    manager.ThisOrObservedEntityUpdated -= RespondToUpdateFromObserved;
+                    manager.ChangeDetectedInMainOrTrackedEntity -= RespondToUpdateFromObserved;
                 observedEntityManagers.Clear();
                 break;
 
@@ -146,7 +164,7 @@ public abstract class ValidityManager
         else
         {
             observedEntityManagers[manager] = 1;
-            manager.ThisOrObservedEntityUpdated += RespondToUpdateFromObserved;
+            manager.ChangeDetectedInMainOrTrackedEntity += RespondToUpdateFromObserved;
         }
     }
 
@@ -172,7 +190,7 @@ public abstract class ValidityManager
             if (count == 1)
             {
                 observedEntityManagers.Remove(manager);
-                manager.ThisOrObservedEntityUpdated -= RespondToUpdateFromObserved;
+                manager.ChangeDetectedInMainOrTrackedEntity -= RespondToUpdateFromObserved;
             }
             else
                 observedEntityManagers[manager] -= 1;
@@ -193,30 +211,40 @@ public abstract class ValidityManager
     // If this change is made, the NamedSignals caching in Module must change
     private void RespondToUpdateFromEntity(object? sender, EventArgs e)
     {
+        // Don't do anything if monitoring is inactive
+        if (MonitorMode == MonitorMode.Inactive)
+            return;
+
         // Make new GUID and store
         Guid guid = Guid.NewGuid();
         mostRecentGuid = guid;
 
-        // Check entity, then invoke updated event with new GUID so parent knows
-        if (CheckAfterUpdate && !entity.CheckTopLevelValidity(out string? explanation))
+        // If throwing exceptions, check entity
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out string? explanation))
             throw new Exception(explanation);
-        ThisOrObservedEntityUpdated?.Invoke(this, new(guid));
+        // Invoke change detected event with new GUID so parent knows
+        ChangeDetectedInMainOrTrackedEntity?.Invoke(this, new(guid));
     }
 
     // Called when observed entity is updated
     private void RespondToUpdateFromObserved(object? sender, ValidityManagerEventArgs e)
     {
-        // Check if this is a new GUID before doing anything--if not, this is a repeat
+        // Don't do anything if monitoring is inactive--TODO might can remove
+        if (MonitorMode == MonitorMode.Inactive)
+            return;
+
+        // Check if this is a new GUID before doing continuing--if not, this is a repeat
         if (mostRecentGuid.Equals(e.Guid))
             return;
 
         // Save GUID
         mostRecentGuid = e.Guid;
 
-        // Check entity, then invoke updated event so parent knows
-        if (CheckAfterUpdate && !entity.CheckTopLevelValidity(out string? explanation))
+        // If throwing exceptions, check entity
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out string? explanation))
             throw new Exception(explanation);
-        ThisOrObservedEntityUpdated?.Invoke(this, e);
+        // Invoke change detected event so parent knows
+        ChangeDetectedInMainOrTrackedEntity?.Invoke(this, e);
     }
 }
 
@@ -241,7 +269,7 @@ public class ValidityManager<T> : ValidityManager where T : notnull
     /// <param name="additionalObservedEntities">List of additional entities that invoke recheck of validity when CheckAfterUpdate is activated</param>
     public ValidityManager(IValidityManagedEntity entity, ObservableCollection<T> childrenEntities, ObservableCollection<T>? additionalObservedEntities = null) : base(entity)
     {
-        this.childrenEntitiesAsT = childrenEntities;
+        childrenEntitiesAsT = childrenEntities;
         FollowObservedEntityCollection(childrenEntities);
         if (additionalObservedEntities is not null)
             FollowObservedEntityCollection(additionalObservedEntities);

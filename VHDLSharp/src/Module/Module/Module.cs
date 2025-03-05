@@ -27,7 +27,7 @@ public class Module : IModule, IValidityManagedEntity
 
     private EventHandler? updated;
 
-    private EventHandler? moduleOrChildUpdated;
+    // private EventHandler? moduleOrChildUpdated;
 
     /// <summary>
     /// Default constructor
@@ -39,15 +39,15 @@ public class Module : IModule, IValidityManagedEntity
         Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations = new(this);
-        UpdateNamedSignals();
+        // UpdateNamedSignals();
 
         // Initialize validity manager and list of tracked entities
         childrenEntities = [Instantiations];
         additionalObservedEntities = [];
         validityManager = new ValidityManager<object>(this, childrenEntities, additionalObservedEntities);
 
-        validityManager.ThisOrObservedEntityUpdated += (s, e) => moduleOrChildUpdated?.Invoke(s, e);
-        validityManager.ThisOrObservedEntityUpdated += (s, e) => UpdateNamedSignals();
+        // validityManager.ThisOrObservedEntityUpdated += (s, e) => moduleOrChildUpdated?.Invoke(s, e);
+        // validityManager.ThisOrObservedEntityUpdated += (s, e) => UpdateNamedSignals();
     }
 
     /// <summary>
@@ -94,18 +94,18 @@ public class Module : IModule, IValidityManagedEntity
         remove => updated -= value;
     }
     
-    /// <summary>
-    /// Event called when the module is updated or something belonging to the module is updated
-    /// </summary>
-    public event EventHandler? ModuleOrChildUpdated
-    {
-        add
-        {
-            moduleOrChildUpdated -= value; // remove if already present
-            moduleOrChildUpdated += value;
-        }
-        remove => moduleOrChildUpdated -= value;
-    }
+    // /// <summary>
+    // /// Event called when the module is updated or something belonging to the module is updated
+    // /// </summary>
+    // public event EventHandler? ModuleOrChildUpdated
+    // {
+    //     add
+    //     {
+    //         moduleOrChildUpdated -= value; // remove if already present
+    //         moduleOrChildUpdated += value;
+    //     }
+    //     remove => moduleOrChildUpdated -= value;
+    // }
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager => validityManager;
@@ -140,7 +140,34 @@ public class Module : IModule, IValidityManagedEntity
     /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
     /// Otherwise, only the children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals { get; private set; } = [];
+    public IEnumerable<INamedSignal> NamedSignals
+    {
+        get
+        {
+            // Get list of all single-node named signals used
+            HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+                .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
+                .Union(SignalBehaviors.Keys)
+                .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
+                .SelectMany(s => s.ToSingleNodeSignals)];
+
+            HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+            HashSet<INamedSignal> allNamedSignals = [];
+
+            foreach (INamedSignal topLevelSignal in topLevelSignals)
+            {
+                // If all child signals are present, add top level one
+                if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                    allNamedSignals.Add(topLevelSignal);
+                else
+                    // Otherwise, add single-node signals that are present
+                    foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                        allNamedSignals.Add(singleNodeSignal);
+            }
+
+            return allNamedSignals;
+        }
+    }
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -444,12 +471,13 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public bool ContainsSignal(INamedSignal signal)
     {
+        INamedSignal[] namedSignals = [.. NamedSignals];
         // True if directly contained
-        if (NamedSignals.Contains(signal))
+        if (namedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
         if (signal is ISingleNodeNamedSignal)
-            return NamedSignals.Contains(signal.TopLevelSignal);
+            return namedSignals.Contains(signal.TopLevelSignal);
         return false;
     }
 
@@ -505,38 +533,24 @@ public class Module : IModule, IValidityManagedEntity
     /// <inheritdoc/>
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
+        explanation = null;
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
             if (outputSignal.ParentModule != this)
-            {
                 explanation = $"Output signal {outputSignal.Name} must have this module ({Name}) as parent";
-                return false;
-            }
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
-            {
                 explanation = $"Behavior must have this module as parent";
-                return false;
-            }
             if (!behavior.IsCompatible(outputSignal))
-            {
                 explanation = $"Behavior must be compatible with output signal";
-                return false;
-            }
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
-            {
                 explanation = $"Output signal ({outputSignal}) must not be an input port";
-                return false;
-            }
         }
 
         // Throw error if a signal has two assignments
         List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
-        {
             explanation = "Module defines an overlapping parent and child output signal";
-            return false;
-        }
 
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
@@ -547,37 +561,8 @@ public class Module : IModule, IValidityManagedEntity
                 explanation = $"The same signal (\"{duplicate}\") cannot be added as two different ports";
             else
                 explanation = "Port signals must have this module as parent";
-            return false;
         }
 
-        explanation = null;
-        return true;
-    }
-
-    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    private void UpdateNamedSignals()
-    {
-        // Get list of all single-node named signals used
-        HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
-            .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-            .Union(SignalBehaviors.Keys)
-            .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-            .SelectMany(s => s.ToSingleNodeSignals)];
-
-        HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-        HashSet<INamedSignal> allNamedSignals = [];
-
-        foreach (INamedSignal topLevelSignal in topLevelSignals)
-        {
-            // If all child signals are present, add top level one
-            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                allNamedSignals.Add(topLevelSignal);
-            else
-            // Otherwise, add single-node signals that are present
-                foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                    allNamedSignals.Add(singleNodeSignal);
-        }
-
-        NamedSignals = allNamedSignals;
+        return explanation is null;
     }
 }

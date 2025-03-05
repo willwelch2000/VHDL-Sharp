@@ -26,7 +26,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     public Behavior()
     {
         trackedEntities = [];
-        validityManager = new(this, trackedEntities);
+        validityManager = new ValidityManager<object>(this, trackedEntities);
     }
     
     /// <summary>

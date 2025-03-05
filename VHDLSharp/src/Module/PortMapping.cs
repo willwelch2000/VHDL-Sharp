@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
@@ -65,36 +64,21 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
 
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
+        explanation = null;
         foreach ((IPort port, INamedSignal signal) in this)
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
-            {
                 explanation = "Port {port} and signal {signal} must have the same dimension";
-                return false;
-            }
             if (port.Signal.ParentModule != InstantiatedModule)
-            {
                 explanation = "Ports must have the specified module ({InstantiatedModule}) as parent";
-                return false;
-            }
             if (!InstantiatedModule.Ports.Contains(port))
-            {
                 explanation = "Port {port} must be in the list of ports of specified module {InstantiatedModule}";
-                return false;
-            }
             if (signal.ParentModule != ParentModule)
-            {
                 explanation = "Signal must have module {ParentModule} as parent";
-                return false;
-            }
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
-            {
                 explanation = "Output port cannot be assigned to parent module's input port";
-                return false;
-            }
         }
-        explanation = null;
-        return true;
+        return explanation is null;
     }
 
     /// <summary>
