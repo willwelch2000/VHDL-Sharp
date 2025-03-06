@@ -17,7 +17,7 @@ public class SimulationSetup : IValidityManagedEntity
 {
     private readonly ValidityManager manager;
 
-    private readonly ObservableCollection<object> trackedEntities;
+    private readonly ObservableCollection<object> childEntities;
 
     private EventHandler? updated;
 
@@ -33,8 +33,8 @@ public class SimulationSetup : IValidityManagedEntity
     {
         StimulusMapping = new(module);
         Module = module;
-        trackedEntities = [StimulusMapping, module];
-        manager = new(this, trackedEntities);
+        childEntities = [StimulusMapping, module];
+        manager = new ValidityManager<object>(this, childEntities);
         SignalsToMonitor = [];
         SignalsToMonitor.CollectionChanged += SignalsListUpdated;
     }
@@ -113,6 +113,8 @@ public class SimulationSetup : IValidityManagedEntity
     /// <returns></returns>
     public string GetSpice()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Simulation setup must be valid to convert to Spice");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to Spice");
 
@@ -132,6 +134,8 @@ public class SimulationSetup : IValidityManagedEntity
     /// <returns></returns>
     public Circuit GetSpiceSharpCircuit()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
@@ -171,8 +175,11 @@ public class SimulationSetup : IValidityManagedEntity
         // Check that reference has correct top-level module
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
+            {
                 if (newItem is SignalReference signalReference && signalReference.TopLevelModule != Module)
                     throw new Exception($"Added signal reference must use module {Module} as top-level module");
+                childEntities.Add(newItem);
+            }
 
         updated?.Invoke(this, e);
     }

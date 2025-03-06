@@ -13,7 +13,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 {
     private readonly ValidityManager validityManager;
 
-    private readonly ObservableCollection<object> trackedEntities;
+    private readonly ObservableCollection<object> childEntities;
 
     /// <summary>
     /// Create new instantiation given instantiated module and parent module
@@ -26,10 +26,10 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         PortMapping = new(instantiatedModule, parentModule);
         Name = name;
 
-        // Initialize validity manager and list of tracked entities
+        // Initialize validity manager and list of child entities
         // PortMapping is included, so no additional error-checking is needed, because PortMapping being valid implies this is valid
-        trackedEntities = [PortMapping];
-        validityManager = new ValidityManager<object>(this, trackedEntities);
+        childEntities = [PortMapping];
+        validityManager = new ValidityManager<object>(this, childEntities);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => validityManager;

@@ -10,8 +10,10 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Reference to a single-node named signal in the circuit hierarchy
 /// </summary>
-public class SignalReference : IEquatable<SignalReference>, ICircuitReference
+public class SignalReference : IEquatable<SignalReference>, ICircuitReference, IValidityManagedEntity
 {
+    private readonly ValidityManager manager;
+
     /// <summary>
     /// Create signal reference given subcircuit reference and signal in that subcircuit
     /// </summary>
@@ -27,6 +29,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference
         if (TopLevelModule is IValidityManagedEntity validityManagedEntity)
             validityManagedEntity.Updated += (sender, e) => CheckValid();
     }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
 
     /// <summary>
     /// Reference to subcircuit that contains this signal

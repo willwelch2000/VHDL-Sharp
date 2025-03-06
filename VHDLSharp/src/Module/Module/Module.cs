@@ -27,8 +27,6 @@ public class Module : IModule, IValidityManagedEntity
 
     private EventHandler? updated;
 
-    // private EventHandler? moduleOrChildUpdated;
-
     /// <summary>
     /// Default constructor
     /// </summary>
@@ -45,9 +43,6 @@ public class Module : IModule, IValidityManagedEntity
         childrenEntities = [Instantiations];
         additionalObservedEntities = [];
         validityManager = new ValidityManager<object>(this, childrenEntities, additionalObservedEntities);
-
-        // validityManager.ThisOrObservedEntityUpdated += (s, e) => moduleOrChildUpdated?.Invoke(s, e);
-        // validityManager.ThisOrObservedEntityUpdated += (s, e) => UpdateNamedSignals();
     }
 
     /// <summary>

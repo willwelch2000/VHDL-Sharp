@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
@@ -5,6 +6,7 @@ using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -46,6 +48,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Case behavior must be valid to convert to VHDL");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
@@ -117,15 +121,19 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
     
     /// <inheritdoc/>
-    protected override void CheckValidity()
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
         // Check parent modules
-        base.CheckValidity();
-        // Combine dimensions of individual expressions
-        IEnumerable<DefiniteDimension?> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c is not null).Select(c => c?.Dimension);
-        // Check that only 1 non-null value is present
-        if (dimensions.Select(d => d?.NonNullValue).Where(v => v is not null).Distinct().Count() > 1)
-            throw new Exception("Expressions are incompatible");
+        if (base.CheckTopLevelValidity(out explanation))
+            return true;
+
+        // Combine non-null dimensions of individual expressions
+        IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c?.Dimension is not null).Select(c => c?.Dimension)!;
+        // Check that dimensions of all behaviors are compatible
+        if (!Dimension.AreCompatible(dimensions))
+            throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
+
+        return explanation is null;
     }
 
     /// <summary>
@@ -139,19 +147,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         if (value < 0 || value >= caseExpressions.Length)
             throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
         CheckCompatibleNewExpression(logicExpression);
-        var previousExp = caseExpressions[value];
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
-        
-        // Invoke update and undo errors, if any
-        try
-        {
-            InvokeBehaviorUpdated(this, EventArgs.Empty);
-        }
-        catch (Exception)
-        {
-            caseExpressions[value] = previousExp;
-            throw;
-        }
+        InvokeBehaviorUpdated(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -208,6 +205,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Case behavior must be valid to convert to Spice");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice");
 
@@ -219,8 +218,10 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Case behavior must be valid to convert to Spice# entities");
         if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to Spice");
+            throw new IncompleteException("Case behavior must be complete to convert to Spice# entities");
 
         return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
     }

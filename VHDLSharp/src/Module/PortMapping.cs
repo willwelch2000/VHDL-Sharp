@@ -28,7 +28,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
         InstantiatedModule = instantiatedModule;
         ParentModule = parentModule;
         trackedEntities = [instantiatedModule, parentModule];
-        manager = new ValidityManager<object>(this, trackedEntities);
+        manager = new ValidityManager<object>(this, [], trackedEntities);
         CollectionChanged += (s, e) => updated?.Invoke(this, e);
     }
 

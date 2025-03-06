@@ -58,7 +58,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     {
         this.module = module;
         trackedEntities = [module];
-        manager = new ValidityManager<object>(this, trackedEntities);
+        manager = new ValidityManager<object>(this, [], trackedEntities);
         CollectionChanged += HandleCollectionChanged;
     }
 

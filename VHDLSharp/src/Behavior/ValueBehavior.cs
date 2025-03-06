@@ -4,6 +4,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -46,6 +47,8 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     /// <inheritdoc/>
     public override string GetVhdlStatement(INamedSignal outputSignal)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Value behavior must be valid to convert to VHDL");
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return$"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
@@ -54,6 +57,8 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     /// <inheritdoc/>
     public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Value behavior must be valid to convert to Spice");
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         string toReturn = "";
@@ -68,6 +73,8 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Value behavior must be valid to convert to Spice# entities");
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         int i = 0;

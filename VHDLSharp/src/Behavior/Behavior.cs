@@ -4,6 +4,7 @@ using VHDLSharp.Modules;
 using SpiceSharp.Entities;
 using VHDLSharp.Validation;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Behaviors;
 
@@ -18,15 +19,15 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     
     // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
     // It also doesn't track the signals, because they are not supposed to change their parent module
-    private readonly ObservableCollection<object> trackedEntities;
+    private readonly ObservableCollection<object> childEntities;
 
     /// <summary>
     /// Default constructor
     /// </summary>
     public Behavior()
     {
-        trackedEntities = [];
-        validityManager = new ValidityManager<object>(this, trackedEntities);
+        childEntities = [];
+        validityManager = new ValidityManager<object>(this, childEntities);
     }
     
     /// <summary>
@@ -68,16 +69,19 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
-    protected virtual void CheckValidity()
+    protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
+        explanation = null;
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
-            throw new Exception("Input signals should all come from the same module");
+            explanation = "Input signals should all come from the same module";
+        return explanation is null;
     }
 
-    void IValidityManagedEntity.CheckValidity() => CheckValidity();
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) => CheckTopLevelValidity(out explanation);
 
-    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
+    /// <inheritdoc/>
+    public ValidityManager ValidityManager => validityManager;
     
     /// <summary>
     /// Convert to spice

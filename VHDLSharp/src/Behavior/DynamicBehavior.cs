@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Text;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
@@ -7,6 +6,9 @@ using VHDLSharp.Conditions;
 using VHDLSharp.Signals;
 using VHDLSharp.Dimensions;
 using SpiceSharp.Entities;
+using VHDLSharp.Exceptions;
+using VHDLSharp.Validation;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Behaviors;
 
@@ -28,7 +30,7 @@ public class DynamicBehavior : Behavior
     /// </summary>
     public DynamicBehavior()
     {
-        ConditionMappings.CollectionChanged += CasesListUpdated;
+        ConditionMappings.CollectionChanged += InvokeBehaviorUpdated;
     }
 
     /// <inheritdoc/>
@@ -40,6 +42,10 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     public override string GetVhdlStatement(INamedSignal outputSignal)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Dynamic behavior must be valid to convert to VHDL");
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
         
@@ -66,31 +72,16 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    protected override void CheckValidity()
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
     {
         // Check parent modules
-        base.CheckValidity();
+        base.CheckTopLevelValidity(out explanation);
+
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
-            throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
-    }
+            explanation = "Expressions are incompatible. Must have same or compatible dimensions";
 
-    private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        // Invoke update and undo errors, if any
-        try
-        {
-            InvokeBehaviorUpdated(this, EventArgs.Empty);
-        }
-        catch (Exception)
-        {
-            // Undo change that caused error so that it hasn't been done
-            if (e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is (ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior))
-                        ConditionMappings.Remove((condition, behavior));
-            throw;
-        }
+        return explanation is null;
     }
 
     /// <inheritdoc/>
