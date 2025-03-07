@@ -28,7 +28,7 @@ public interface IValidityManagedEntity
     /// </summary>
     /// <param name="explanation">Explanation for issue--can be null if returning true</param>
     /// <returns>True for valid, false for invalid</returns>
-    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) // TODO consider making explanation an array
+    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) // TODO consider making explanation an array--or an Exception that can be thrown
     {
         explanation = null;
         return true;

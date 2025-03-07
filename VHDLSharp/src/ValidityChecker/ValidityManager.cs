@@ -207,7 +207,6 @@ public abstract class ValidityManager
     }
 
     // Called when entity is updated
-    // TODO might should change so that no updates happen if bool is false
     // If this change is made, the NamedSignals caching in Module must change
     private void RespondToUpdateFromEntity(object? sender, EventArgs e)
     {

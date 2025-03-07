@@ -37,7 +37,6 @@ public class Module : IModule, IValidityManagedEntity
         Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
         Instantiations = new(this);
-        // UpdateNamedSignals();
 
         // Initialize validity manager and list of tracked entities
         childrenEntities = [Instantiations];
@@ -88,19 +87,6 @@ public class Module : IModule, IValidityManagedEntity
         }
         remove => updated -= value;
     }
-    
-    // /// <summary>
-    // /// Event called when the module is updated or something belonging to the module is updated
-    // /// </summary>
-    // public event EventHandler? ModuleOrChildUpdated
-    // {
-    //     add
-    //     {
-    //         moduleOrChildUpdated -= value; // remove if already present
-    //         moduleOrChildUpdated += value;
-    //     }
-    //     remove => moduleOrChildUpdated -= value;
-    // }
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager => validityManager;

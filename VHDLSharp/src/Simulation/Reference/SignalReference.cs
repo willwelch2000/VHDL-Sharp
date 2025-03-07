@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using SpiceSharp.Simulations.Base;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
@@ -12,6 +13,8 @@ namespace VHDLSharp.Simulations;
 /// </summary>
 public class SignalReference : IEquatable<SignalReference>, ICircuitReference, IValidityManagedEntity
 {
+    private EventHandler? updated;
+
     private readonly ValidityManager manager;
 
     /// <summary>
@@ -23,14 +26,22 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     {
         Subcircuit = subcircuitReference;
         Signal = signal;
-        CheckValid();
-
-        // Check valid whenever module is updated
-        if (TopLevelModule is IValidityManagedEntity validityManagedEntity)
-            validityManagedEntity.Updated += (sender, e) => CheckValid();
+        manager = new ValidityManager<SubcircuitReference>(this, [subcircuitReference]);
+        // Call updated to check after construction
+        updated?.Invoke(this, EventArgs.Empty);
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
+    
+    event EventHandler? IValidityManagedEntity.Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
+    }
 
     /// <summary>
     /// Reference to subcircuit that contains this signal
@@ -89,11 +100,13 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
-    internal void CheckValid()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)]out string explanation)
     {
-        // Exception if last module doesn't contain signal
+        explanation = null;
+        // Problem if last module doesn't contain signal
         IModule lastModule = Subcircuit.FinalModule;
         if (!lastModule.ContainsSignal(Signal))
-            throw new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
+            explanation = $"Module {lastModule} does not contain given signal ({Signal})";
+        return explanation is null;
     }
 }
