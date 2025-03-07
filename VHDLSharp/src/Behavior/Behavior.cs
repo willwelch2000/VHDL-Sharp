@@ -69,16 +69,16 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
-    protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
-            explanation = "Input signals should all come from the same module";
-        return explanation is null;
+            exception = new("Input signals should all come from the same module");
+        return exception is null;
     }
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) => CheckTopLevelValidity(out explanation);
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception) => CheckTopLevelValidity(out exception);
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager => validityManager;

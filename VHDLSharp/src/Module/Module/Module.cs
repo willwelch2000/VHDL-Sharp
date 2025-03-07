@@ -512,26 +512,26 @@ public class Module : IModule, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
             if (outputSignal.ParentModule != this)
-                explanation = $"Output signal {outputSignal.Name} must have this module ({Name}) as parent";
+                exception = new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
-                explanation = $"Behavior must have this module as parent";
+                exception = new Exception($"Behavior must have this module as parent");
             if (!behavior.IsCompatible(outputSignal))
-                explanation = $"Behavior must be compatible with output signal";
+                exception = new Exception($"Behavior must be compatible with output signal");
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
-                explanation = $"Output signal ({outputSignal}) must not be an input port";
+                exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
         // Throw error if a signal has two assignments
         List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
-            explanation = "Module defines an overlapping parent and child output signal";
+            exception = new Exception("Module defines an overlapping parent and child output signal");
 
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
@@ -539,11 +539,11 @@ public class Module : IModule, IValidityManagedEntity
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
-                explanation = $"The same signal (\"{duplicate}\") cannot be added as two different ports";
+                exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
             else
-                explanation = "Port signals must have this module as parent";
+                exception = new Exception("Port signals must have this module as parent");
         }
 
-        return explanation is null;
+        return exception is null;
     }
 }

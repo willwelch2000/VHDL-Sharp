@@ -72,16 +72,16 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         // Check parent modules
-        base.CheckTopLevelValidity(out explanation);
+        base.CheckTopLevelValidity(out exception);
 
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
-            explanation = "Expressions are incompatible. Must have same or compatible dimensions";
+            exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");
 
-        return explanation is null;
+        return exception is null;
     }
 
     /// <inheritdoc/>

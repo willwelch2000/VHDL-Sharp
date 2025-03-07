@@ -100,13 +100,13 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)]out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         // Problem if last module doesn't contain signal
         IModule lastModule = Subcircuit.FinalModule;
         if (!lastModule.ContainsSignal(Signal))
-            explanation = $"Module {lastModule} does not contain given signal ({Signal})";
-        return explanation is null;
+            exception = new Exception($"Module {lastModule} does not contain given signal ({Signal})");
+        return exception is null;
     }
 }

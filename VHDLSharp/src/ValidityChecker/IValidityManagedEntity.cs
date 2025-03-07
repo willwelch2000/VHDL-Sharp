@@ -26,11 +26,11 @@ public interface IValidityManagedEntity
     /// <summary>
     /// Returns true if this entity is valid, not taking child entities into account
     /// </summary>
-    /// <param name="explanation">Explanation for issue--can be null if returning true</param>
+    /// <param name="exception">Exceptioin to throw for issue--can be null if returning true</param>
     /// <returns>True for valid, false for invalid</returns>
-    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation) // TODO consider making explanation an array--or an Exception that can be thrown
+    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception) // TODO consider making exception an array
     {
-        explanation = null;
+        exception = null;
         return true;
     }
 }

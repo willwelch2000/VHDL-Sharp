@@ -52,17 +52,17 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         remove => updated -= value;
     }
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         // Don't allow duplicate instantiation names
         HashSet<string> instantiationNames = [];
         if (!instantiations.All(i => instantiationNames.Add(i.Name)))
         {
             string duplicate = instantiations.First(i => instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
-            explanation = $"An instantiation already exists with name \"{duplicate}\"";
+            exception = new Exception($"An instantiation already exists with name \"{duplicate}\"");
             return false;
         }
-        explanation = null;
+        exception = null;
         return true;
     }
 

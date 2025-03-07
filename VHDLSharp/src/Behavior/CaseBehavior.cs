@@ -121,19 +121,19 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
     
     /// <inheritdoc/>
-    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         // Check parent modules
-        if (base.CheckTopLevelValidity(out explanation))
+        if (base.CheckTopLevelValidity(out exception))
             return true;
 
         // Combine non-null dimensions of individual expressions
         IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c?.Dimension is not null).Select(c => c?.Dimension)!;
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(dimensions))
-            throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
+            exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");
 
-        return explanation is null;
+        return exception is null;
     }
 
     /// <summary>

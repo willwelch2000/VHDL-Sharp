@@ -62,23 +62,23 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         foreach ((IPort port, INamedSignal signal) in this)
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
-                explanation = "Port {port} and signal {signal} must have the same dimension";
+                exception = new PortMappingException("Port {port} and signal {signal} must have the same dimension");
             if (port.Signal.ParentModule != InstantiatedModule)
-                explanation = "Ports must have the specified module ({InstantiatedModule}) as parent";
+                exception = new PortMappingException("Ports must have the specified module ({InstantiatedModule}) as parent");
             if (!InstantiatedModule.Ports.Contains(port))
-                explanation = "Port {port} must be in the list of ports of specified module {InstantiatedModule}";
+                exception = new PortMappingException("Port {port} must be in the list of ports of specified module {InstantiatedModule}");
             if (signal.ParentModule != ParentModule)
-                explanation = "Signal must have module {ParentModule} as parent";
+                exception = new PortMappingException("Signal must have module {ParentModule} as parent");
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
-                explanation = "Output port cannot be assigned to parent module's input port";
+                exception = new PortMappingException("Output port cannot be assigned to parent module's input port");
         }
-        return explanation is null;
+        return exception is null;
     }
 
     /// <summary>

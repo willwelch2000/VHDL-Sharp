@@ -188,18 +188,18 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         return hash.ToHashCode();
     }
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)]out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         IModule module = TopLevelModule;
         foreach (IInstantiation instantiation in Path)
         {
             if (instantiation.ParentModule != module)
-                explanation = $"Parent module of instantiation ({instantiation}) doesn't match {module}";
+                exception = new Exception($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
-                explanation = $"Module {module} does not contain given instantiation ({instantiation})";
+                exception = new Exception($"Module {module} does not contain given instantiation ({instantiation})");
             module = instantiation.InstantiatedModule;
         }
-        return explanation is null;
+        return exception is null;
     }
 }

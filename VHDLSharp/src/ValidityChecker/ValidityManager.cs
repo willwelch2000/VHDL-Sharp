@@ -86,12 +86,12 @@ public abstract class ValidityManager
     /// <returns></returns>
     public IEnumerable<Issue> Issues()
     {
-        if (!entity.CheckTopLevelValidity(out string? explanation))
+        if (!entity.CheckTopLevelValidity(out Exception? exception))
         {
             yield return new()
             {
                 TopLevelEntity = entity,
-                Explanation = explanation
+                Exception = exception
             };
         }
 
@@ -219,8 +219,8 @@ public abstract class ValidityManager
         mostRecentGuid = guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out string? explanation))
-            throw new Exception(explanation);
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out Exception? exception))
+            throw exception;
         // Invoke change detected event with new GUID so parent knows
         ChangeDetectedInMainOrTrackedEntity?.Invoke(this, new(guid));
     }
@@ -240,8 +240,8 @@ public abstract class ValidityManager
         mostRecentGuid = e.Guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out string? explanation))
-            throw new Exception(explanation);
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out Exception? exception))
+            throw exception;
         // Invoke change detected event so parent knows
         ChangeDetectedInMainOrTrackedEntity?.Invoke(this, e);
     }

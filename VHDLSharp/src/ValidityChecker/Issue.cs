@@ -16,7 +16,7 @@ public class Issue()
     public LinkedList<IValidityManagedEntity> FaultChain { get; set; } = [];
 
     /// <summary>
-    /// Explanation for why there is a problem
+    /// Exception for why there is a problem
     /// </summary>
-    public required string Explanation { get; set; }
+    public required Exception Exception { get; set; }
 }
