@@ -112,7 +112,7 @@ public class ModuleTests
         m1.AddNewPort(s1, PortDirection.Input);
         m1.AddNewPort(s4, PortDirection.Output);
 
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
         Assert.ThrowsException<Exception>(() => s1.AssignBehavior(0)); // Input port
         Issue[] issues = [.. m1.ValidityManager.Issues()];
         Assert.AreEqual(1, issues.Length);
@@ -155,7 +155,7 @@ public class ModuleTests
 
         m1.AddNewPort(s1, PortDirection.Input);
 
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
         Port p1 = new(s1, PortDirection.Output);
         Assert.ThrowsException<Exception>(() => m1.Ports.Add(p1)); // Duplicate signal
         Issue[] issues = [.. m1.ValidityManager.Issues()];
@@ -183,7 +183,7 @@ public class ModuleTests
         Module m3 = new("m3");
 
         IInstantiation i1 = m1.AddNewInstantiation(m2, "i1");
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
 
         // Duplicate instantiation
         Assert.ThrowsException<Exception>(() => m1.Instantiations.Add(i1));
@@ -212,7 +212,7 @@ public class ModuleTests
         Vector v1 = m1.GenerateVector("v1", 2);
         bool callback = false;
         bool childCallback = false;
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdates;
         m1.Updated += (sender, e) => callback = true;
         m1.ValidityManager.ChangeDetectedInMainOrTrackedEntity += (sender, e) => childCallback = true;
 
@@ -261,7 +261,7 @@ public class ModuleTests
         Vector v1 = m1.GenerateVector("v1", 2);
         VectorNode v1Node0 = v1[0];
 
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
 
         // Child overwriting parent
         v1.AssignBehavior(2);

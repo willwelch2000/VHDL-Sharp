@@ -15,7 +15,7 @@ public class PortMappingTests
         Module parent = new("parent");
         Module instance = new("instance");
         PortMapping mapping = new(instance, parent);
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdates;
         ((IValidityManagedEntity)mapping).Updated += (s, e) => callbackCount++;
         ((IValidityManagedEntity)mapping).ValidityManager.ChangeDetectedInMainOrTrackedEntity += (s, e) => childCallbackCount++;
 
@@ -42,7 +42,7 @@ public class PortMappingTests
         Vector parentV1 = parent.GenerateVector("v1", 3);
         Vector parentV2 = parent.GenerateVector("v2", 2);
         Port instanceP1 = instance.AddNewPort("p1", 2, PortDirection.Output);
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
 
         // Incompatible signals
         Assert.ThrowsException<PortMappingException>(() => mapping[instanceP1] = parentV1);

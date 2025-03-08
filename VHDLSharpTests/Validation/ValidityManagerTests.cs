@@ -12,7 +12,7 @@ public class ValidityManagerTests
         TestNode node2 = new();
         TestNode node3 = new();
 
-        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdates;
 
         int node1Count = 0;
         int node2Count = 0;

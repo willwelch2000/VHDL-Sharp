@@ -47,7 +47,7 @@ public abstract class ValidityManager
     // Guid used to prevent validation happening twice because of the same event
     private Guid? mostRecentEventGuid = null;
 
-    // Updated every time we enter AlertUpdatesAndThrowException monitoring mode--used to validate cached validity
+    // Updated every time we enter AlertUpdatesAndThrowException monitoring mode (in global settings)--used to validate cached validity
     private static Guid? throwingExceptionGuid = null;
 
     // Set every time the entity is successfully fully validated--to know if it's definitely still valid, compare to throwingExceptionGuid
@@ -72,21 +72,10 @@ public abstract class ValidityManager
         entity.Updated += RespondToUpdateFromEntity;
     }
 
-    private static MonitorMode monitorMode = MonitorMode.Inactive;
-
     /// <summary>
-    /// Monitoring mode that controls if changes raise alerts on <see cref="ChangeDetectedInMainOrTrackedEntity"/> and/or throw exceptions if invalid
+    /// Global (static) settings for <see cref="ValidityManager"/>
     /// </summary>
-    public static MonitorMode MonitorMode
-    {
-        get => monitorMode;
-        set
-        {
-            monitorMode = value;
-            if (value == MonitorMode.AlertUpdatesAndThrowException)
-                throwingExceptionGuid = Guid.NewGuid();
-        }
-    }
+    public static ValidityManagerGlobalSettings GlobalSettings { get; } = new(OnGlobalSettingsChanged);
 
     /// <summary>
     /// True children of the main object that implement <see cref="IValidityManagedEntity"/>
@@ -100,7 +89,7 @@ public abstract class ValidityManager
     public bool IsValid()
     {
         // If we are checking validity after changes and the validity-check Guid matches the throwing-exceptions Guid, then it is still valid
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && throwingExceptionGuid == guidAtLastValidityCheck)
+        if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException && throwingExceptionGuid == guidAtLastValidityCheck)
             return true;
         return entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
     }
@@ -235,7 +224,7 @@ public abstract class ValidityManager
     private void RespondToUpdateFromEntity(object? sender, EventArgs e)
     {
         // Don't do anything if monitoring is inactive
-        if (MonitorMode == MonitorMode.Inactive)
+        if (GlobalSettings.MonitorMode == MonitorMode.Inactive)
             return;
 
         // Make new GUID and store
@@ -243,7 +232,7 @@ public abstract class ValidityManager
         mostRecentEventGuid = guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
+        if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
         {
             if (!entity.CheckTopLevelValidity(out Exception? exception))
                 throw exception;
@@ -257,7 +246,7 @@ public abstract class ValidityManager
     private void RespondToUpdateFromObserved(object? sender, ValidityManagerEventArgs e)
     {
         // Don't do anything if monitoring is inactive--TODO might can remove
-        if (MonitorMode == MonitorMode.Inactive)
+        if (GlobalSettings.MonitorMode == MonitorMode.Inactive)
             return;
 
         // Check if this is a new GUID before doing continuing--if not, this is a repeat
@@ -268,7 +257,7 @@ public abstract class ValidityManager
         mostRecentEventGuid = e.Guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
+        if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
         {
             if (!entity.CheckTopLevelValidity(out Exception? exception))
                 throw exception;
@@ -276,6 +265,12 @@ public abstract class ValidityManager
         }
         // Invoke change detected event so parent knows
         ChangeDetectedInMainOrTrackedEntity?.Invoke(this, e);
+    }
+
+    private static void OnGlobalSettingsChanged()
+    {
+        if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
+            throwingExceptionGuid = Guid.NewGuid();
     }
 }
 
