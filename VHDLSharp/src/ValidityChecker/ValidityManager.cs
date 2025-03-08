@@ -246,10 +246,6 @@ public abstract class ValidityManager
     // Called when observed entity is updated
     private void RespondToUpdateFromObserved(object? sender, ValidityManagerEventArgs e)
     {
-        // Don't do anything if monitoring is inactive--TODO might can remove
-        if (GlobalSettings.MonitorMode == MonitorMode.Inactive)
-            return;
-
         // Check if this is a new GUID before doing continuing--if not, this is a repeat
         if (mostRecentEventGuid.Equals(e.Guid))
             return;

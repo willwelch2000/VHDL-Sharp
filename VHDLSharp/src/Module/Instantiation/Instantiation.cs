@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text;
 using SpiceSharp.Components;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -68,8 +69,11 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <returns></returns>
     public string GetSpice()
     {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
         if (!PortMapping.IsComplete())
-            throw new Exception("Port mapping is not complete");
+            throw new IncompleteException("Instantiation not yet complete");
 
         return $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
     }
@@ -81,8 +85,11 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdlStatement()
     {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
         if (!PortMapping.IsComplete())
-            throw new Exception("Port mapping is not complete");
+            throw new IncompleteException("Instantiation not yet complete");
 
         StringBuilder sb = new();
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
@@ -99,8 +106,11 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <inheritdoc/>
     public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions)
     {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
         if (!PortMapping.IsComplete())
-            throw new Exception("Port mapping is not complete");
+            throw new IncompleteException("Instantiation not yet complete");
 
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
         return new Subcircuit($"X{SpiceName}", subcircuitDefinitions[InstantiatedModule], nodes);

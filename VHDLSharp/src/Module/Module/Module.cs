@@ -6,6 +6,7 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -259,8 +260,11 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdl()
     {
-        if (!ConsiderValid || !Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!Complete)
+            throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
 
@@ -290,8 +294,11 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdlNoSubmodules()
     {
-        if (!ConsiderValid || !Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!Complete)
+            throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
 
@@ -346,8 +353,11 @@ public class Module : IModule, IValidityManagedEntity
     /// <exception cref="Exception"></exception>
     public string GetSpice(bool subcircuit)
     {
-        if (!ConsiderValid || !Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!Complete)
+            throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
         
@@ -357,8 +367,11 @@ public class Module : IModule, IValidityManagedEntity
 
         int indentation = subcircuit ? 1 : 0;
 
+        // Add subcircuit declarations
+        ignoreValidity = true; // Subcircuits already checked
         foreach (string subcircuitDeclaration in Instantiations.GetSpiceSubcircuitDeclarations())
             sb.AppendLine(subcircuitDeclaration.AddIndentation(indentation));
+        ignoreValidity = false;
 
         // Add VDD node and PMOS/NMOS models
         sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
@@ -400,8 +413,11 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public SubcircuitDefinition GetSpiceSharpSubcircuit()
     {
-        if (!ConsiderValid || !Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!Complete)
+            throw new IncompleteException("Module not yet complete");
 
         EntityCollection entities = [];
         string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
@@ -416,8 +432,10 @@ public class Module : IModule, IValidityManagedEntity
         entities.Add(pmosModel);
 
         // Add instantiations
+        ignoreValidity = true; // Subcircuits already checked
         foreach (IEntity entity in Instantiations.GetSpiceSharpEntities())
             entities.Add(entity);
+        ignoreValidity = false;
 
         // Add behaviors
         int i = 0;

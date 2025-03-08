@@ -1,8 +1,10 @@
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 
 namespace VHDLSharpTests;
 
-// TODO add stuff
 [TestClass]
 public class InstantiationTests
 {
@@ -22,8 +24,18 @@ public class InstantiationTests
         Assert.AreEqual("Xi1", instantiation.SpiceName);
         Assert.AreEqual("instanceMod in parentMod", instantiation.ToString());
 
-        Assert.ThrowsException<Exception>(instantiation.GetSpice);
-        // Assert.ThrowsException<Exception>(() => instantiation.GetSpiceSharpSubcircuit);
-        Assert.ThrowsException<Exception>(instantiation.GetVhdlStatement);
+        Assert.ThrowsException<IncompleteException>(instantiation.GetSpice);
+        Dictionary<IModule, SubcircuitDefinition> definitions = new()
+        {
+            {instanceMod, new SubcircuitDefinition(new EntityCollection())}
+        };
+        Assert.ThrowsException<IncompleteException>(() => instantiation.GetSpiceSharpSubcircuit(definitions));
+        Assert.ThrowsException<IncompleteException>(instantiation.GetVhdlStatement);
+    }
+
+    [TestMethod]
+    public void CollectionWithDuplicateModuleTest()
+    {
+        // TODO next
     }
 }

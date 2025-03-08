@@ -1,5 +1,5 @@
 using SpiceSharp.Components;
-using SpiceSharp.Entities;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -7,7 +7,7 @@ namespace VHDLSharp.Modules;
 /// Interface for an instantiation of one module inside of another (parent).
 /// It is assumed that the parent module and instantiated module won't change
 /// </summary>
-public interface IInstantiation
+public interface IInstantiation : IValidityManagedEntity
 {
     /// <summary>
     /// Module that is instantiated
