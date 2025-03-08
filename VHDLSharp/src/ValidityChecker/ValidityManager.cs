@@ -234,6 +234,7 @@ public abstract class ValidityManager
         // If throwing exceptions, check entity
         if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
         {
+            guidAtLastValidityCheck = null;
             if (!entity.CheckTopLevelValidity(out Exception? exception))
                 throw exception;
             guidAtLastValidityCheck = throwingExceptionGuid;
@@ -259,6 +260,7 @@ public abstract class ValidityManager
         // If throwing exceptions, check entity
         if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
         {
+            guidAtLastValidityCheck = null;
             if (!entity.CheckTopLevelValidity(out Exception? exception))
                 throw exception;
             guidAtLastValidityCheck = throwingExceptionGuid;

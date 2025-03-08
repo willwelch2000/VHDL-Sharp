@@ -44,4 +44,25 @@ public class ValidityManagerTests
         Assert.AreEqual(3, node2Count);
         Assert.AreEqual(3, node3Count);
     }
+
+    [TestMethod]
+    public void ValidityCacheTest()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+        TestNode node1 = new()
+        {
+            Valid = false
+        };
+        Assert.IsFalse(node1.ValidityManager.IsValid());
+        node1.Valid = true;
+        Assert.IsTrue(node1.ValidityManager.IsValid());
+        node1.Valid = false;
+
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        Assert.IsFalse(node1.ValidityManager.IsValid());
+        node1.Valid = true;
+        Assert.IsTrue(node1.ValidityManager.IsValid());
+        Assert.ThrowsException<Exception>(() => node1.Valid = false);
+        Assert.IsFalse(node1.ValidityManager.IsValid());
+    }
 }

@@ -31,6 +31,23 @@ public class TestNode : IValidityManagedEntity
         add => thisOrTrackedUpdated += value;
         remove => thisOrTrackedUpdated -= value;
     }
+    
+    private bool valid = true;
+    public bool Valid
+    {
+        get => valid;
+        set
+        {
+            valid = value;
+            InvokeUpdated();
+        }
+    }
 
     public void InvokeUpdated() => updated?.Invoke(this, EventArgs.Empty);
+
+    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
+    {
+        exception = Valid ? null : new Exception("Invalid");
+        return Valid;
+    }
 }
