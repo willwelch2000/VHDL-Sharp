@@ -33,4 +33,7 @@ public class Port(INamedSignal signal, PortDirection direction) : IPort
             PortDirection.Bidirectional => "inout",
             _ => "inout",
         };
+
+    /// <inheritdoc/>
+    public override string ToString() => Signal.ToString() ?? "";
 }

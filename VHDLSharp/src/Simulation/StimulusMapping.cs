@@ -82,22 +82,22 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => module.Ports.Except(Keys);
 
-    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out string explanation)
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        explanation = null;
+        exception = null;
         foreach ((IPort port, IStimulusSet stimulus) in this)
         {
             if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
-                explanation = $"Port {port} must be input or bidirectional";
+                exception = new StimulusMappingException($"Port {port} must be input or bidirectional");
             if (!port.Signal.Dimension.Compatible(stimulus.Dimension))
-                explanation = $"Port {port} and signal {stimulus} must have the same dimension";
+                exception = new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");
             if (port.Signal.ParentModule != module)
-                explanation = $"Ports must have the specified module {module} as parent";
+                exception = new StimulusMappingException($"Ports must have the specified module {module} as parent");
             if (!module.Ports.Contains(port))
-                explanation = $"Port {port} must be in the list of ports of specified module {module}";
+                exception = new StimulusMappingException($"Port {port} must be in the list of ports of specified module {module}");
         }
 
-        return explanation is null;
+        return exception is null;
     }
 
     /// <summary>

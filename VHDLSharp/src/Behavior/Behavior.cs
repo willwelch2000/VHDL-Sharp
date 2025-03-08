@@ -74,7 +74,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
         exception = null;
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
-            exception = new("Input signals should all come from the same module");
+            exception = new Exception("Input signals should all come from the same module");
         return exception is null;
     }
 

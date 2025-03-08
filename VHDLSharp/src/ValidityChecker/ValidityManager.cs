@@ -41,15 +41,17 @@ public abstract class ValidityManager
 {
     private readonly IValidityManagedEntity entity;
 
-    /// <summary>
-    /// True children of the main object that implement <see cref="IValidityManagedEntity"/>
-    /// </summary>
-    protected abstract IEnumerable<IValidityManagedEntity> ChildrenEntities { get; }
-
     // Managers of observed entities, including children and additional observed--int is count of how many times it's been added
     private readonly Dictionary<ValidityManager, int> observedEntityManagers = [];
 
-    private Guid? mostRecentGuid = null;
+    // Guid used to prevent validation happening twice because of the same event
+    private Guid? mostRecentEventGuid = null;
+
+    // Updated every time we enter AlertUpdatesAndThrowException monitoring mode--used to validate cached validity
+    private static Guid? throwingExceptionGuid = null;
+
+    // Set every time the entity is successfully fully validated--to know if it's definitely still valid, compare to throwingExceptionGuid
+    private Guid? guidAtLastValidityCheck = null;
 
     /// <summary>
     /// Event called when entity or observed manager is updated, only if <see cref="MonitorMode"/> is true.
@@ -67,18 +69,41 @@ public abstract class ValidityManager
     protected ValidityManager(IValidityManagedEntity entity)
     {
         this.entity = entity;
+        entity.Updated += RespondToUpdateFromEntity;
     }
+
+    private static MonitorMode monitorMode = MonitorMode.Inactive;
 
     /// <summary>
     /// Monitoring mode that controls if changes raise alerts on <see cref="ChangeDetectedInMainOrTrackedEntity"/> and/or throw exceptions if invalid
     /// </summary>
-    public static MonitorMode MonitorMode { get; set; } = MonitorMode.Inactive;
+    public static MonitorMode MonitorMode
+    {
+        get => monitorMode;
+        set
+        {
+            monitorMode = value;
+            if (value == MonitorMode.AlertUpdatesAndThrowException)
+                throwingExceptionGuid = Guid.NewGuid();
+        }
+    }
+
+    /// <summary>
+    /// True children of the main object that implement <see cref="IValidityManagedEntity"/>
+    /// </summary>
+    protected abstract IEnumerable<IValidityManagedEntity> ChildrenEntities { get; }
 
     /// <summary>
     /// Checks if this entity, and its recursive children, are valid
     /// </summary>
     /// <returns>True if valid, false if not</returns>
-    public bool IsValid() => entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
+    public bool IsValid()
+    {
+        // If we are checking validity after changes and the validity-check Guid matches the throwing-exceptions Guid, then it is still valid
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && throwingExceptionGuid == guidAtLastValidityCheck)
+            return true;
+        return entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
+    }
 
     /// <summary>
     /// If this entity is invalid, this provides all the issues it has
@@ -109,7 +134,6 @@ public abstract class ValidityManager
     /// <param name="observedEntityCollection">collection of entities to be observed</param>
     protected void FollowObservedEntityCollection<T>(ObservableCollection<T> observedEntityCollection) where T : notnull
     {
-        entity.Updated += RespondToUpdateFromEntity;
         observedEntityCollection.CollectionChanged += ObservedEntitiesCollectionChanged;
         foreach (object observedEntity in observedEntityCollection)
             AddObservedObjectIfEntity(observedEntity);
@@ -216,11 +240,15 @@ public abstract class ValidityManager
 
         // Make new GUID and store
         Guid guid = Guid.NewGuid();
-        mostRecentGuid = guid;
+        mostRecentEventGuid = guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out Exception? exception))
-            throw exception;
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
+        {
+            if (!entity.CheckTopLevelValidity(out Exception? exception))
+                throw exception;
+            guidAtLastValidityCheck = throwingExceptionGuid;
+        }
         // Invoke change detected event with new GUID so parent knows
         ChangeDetectedInMainOrTrackedEntity?.Invoke(this, new(guid));
     }
@@ -233,15 +261,19 @@ public abstract class ValidityManager
             return;
 
         // Check if this is a new GUID before doing continuing--if not, this is a repeat
-        if (mostRecentGuid.Equals(e.Guid))
+        if (mostRecentEventGuid.Equals(e.Guid))
             return;
 
         // Save GUID
-        mostRecentGuid = e.Guid;
+        mostRecentEventGuid = e.Guid;
 
         // If throwing exceptions, check entity
-        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException && !entity.CheckTopLevelValidity(out Exception? exception))
-            throw exception;
+        if (MonitorMode == MonitorMode.AlertUpdatesAndThrowException)
+        {
+            if (!entity.CheckTopLevelValidity(out Exception? exception))
+                throw exception;
+            guidAtLastValidityCheck = throwingExceptionGuid;
+        }
         // Invoke change detected event so parent knows
         ChangeDetectedInMainOrTrackedEntity?.Invoke(this, e);
     }

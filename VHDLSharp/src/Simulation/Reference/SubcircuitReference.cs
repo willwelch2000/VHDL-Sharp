@@ -195,9 +195,9 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         foreach (IInstantiation instantiation in Path)
         {
             if (instantiation.ParentModule != module)
-                exception = new Exception($"Parent module of instantiation ({instantiation}) doesn't match {module}");
+                exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
-                exception = new Exception($"Module {module} does not contain given instantiation ({instantiation})");
+                exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
             module = instantiation.InstantiatedModule;
         }
         return exception is null;

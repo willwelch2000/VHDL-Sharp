@@ -12,6 +12,8 @@ public class ValidityManagerTests
         TestNode node2 = new();
         TestNode node3 = new();
 
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
+
         int node1Count = 0;
         int node2Count = 0;
         int node3Count = 0;
@@ -20,8 +22,8 @@ public class ValidityManagerTests
         node2.ThisOrTrackedEntityUpdated += (s, e) => node2Count++;
         node3.ThisOrTrackedEntityUpdated += (s, e) => node3Count++;
 
-        node1.TrackedEntities.Add(node2);
-        node2.TrackedEntities.Add(node3);
+        node1.ChildrenEntities.Add(node2);
+        node2.ChildrenEntities.Add(node3);
 
         node3.InvokeUpdated();
         Assert.AreEqual(1, node1Count);
@@ -29,14 +31,14 @@ public class ValidityManagerTests
         Assert.AreEqual(1, node3Count);
 
         // If this is not working, node1 will update twice instead of just once
-        node1.TrackedEntities.Add(node3);
+        node1.ChildrenEntities.Add(node3);
         node3.InvokeUpdated();
         Assert.AreEqual(2, node1Count);
         Assert.AreEqual(2, node2Count);
         Assert.AreEqual(2, node3Count);
 
         // Create full circle and test
-        node3.TrackedEntities.Add(node1);
+        node3.ChildrenEntities.Add(node1);
         node3.InvokeUpdated();
         Assert.AreEqual(3, node1Count);
         Assert.AreEqual(3, node2Count);

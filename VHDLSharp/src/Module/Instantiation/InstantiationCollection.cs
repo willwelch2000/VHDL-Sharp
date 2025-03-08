@@ -54,16 +54,24 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
 
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        exception = null;
+
         // Don't allow duplicate instantiation names
         HashSet<string> instantiationNames = [];
         if (!instantiations.All(i => instantiationNames.Add(i.Name)))
         {
             string duplicate = instantiations.First(i => instantiations.Count(i2 => i.Name == i2.Name) > 1).Name;
-            exception = new Exception($"An instantiation already exists with name \"{duplicate}\"");
-            return false;
+            exception = new Exception($"More than one instantiation with name \"{duplicate}\"");
         }
-        exception = null;
-        return true;
+
+        // Must have correct parent module
+        if (instantiations.Any(i => i.ParentModule != ParentModule))
+        {
+            IInstantiation incorrect = instantiations.First(i => i.ParentModule != ParentModule);
+            exception = new Exception($"Instantiations must have correct parent module ({ParentModule})");
+        }
+
+        return exception is null;
     }
 
     /// <summary>
@@ -161,25 +169,6 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
 
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Check errors that would only happen during list change
-        if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is IInstantiation instantiation && instantiation.ParentModule != ParentModule)
-                    throw new Exception($"Instantiations must have correct parent module ({ParentModule})");
-
-        // Invoke update and undo errors, if any
-        try
-        {
-            updated?.Invoke(this, e);
-        }
-        catch (Exception)
-        { 
-            // Remove just-added instantiation
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is IInstantiation instantiation)
-                        instantiations.Remove(instantiation);
-            throw;
-        }
+        updated?.Invoke(this, e);
     }
 }

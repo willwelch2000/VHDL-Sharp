@@ -1,6 +1,7 @@
 using VHDLSharp.Behaviors;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
 
@@ -111,18 +112,35 @@ public class ModuleTests
         m1.AddNewPort(s1, PortDirection.Input);
         m1.AddNewPort(s4, PortDirection.Output);
 
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
         Assert.ThrowsException<Exception>(() => s1.AssignBehavior(0)); // Input port
+        Issue[] issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        Issue issue = issues[0];
+        Assert.AreEqual(m1, issue.TopLevelEntity);
+        Assert.AreEqual(0, issue.FaultChain.Count);
+        Assert.AreEqual("Output signal (s1) must not be an input port", issue.Exception.Message);
+        s1.RemoveBehavior(); // Undo action
+
         s2.AssignBehavior(0);
         ValueBehavior s4Behavior = new(1);
         s4.AssignBehavior(s4Behavior);
-        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(3)); // Too high dimension
-        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(s3.Not())); // Signal from another dimension as input
-        Assert.ThrowsException<Exception>(() => m2.SignalBehaviors[s1] = new ValueBehavior(1)); // Assigning signal in wrong module
 
-        // Check that s4 is still correct and s1 has no behavior
-        Assert.AreEqual(s4Behavior, s4.Behavior);
-        Assert.AreEqual(s4Behavior, m1.SignalBehaviors[s4]);
-        Assert.IsNull(s1.Behavior);
+
+        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(3)); // Too high dimension
+        issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        issue = issues[0];
+        Assert.AreEqual(m1, issue.TopLevelEntity);
+        Assert.AreEqual(0, issue.FaultChain.Count);
+        Assert.AreEqual("Behavior must be compatible with output signal", issue.Exception.Message);
+        s4.AssignBehavior(s4Behavior); // Undo
+
+        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(s3.Not())); // Signal from another dimension as input
+        s4.AssignBehavior(s4Behavior);
+        Assert.ThrowsException<Exception>(() => m2.SignalBehaviors[s1] = new ValueBehavior(1)); // Assigning signal in wrong module
+        s4.AssignBehavior(s4Behavior);
+        
         Assert.AreEqual(2, m1.SignalBehaviors.Count);
     }
 
@@ -137,13 +155,24 @@ public class ModuleTests
 
         m1.AddNewPort(s1, PortDirection.Input);
 
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
         Port p1 = new(s1, PortDirection.Output);
         Assert.ThrowsException<Exception>(() => m1.Ports.Add(p1)); // Duplicate signal
-        Assert.IsFalse(m1.Ports.Contains(p1));
+        Issue[] issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        Assert.AreEqual(m1, issues[0].TopLevelEntity);
+        Assert.AreEqual(0, issues[0].FaultChain.Count);
+        Assert.AreEqual("The same signal (\"s1\") cannot be added as two different ports", issues[0].Exception.Message);
+        m1.Ports.Remove(p1);
 
         Port p2 = new(s2, PortDirection.Input);
         Assert.ThrowsException<Exception>(() => m1.Ports.Add(p2)); // Signal from another module
-        Assert.IsFalse(m1.Ports.Contains(p2));
+        issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        Assert.AreEqual(m1, issues[0].TopLevelEntity);
+        Assert.AreEqual(0, issues[0].FaultChain.Count);
+        Assert.AreEqual("Port signals must have this module as parent", issues[0].Exception.Message);
+        m1.Ports.Remove(p2);
     }
 
     [TestMethod]
@@ -154,18 +183,19 @@ public class ModuleTests
         Module m3 = new("m3");
 
         IInstantiation i1 = m1.AddNewInstantiation(m2, "i1");
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
 
         // Duplicate instantiation
         Assert.ThrowsException<Exception>(() => m1.Instantiations.Add(i1));
-        Assert.IsTrue(m1.Instantiations.Count(i => i == i1) == 1);
+        m1.Instantiations.Remove(i1);
 
         // Same module and name
         Assert.ThrowsException<Exception>(() => m1.AddNewInstantiation(m2, "i1"));
-        Assert.IsTrue(m1.Instantiations.Count(i => i.Name == "i1") == 1);
+        m1.Instantiations.Remove(m1.Instantiations.First(i => i.Name == "i1" && i != i1));
 
         // Different module but same name
         Assert.ThrowsException<Exception>(() => m1.AddNewInstantiation(m3, "i1"));
-        Assert.IsTrue(m1.Instantiations.Count(i => i.Name == "i1") == 1);
+        m1.Instantiations.Remove(m1.Instantiations.First(i => i.Name == "i1" && i != i1));
 
         // Try valid versions of these
         m1.AddNewInstantiation(m2, "i2");
@@ -182,6 +212,7 @@ public class ModuleTests
         Vector v1 = m1.GenerateVector("v1", 2);
         bool callback = false;
         bool childCallback = false;
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
         m1.Updated += (sender, e) => callback = true;
         m1.ValidityManager.ChangeDetectedInMainOrTrackedEntity += (sender, e) => childCallback = true;
 
@@ -230,17 +261,27 @@ public class ModuleTests
         Vector v1 = m1.GenerateVector("v1", 2);
         VectorNode v1Node0 = v1[0];
 
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+
         // Child overwriting parent
         v1.AssignBehavior(2);
         Assert.ThrowsException<Exception>(() => v1Node0.AssignBehavior(0));
-        Assert.IsTrue(m1.SignalBehaviors.ContainsKey(v1));
-        Assert.IsFalse(m1.SignalBehaviors.ContainsKey(v1Node0));
+        Issue[] issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        Assert.AreEqual(m1, issues[0].TopLevelEntity);
+        Assert.AreEqual(0, issues[0].FaultChain.Count);
+        Assert.AreEqual("Module defines an overlapping parent (v1) and child (v1[0]) output signal", issues[0].Exception.Message);
+        v1Node0.RemoveBehavior();
 
         // Parent overwriting child
         v1.RemoveBehavior();
         v1Node0.AssignBehavior(0);
         Assert.ThrowsException<Exception>(() => v1.AssignBehavior(1));
-        Assert.IsTrue(m1.SignalBehaviors.ContainsKey(v1Node0));
-        Assert.IsFalse(m1.SignalBehaviors.ContainsKey(v1));
+        issues = [.. m1.ValidityManager.Issues()];
+        Assert.AreEqual(1, issues.Length);
+        Assert.AreEqual(m1, issues[0].TopLevelEntity);
+        Assert.AreEqual(0, issues[0].FaultChain.Count);
+        Assert.AreEqual("Module defines an overlapping parent (v1) and child (v1[0]) output signal", issues[0].Exception.Message);
+        v1.RemoveBehavior();
     }
 }

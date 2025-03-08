@@ -15,6 +15,7 @@ public class PortMappingTests
         Module parent = new("parent");
         Module instance = new("instance");
         PortMapping mapping = new(instance, parent);
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdates;
         ((IValidityManagedEntity)mapping).Updated += (s, e) => callbackCount++;
         ((IValidityManagedEntity)mapping).ValidityManager.ChangeDetectedInMainOrTrackedEntity += (s, e) => childCallbackCount++;
 
@@ -41,14 +42,17 @@ public class PortMappingTests
         Vector parentV1 = parent.GenerateVector("v1", 3);
         Vector parentV2 = parent.GenerateVector("v2", 2);
         Port instanceP1 = instance.AddNewPort("p1", 2, PortDirection.Output);
+        ValidityManager.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
 
-        // Incompatible signals--confirm it doesn't recognize the change
-        Assert.ThrowsException<Exception>(() => mapping[instanceP1] = parentV1);
-        Assert.IsFalse(mapping.ContainsKey(instanceP1));
+        // Incompatible signals
+        Assert.ThrowsException<PortMappingException>(() => mapping[instanceP1] = parentV1);
+        Issue issue = ((IValidityManagedEntity)mapping).ValidityManager.Issues().First();
+        Assert.AreEqual(0, issue.FaultChain.Count);
+        Assert.AreEqual("Port p1 and signal v1 must have the same dimension", issue.Exception.Message);
+        mapping.Remove(instanceP1);
 
         mapping[instanceP1] = parentV2;
         // Make v2 an input port in parent, confirm that causes error
-        Assert.ThrowsException<Exception>(() => parent.AddNewPort(parentV2, PortDirection.Input));
-        Assert.IsFalse(parent.Ports.Any(p => p.Signal == parentV2));
+        Assert.ThrowsException<PortMappingException>(() => parent.AddNewPort(parentV2, PortDirection.Input));
     }
 }

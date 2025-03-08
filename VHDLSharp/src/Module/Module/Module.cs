@@ -259,7 +259,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdl()
     {
-        if (ConsiderValid || !Complete)
+        if (!ConsiderValid || !Complete)
             throw new Exception("Module not yet complete");
 
         StringBuilder sb = new();
@@ -531,7 +531,10 @@ public class Module : IModule, IValidityManagedEntity
         // Throw error if a signal has two assignments
         List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
-            exception = new Exception("Module defines an overlapping parent and child output signal");
+        {
+            ISingleNodeNamedSignal child = allSingleNodeOutputSignals.First(s => allSingleNodeOutputSignals.Count(s2 => s2 == s) > 1);
+            exception = new Exception($"Module defines an overlapping parent ({child.ParentSignal}) and child ({child}) output signal");
+        }
 
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
