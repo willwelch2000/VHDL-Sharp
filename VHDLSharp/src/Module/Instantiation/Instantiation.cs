@@ -118,4 +118,6 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 
     /// <inheritdoc/>
     public override string ToString() => $"{InstantiatedModule} in {ParentModule}";
+
+    // TODO helper functions for PortMapping--e.g. SetPort("p1", "s1")
 }

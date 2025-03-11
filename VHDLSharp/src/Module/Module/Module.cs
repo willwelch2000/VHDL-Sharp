@@ -546,7 +546,7 @@ public class Module : IModule, IValidityManagedEntity
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
-        // Throw error if a signal has two assignments
+        // Throw error if a signal has two assignments--TODO next also check with Instantiation ports and add test case
         List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
         {
