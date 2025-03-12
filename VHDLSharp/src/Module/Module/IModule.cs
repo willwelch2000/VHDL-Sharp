@@ -48,7 +48,7 @@ public interface IModule
     /// <summary>
     /// True if module is ready to be used
     /// </summary>
-    public bool Complete { get; }
+    public bool IsComplete();
 
     /// <summary>
     /// Convert to string

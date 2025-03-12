@@ -43,4 +43,11 @@ public interface INamedSignal : ISignal
     public new INamedSignal TopLevelSignal { get; }
 
     ISignal ISignal.TopLevelSignal => TopLevelSignal;
+
+    /// <summary>
+    /// If this is part of a larger group (e.g. vector node), get the parent signal (one layer up)
+    /// </summary>
+    public new INamedSignal? ParentSignal { get; }
+
+    ISignal? ISignal.ParentSignal => ParentSignal;
 }

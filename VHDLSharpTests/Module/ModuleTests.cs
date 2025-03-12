@@ -25,7 +25,7 @@ public class ModuleTests
         m1.AddNewPort(s1, PortDirection.Input);
         m1.AddNewPort(s2, PortDirection.Input);
         m1.AddNewPort(s4, PortDirection.Output);
-        Assert.IsFalse(m1.Complete);
+        Assert.IsFalse(m1.IsComplete());
 
         namedSignals = [.. m1.NamedSignals];
         Assert.AreEqual(3, namedSignals.Length);
@@ -35,7 +35,7 @@ public class ModuleTests
 
         s3.AssignBehavior(s1.Not());
         m1.SignalBehaviors[s4] = new LogicBehavior(s3.And(s2));
-        Assert.IsTrue(m1.Complete);
+        Assert.IsTrue(m1.IsComplete());
 
         namedSignals = [.. m1.NamedSignals];
         Assert.AreEqual(4, namedSignals.Length);
@@ -283,5 +283,29 @@ public class ModuleTests
         Assert.AreEqual(0, issues[0].FaultChain.Count);
         Assert.AreEqual("Module defines an overlapping parent (v1) and child (v1[0]) output signal", issues[0].Exception.Message);
         v1.RemoveBehavior();
+    }
+
+    [TestMethod]
+    public void SignalDefinedTwiceTest()
+    {
+        Module m1 = new("parentMod");
+        Signal s1 = m1.GenerateSignal("s1");
+        Signal s2 = m1.GenerateSignal("s2");
+
+        Module instanceMod = Util.GetSampleModule1();
+        IPort i1p1 = instanceMod.Ports.ElementAt(0);
+        IPort i1p2 = instanceMod.Ports.ElementAt(1);
+        
+        Instantiation i1 = new(instanceMod, m1, "i1");
+        i1.PortMapping[i1p1] = s1;
+        i1.PortMapping[i1p2] = s2;
+        m1.Instantiations.Add(i1);
+
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+
+        // Behavior and instantiation output
+        Assert.ThrowsException<Exception>(() => s2.AssignBehavior(true));
+        s2.RemoveBehavior(); // Undo
+        s1.AssignBehavior(false); // Should work since it's an input of instantiation, not output
     }
 }

@@ -156,29 +156,7 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
-
-    /// <summary>
-    /// True if module is ready to be used
-    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    /// </summary>
-    public bool Complete
-    {
-        get
-        {
-            // If any output signal hasn't been assigned
-            foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
-            {
-                if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
-                    continue;
-                if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
-                    continue;
-                return false;
-            }
-
-            return true;
-        }
-    }
-
+        
     private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
 
     /// <summary>
@@ -249,6 +227,25 @@ public class Module : IModule, IValidityManagedEntity
     public IInstantiation AddNewInstantiation(Module module, string name) => Instantiations.Add(module, name);
 
     /// <summary>
+    /// True if module is ready to be used
+    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
+    /// </summary>
+    public bool IsComplete()
+    {
+        // If any output signal hasn't been assigned
+        foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
+        {
+            if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
+                continue;
+            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
+                continue;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Convert to string
     /// </summary>
     /// <returns></returns>
@@ -263,7 +260,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!Complete)
+        if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
@@ -297,7 +294,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!Complete)
+        if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
@@ -356,7 +353,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!Complete)
+        if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
@@ -387,7 +384,8 @@ public class Module : IModule, IValidityManagedEntity
             sb.AppendLine(behavior.GetSpice(signal, i++.ToString()).AddIndentation(indentation));
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
@@ -416,7 +414,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!Complete)
+        if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
         EntityCollection entities = [];
@@ -446,7 +444,8 @@ public class Module : IModule, IValidityManagedEntity
         }
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
@@ -546,12 +545,16 @@ public class Module : IModule, IValidityManagedEntity
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
-        // Throw error if a signal has two assignments--TODO next also check with Instantiation ports and add test case
-        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
+        // Throw error if a signal has two assignments--either from behavior mapping or as output port of instantiation
+        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals), .. Instantiations.SelectMany(i => i.GetSignals(PortDirection.Output).SelectMany(s => s.ToSingleNodeSignals))];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
         {
             ISingleNodeNamedSignal child = allSingleNodeOutputSignals.First(s => allSingleNodeOutputSignals.Count(s2 => s2 == s) > 1);
-            exception = new Exception($"Module defines an overlapping parent ({child.ParentSignal}) and child ({child}) output signal");
+            INamedSignal? parent = child.ParentSignal;
+            if (parent is not null)
+                exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
+            else
+                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior or instantiation output");
         }
 
         // Don't allow ports with the same signal or with wrong parent module

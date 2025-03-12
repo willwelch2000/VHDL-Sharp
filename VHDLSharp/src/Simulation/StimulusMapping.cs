@@ -87,7 +87,8 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
         exception = null;
         foreach ((IPort port, IStimulusSet stimulus) in this)
         {
-            if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
+            // if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional)) TODO
+            if (!(port.Direction == PortDirection.Input))
                 exception = new StimulusMappingException($"Port {port} must be input or bidirectional");
             if (!port.Signal.Dimension.Compatible(stimulus.Dimension))
                 exception = new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");

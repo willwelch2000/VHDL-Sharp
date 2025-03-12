@@ -1,3 +1,4 @@
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Validation;
@@ -54,5 +55,17 @@ public class PortMappingTests
         mapping[instanceP1] = parentV2;
         // Make v2 an input port in parent, confirm that causes error
         Assert.ThrowsException<PortMappingException>(() => parent.AddNewPort(parentV2, PortDirection.Input));
+    }
+
+    [TestMethod]
+    public void SetPortTest()
+    {
+        Module parent = new("parent");
+        Module instance = Util.GetSampleModule1();
+        PortMapping mapping = new(instance, parent);
+        Signal parentS1 = parent.GenerateSignal("s1");
+
+        mapping.SetPort("s1", parentS1);
+        Assert.ThrowsException<SignalNotFoundException>(() => mapping.SetPort("doesntexist", parentS1));
     }
 }

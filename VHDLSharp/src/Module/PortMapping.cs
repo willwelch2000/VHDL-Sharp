@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -116,4 +117,22 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     /// <returns></returns>
     public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
+
+    /// <summary>
+    /// Assign ports given names
+    /// </summary>
+    /// <param name="portName"></param>
+    /// <param name="signal"></param>
+    public void SetPort(string portName, INamedSignal signal)
+    {
+        try
+        {
+            IPort port = InstantiatedModule.Ports.First(p => p.Signal.Name == portName);
+            this[port] = signal;
+        }
+        catch
+        {
+            throw new SignalNotFoundException($"Port {portName} not found in {InstantiatedModule}");
+        }
+    }
 }

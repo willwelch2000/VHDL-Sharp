@@ -1,4 +1,5 @@
 using SpiceSharp.Components;
+using VHDLSharp.Signals;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
@@ -58,4 +59,11 @@ public interface IInstantiation : IValidityManagedEntity
 
     /// <inheritdoc/>
     public string ToString();
+
+    /// <summary>
+    /// Signals of instantiation matching given direction
+    /// </summary>
+    /// <param name="portDirection"></param>
+    /// <returns></returns>
+    public IEnumerable<INamedSignal> GetSignals(PortDirection portDirection) => PortMapping.Where(kvp => kvp.Key.Direction == portDirection).Select(kvp => kvp.Value);
 }

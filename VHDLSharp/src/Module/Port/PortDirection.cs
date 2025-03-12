@@ -13,8 +13,8 @@ public enum PortDirection
     /// Output from the module
     /// </summary>
     Output,
-    /// <summary>
-    /// Input/output
-    /// </summary>
-    Bidirectional
+    // /// <summary>
+    // /// Input/output
+    // /// </summary>
+    // Bidirectional TODO
 }

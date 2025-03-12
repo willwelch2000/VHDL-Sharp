@@ -30,7 +30,7 @@ public class Port(INamedSignal signal, PortDirection direction) : IPort
         {
             PortDirection.Input => "in",
             PortDirection.Output => "out",
-            PortDirection.Bidirectional => "inout",
+            // PortDirection.Bidirectional => "inout", TODO
             _ => "inout",
         };
 
