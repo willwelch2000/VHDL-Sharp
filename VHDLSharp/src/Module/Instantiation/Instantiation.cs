@@ -1,15 +1,20 @@
+using System.Collections.ObjectModel;
 using System.Text;
 using SpiceSharp.Components;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
 /// Instantiation of one module inside of another (parent)
 /// </summary>
-public class Instantiation : IInstantiation
+public class Instantiation : IInstantiation, IValidityManagedEntity
 {
-    private EventHandler? instantiatedModuleUpdated;
+    private readonly ValidityManager validityManager;
+
+    private readonly ObservableCollection<object> childEntities;
 
     /// <summary>
     /// Create new instantiation given instantiated module and parent module
@@ -19,27 +24,33 @@ public class Instantiation : IInstantiation
     /// <param name="name">Name of instantiation</param>
     public Instantiation(IModule instantiatedModule, IModule parentModule, string name)
     {
-        InstantiatedModule = instantiatedModule;
         PortMapping = new(instantiatedModule, parentModule);
-        ParentModule = parentModule;
         Name = name;
-        instantiatedModule.ModuleUpdated += (sender, e) => instantiatedModuleUpdated?.Invoke(this, e);
+
+        // Initialize validity manager and list of child entities
+        // PortMapping is included, so no additional error-checking is needed, because PortMapping being valid implies this is valid
+        childEntities = [PortMapping];
+        validityManager = new ValidityManager<object>(this, childEntities);
     }
 
-    /// <summary>
-    /// Module that is instantiated
-    /// </summary>
-    public IModule InstantiatedModule { get; }
+    ValidityManager IValidityManagedEntity.ValidityManager => validityManager;
 
     /// <summary>
     /// Mapping of module's ports to parent's signals (connections to module)
     /// </summary>
     public PortMapping PortMapping { get; }
 
+    // Both modules are accessed from port mapping so that they're only in one place
+
+    /// <summary>
+    /// Module that is instantiated
+    /// </summary>
+    public IModule InstantiatedModule => PortMapping.InstantiatedModule;
+
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public IModule ParentModule { get; }
+    public IModule ParentModule => PortMapping.ParentModule;
 
     /// <summary>
     /// Name of instantiation
@@ -52,24 +63,20 @@ public class Instantiation : IInstantiation
     public string SpiceName => $"X{Name}";
 
     /// <summary>
-    /// Event called whenever referenced module is updated
-    /// </summary>
-    public event EventHandler? InstantiatedModuleUpdated
-    {
-        add
-        {
-            instantiatedModuleUpdated -= value; // remove if already present
-            instantiatedModuleUpdated += value;
-        }
-        remove => instantiatedModuleUpdated -= value;
-    }
-
-    /// <summary>
     /// Convert to spice. 
     /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
     /// </summary>
     /// <returns></returns>
-    public string GetSpice() => $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
+    public string GetSpice()
+    {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
+        if (!PortMapping.IsComplete())
+            throw new IncompleteException("Instantiation not yet complete");
+
+        return $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
+    }
 
     /// <summary>
     /// Convert to VHDL. 
@@ -78,6 +85,12 @@ public class Instantiation : IInstantiation
     /// <returns></returns>
     public string GetVhdlStatement()
     {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
+        if (!PortMapping.IsComplete())
+            throw new IncompleteException("Instantiation not yet complete");
+
         StringBuilder sb = new();
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
         sb.AppendLine("port map (".AddIndentation(1));
@@ -91,10 +104,16 @@ public class Instantiation : IInstantiation
     }
 
     /// <inheritdoc/>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions, int uniqueId)
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions)
     {
+        if (!validityManager.IsValid())
+            throw new InvalidException("Instantiation is invalid");
+
+        if (!PortMapping.IsComplete())
+            throw new IncompleteException("Instantiation not yet complete");
+
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-        return new Subcircuit($"X{uniqueId}", subcircuitDefinitions[InstantiatedModule], nodes);
+        return new Subcircuit($"X{SpiceName}", subcircuitDefinitions[InstantiatedModule], nodes);
     }
 
     /// <inheritdoc/>

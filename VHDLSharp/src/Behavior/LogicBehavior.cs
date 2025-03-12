@@ -4,6 +4,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -33,6 +34,9 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     /// <inheritdoc/>
     public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Logic behavior must be valid to convert to Spice");
+
         // Don't call IsCompatible here since it does it in LogicExpression
         try
         {
@@ -47,6 +51,8 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     /// <inheritdoc/>
     public override string GetVhdlStatement(INamedSignal outputSignal)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Logic behavior must be valid to convert to VHDL");
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
@@ -55,6 +61,9 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Logic behavior must be valid to convert to Spice# entities");
+            
         // Don't call IsCompatible here since it does it in LogicExpression
         try
         {

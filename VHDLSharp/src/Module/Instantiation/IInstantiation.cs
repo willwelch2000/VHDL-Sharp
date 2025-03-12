@@ -1,17 +1,19 @@
 using SpiceSharp.Components;
-using SpiceSharp.Entities;
+using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
-/// Interface for an instantiation of one module inside of another (parent)
+/// Interface for an instantiation of one module inside of another (parent).
+/// It is assumed that the parent module and instantiated module won't change
 /// </summary>
-public interface IInstantiation
+public interface IInstantiation : IValidityManagedEntity
 {
     /// <summary>
     /// Module that is instantiated
     /// </summary>
-    public IModule InstantiatedModule { get; }
+    public IModule InstantiatedModule => PortMapping.InstantiatedModule;
 
     /// <summary>
     /// Mapping of module's ports to parent's signals (connections to module)
@@ -21,7 +23,7 @@ public interface IInstantiation
     /// <summary>
     /// Module that contains module instantiation
     /// </summary>
-    public IModule ParentModule { get; }
+    public IModule ParentModule => PortMapping.ParentModule;
 
     /// <summary>
     /// Name of instantiation
@@ -32,11 +34,6 @@ public interface IInstantiation
     /// Name used for spice instantiation
     /// </summary>
     public string SpiceName => $"X{Name}";
-
-    /// <summary>
-    /// Event called whenever referenced module is updated
-    /// </summary>
-    public event EventHandler? InstantiatedModuleUpdated;
 
     /// <summary>
     /// Convert to spice. 
@@ -56,30 +53,17 @@ public interface IInstantiation
     /// Given a dictionary mapping modules to subcircuit definition objects,
     /// generate a Spice# subcircuit object for this instantiation
     /// </summary>
-    /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects</param>
-    /// <param name="uniqueId">Unique id to use for name</param>
+    /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects so that they only one is used per module</param>
     /// <returns></returns>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions, int uniqueId);
+    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions);
 
     /// <inheritdoc/>
     public string ToString();
 
     /// <summary>
-    /// Get list of instantiations as list of entities for Spice#
+    /// Signals of instantiation matching given direction
     /// </summary>
-    /// <param name="instantiations">Instantiations to add</param>
-    public static IEnumerable<IEntity> GetSpiceSharpEntities(IEnumerable<IInstantiation> instantiations)
-    {
-        // Make subcircuit definitions for all distinct modules
-        Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
-        foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            subcircuitDefinitions[submodule] = submodule.GetSpiceSharpSubcircuit();
-
-        // Add instantiations
-        int i = 0;
-        foreach (IInstantiation instantiation in instantiations)
-        {
-            yield return instantiation.GetSpiceSharpSubcircuit(subcircuitDefinitions, i++);
-        }
-    }
+    /// <param name="portDirection"></param>
+    /// <returns></returns>
+    public IEnumerable<INamedSignal> GetSignals(PortDirection portDirection) => PortMapping.Where(kvp => kvp.Key.Direction == portDirection).Select(kvp => kvp.Value);
 }

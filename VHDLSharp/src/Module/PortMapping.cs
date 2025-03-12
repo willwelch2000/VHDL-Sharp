@@ -1,5 +1,9 @@
+using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
@@ -35,10 +39,45 @@ public class PortMappingException : Exception
 
 /// <summary>
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
-/// Handles throwing exceptions
+/// Changes are rejected if they cause a validation error (or an exception in anything linked to IValidityManagedEntity.Updated)
 /// </summary>
-public class PortMapping : ObservableDictionary<IPort, INamedSignal>
+public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity
 {
+    private readonly ValidityManager manager;
+
+    private readonly ObservableCollection<object> trackedEntities;
+    
+    private EventHandler? updated;
+
+    /// <summary>
+    /// Construct port mapping given instantiated module and parent module
+    /// </summary>
+    /// <param name="instantiatedModule">Module that is instantiated</param>
+    /// <param name="parentModule">Module that contains instantiated module</param>
+    public PortMapping(IModule instantiatedModule, IModule parentModule)
+    {
+        InstantiatedModule = instantiatedModule;
+        ParentModule = parentModule;
+        trackedEntities = [instantiatedModule, parentModule];
+        manager = new ValidityManager<object>(this, [], trackedEntities);
+        CollectionChanged += (s, e) => updated?.Invoke(this, e);
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Event called when mapping is updated
+    /// </summary>
+    event EventHandler? IValidityManagedEntity.Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
+    }
+
     /// <summary>
     /// Module that is instantiated
     /// </summary>
@@ -48,69 +87,29 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     /// Module that contains module instantiation
     /// </summary>
     public IModule ParentModule { get; }
-    
-    /// <summary>
-    /// Construct port mapping given instantiated module and parent module
-    /// </summary>
-    /// <param name="instantiatedModule">Module that is instantiated</param>
-    /// <param name="parentModule">Module that contains instantiated module</param>
-    public PortMapping(IModule instantiatedModule, IModule parentModule)
-    {
-        InstantiatedModule = instantiatedModule;
-        InstantiatedModule.ModuleUpdated += (sender, e) => CheckValid();
-        ParentModule = parentModule;
-        ParentModule.ModuleUpdated += (sender, e) => CheckValid();
-    }
 
     /// <summary>
     /// Get all ports that need assignment
     /// </summary>
     public IEnumerable<IPort> PortsToAssign => InstantiatedModule.Ports.Except(Keys);
 
-    /// <summary>
-    /// Indexer for port mapping
-    /// </summary>
-    /// <param name="port"></param>
-    /// <returns></returns>
-    public override INamedSignal this[IPort port]
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        get => base[port];
-        set
-        {
-            INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
-            base[port] = value;
-
-            // If error is caused by CheckValid, undo it
-            try
-            {
-                CheckValid();
-            }
-            catch (Exception)
-            {
-                if (prevVal is null)
-                    Remove(port);
-                else
-                    base[port] = prevVal;
-                throw;
-            }
-        }
-    }
-
-    private void CheckValid()
-    {
+        exception = null;
         foreach ((IPort port, INamedSignal signal) in this)
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
-                throw new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
+                exception = new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
             if (port.Signal.ParentModule != InstantiatedModule)
-                throw new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
+                exception = new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
             if (!InstantiatedModule.Ports.Contains(port))
-                throw new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
+                exception = new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
             if (signal.ParentModule != ParentModule)
-                throw new PortMappingException($"Signal must have module {ParentModule} as parent");
+                exception = new PortMappingException($"Signal must have module {ParentModule} as parent");
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
-                throw new PortMappingException($"Output port cannot be assigned to parent module's input port");
+                exception = new PortMappingException("Output port cannot be assigned to parent module's input port");
         }
+        return exception is null;
     }
 
     /// <summary>
@@ -119,24 +118,21 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>
     /// <returns></returns>
     public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
 
-    /// <inheritdoc/>
-    public override void Add(IPort port, INamedSignal signal)
+    /// <summary>
+    /// Assign ports given names
+    /// </summary>
+    /// <param name="portName"></param>
+    /// <param name="signal"></param>
+    public void SetPort(string portName, INamedSignal signal)
     {
-        INamedSignal? prevVal = TryGetValue(port, out var val) ? val : null;
-        base.Add(port, signal);
-
-        // If error is caused by CheckValid, undo it
         try
         {
-            CheckValid();
+            IPort port = InstantiatedModule.Ports.First(p => p.Signal.Name == portName);
+            this[port] = signal;
         }
-        catch (Exception)
+        catch
         {
-            if (prevVal is null)
-                Remove(port);
-            else
-                base[port] = prevVal;
-            throw;
+            throw new SignalNotFoundException($"Port {portName} not found in {InstantiatedModule}");
         }
     }
 }

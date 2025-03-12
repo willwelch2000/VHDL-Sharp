@@ -1,6 +1,5 @@
 
 using VHDLSharp.Behaviors;
-using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;

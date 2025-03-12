@@ -1,21 +1,32 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
 /// <summary>
 /// A digital module--a circuit that has some functionality
 /// </summary>
-public class Module : IModule
+public class Module : IModule, IValidityManagedEntity
 {
-    private EventHandler? moduleUpdated;
+    private static bool ignoreValidity = false;
+
+    private readonly ValidityManager validityManager;
+
+    private readonly ObservableCollection<object> childrenEntities;
+
+    private readonly ObservableCollection<object> additionalObservedEntities;
+
+    private EventHandler? updated;
 
     /// <summary>
     /// Default constructor
@@ -26,8 +37,12 @@ public class Module : IModule
         // and include throwing exceptions when needed
         Ports.CollectionChanged += PortsListUpdated;
         SignalBehaviors.CollectionChanged += BehaviorsListUpdated;
-        Instantiations.CollectionChanged += InstantiationsListUpdated;
-        UpdateNamedSignals();
+        Instantiations = new(this);
+
+        // Initialize validity manager and list of tracked entities
+        childrenEntities = [Instantiations];
+        additionalObservedEntities = [];
+        validityManager = new ValidityManager<object>(this, childrenEntities, additionalObservedEntities);
     }
 
     /// <summary>
@@ -42,7 +57,7 @@ public class Module : IModule
     /// <summary>
     /// Construct module given port names and directions
     /// </summary>
-    /// <param name="ports">tuple of name and direction for port</param>
+    /// <param name="ports">Tuples of name and direction for port</param>
     public Module(IEnumerable<(string, PortDirection)> ports) : this()
     {
         foreach ((string name, PortDirection direction) in ports)
@@ -50,18 +65,32 @@ public class Module : IModule
     }
 
     /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects, 
-    /// such as port mapping
+    /// Construct module given port names and directions
     /// </summary>
-    public event EventHandler? ModuleUpdated
+    /// <param name="name">Name for module</param>
+    /// <param name="ports">Tuples of name and direction for port</param>
+    public Module(string name, IEnumerable<(string, PortDirection)> ports) : this(name)
+    {
+        foreach ((string portName, PortDirection direction) in ports)
+            AddNewPort(portName, direction);
+    }
+    
+    /// <summary>
+    /// Event called when a property of this module (not a child) is changed 
+    /// that could affect other objects, such as port mapping
+    /// </summary>
+    public event EventHandler? Updated
     {
         add
         {
-            moduleUpdated -= value; // remove if already present
-            moduleUpdated += value;
+            updated -= value; // remove if already present
+            updated += value;
         }
-        remove => moduleUpdated -= value;
+        remove => updated -= value;
     }
+
+    /// <inheritdoc/>
+    public ValidityManager ValidityManager => validityManager;
 
     /// <summary>
     /// Name of the module
@@ -69,19 +98,23 @@ public class Module : IModule
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Mapping of module signal to behavior that defines it
+    /// Mapping of module signal to behavior that defines it.
+    /// To remove a behavior, remove kvp.
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
     public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors { get; set; } = [];
 
     /// <summary>
-    /// List of ports for this module
+    /// List of ports for this module. 
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
     public ObservableCollection<IPort> Ports { get; } = [];
 
     /// <summary>
     /// List of module instantiations inside of this module
+    /// Changes are rejected if they cause an error during validation or in any method linked to the module's update events
     /// </summary>
-    public ObservableCollection<IInstantiation> Instantiations { get; } = [];
+    public InstantiationCollection Instantiations { get; }
 
     /// <summary>
     /// Get all named signals used in this module. 
@@ -89,35 +122,42 @@ public class Module : IModule
     /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
     /// Otherwise, only the children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals { get; private set; } = [];
+    public IEnumerable<INamedSignal> NamedSignals
+    {
+        get
+        {
+            // Get list of all single-node named signals used
+            HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+                .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
+                .Union(SignalBehaviors.Keys)
+                .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
+                .SelectMany(s => s.ToSingleNodeSignals)];
+
+            HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+            HashSet<INamedSignal> allNamedSignals = [];
+
+            foreach (INamedSignal topLevelSignal in topLevelSignals)
+            {
+                // If all child signals are present, add top level one
+                if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                    allNamedSignals.Add(topLevelSignal);
+                else
+                    // Otherwise, add single-node signals that are present
+                    foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                        allNamedSignals.Add(singleNodeSignal);
+            }
+
+            return allNamedSignals;
+        }
+    }
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
     /// </summary>
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
-
-    /// <summary>
-    /// True if module is ready to be used
-    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    /// </summary>
-    public bool Complete
-    {
-        get
-        {
-            // If any output signal hasn't been assigned
-            foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
-            {
-                if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
-                    continue;
-                if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
-                    continue;
-                return false;
-            }
-
-            return true;
-        }
-    }
+        
+    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -135,18 +175,29 @@ public class Module : IModule
     public Vector GenerateVector(string name, int dimension) => new(name, this, dimension);
 
     /// <summary>
-    /// Create a port with a new signal and add the new port to the list of ports
+    /// Create a port with a new single-dimension signal and add the new port to the list of ports
     /// </summary>
     /// <param name="name"></param>
     /// <param name="direction"></param>
     /// <returns></returns>
     public Port AddNewPort(string name, PortDirection direction)
     {
-        Port result = new()
-        {
-            Signal = new Signal(name, this),
-            Direction = direction
-        };
+        Port result = new(new Signal(name, this), direction);
+        Ports.Add(result);
+        return result;
+    }
+
+    /// <summary>
+    /// Create a port with a new signal of a given dimension and add the new port to the list of ports
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="dimension">Dimension for new signal</param>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    public Port AddNewPort(string name, int dimension, PortDirection direction)
+    {
+        NamedSignal signal = dimension == 1 ? new Signal(name, this) : new Vector(name, this, dimension);
+        Port result = new(signal, direction);
         Ports.Add(result);
         return result;
     }
@@ -162,11 +213,7 @@ public class Module : IModule
         if (signal.ParentModule != this)
             throw new ArgumentException("Signal must have this module as parent");
         
-        Port result = new()
-        {
-            Signal = signal,
-            Direction = direction
-        };
+        Port result = new(signal, direction);
         Ports.Add(result);
         return result;
     }
@@ -177,11 +224,25 @@ public class Module : IModule
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public IInstantiation AddNewInstantiation(Module module, string name)
+    public IInstantiation AddNewInstantiation(Module module, string name) => Instantiations.Add(module, name);
+
+    /// <summary>
+    /// True if module is ready to be used
+    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
+    /// </summary>
+    public bool IsComplete()
     {
-        IInstantiation instantiation = new Instantiation(module, this, name);
-        Instantiations.Add(instantiation);
-        return instantiation;
+        // If any output signal hasn't been assigned
+        foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
+        {
+            if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
+                continue;
+            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
+                continue;
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -196,6 +257,12 @@ public class Module : IModule
     /// <returns></returns>
     public string GetVhdl()
     {
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!IsComplete())
+            throw new IncompleteException("Module not yet complete");
+
         StringBuilder sb = new();
 
         // Header
@@ -203,6 +270,7 @@ public class Module : IModule
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
         // Submodules
+        ignoreValidity = true; // Subcircuits and this already checked
         foreach (var module in ModulesUsed)
         {
             sb.AppendLine(module.GetVhdlNoSubmodules());
@@ -211,6 +279,7 @@ public class Module : IModule
 
         // Main module
         sb.AppendLine(GetVhdlNoSubmodules());
+        ignoreValidity = false;
 
         return sb.ToString();
     }
@@ -222,8 +291,11 @@ public class Module : IModule
     /// <returns></returns>
     public string GetVhdlNoSubmodules()
     {
-        if (!Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!IsComplete())
+            throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
 
@@ -246,21 +318,14 @@ public class Module : IModule
         }
 
         // Component declarations
-        foreach (Module module in ModulesUsed)
-            sb.AppendLine(module.GetComponentDeclaration());
+        foreach (IModule module in ModulesUsed)
+            sb.AppendLine(module.GetVhdlComponentDeclaration());
 
         // Begin
         sb.AppendLine("begin");
 
         // Add all instantiations
-        bool anyInstantiations = false;
-        foreach (IInstantiation instantiation in Instantiations)
-        {
-            anyInstantiations = true;
-            sb.AppendLine(instantiation.GetVhdlStatement().AddIndentation(1));
-        }
-        if (anyInstantiations)
-            sb.AppendLine();
+        sb.Append(Instantiations.GetVhdl().AddIndentation(1));
 
         // Behaviors
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -285,8 +350,11 @@ public class Module : IModule
     /// <exception cref="Exception"></exception>
     public string GetSpice(bool subcircuit)
     {
-        if (!Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!IsComplete())
+            throw new IncompleteException("Module not yet complete");
 
         StringBuilder sb = new();
         
@@ -296,9 +364,11 @@ public class Module : IModule
 
         int indentation = subcircuit ? 1 : 0;
 
-        // Add all inner modules' subcircuit declarations
-        foreach (IModule submodule in Instantiations.Select(i => i.InstantiatedModule).Distinct())
-            sb.AppendLine(submodule.GetSpice(true).AddIndentation(indentation) + "\n");
+        // Add subcircuit declarations
+        ignoreValidity = true; // Subcircuits already checked
+        foreach (string subcircuitDeclaration in Instantiations.GetSpiceSubcircuitDeclarations())
+            sb.AppendLine(subcircuitDeclaration.AddIndentation(indentation));
+        ignoreValidity = false;
 
         // Add VDD node and PMOS/NMOS models
         sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
@@ -306,9 +376,7 @@ public class Module : IModule
         sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(indentation));
 
         // Add all instantiations
-        foreach (IInstantiation instantiation in Instantiations)
-            sb.AppendLine(instantiation.GetSpice().AddIndentation(indentation));
-        sb.AppendLine();
+        sb.Append(Instantiations.GetSpiceInstantiationStatements().AddIndentation(indentation));
 
         // Add behaviors
         int i = 0;
@@ -316,7 +384,8 @@ public class Module : IModule
             sb.AppendLine(behavior.GetSpice(signal, i++.ToString()).AddIndentation(indentation));
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
@@ -342,8 +411,11 @@ public class Module : IModule
     /// <returns></returns>
     public SubcircuitDefinition GetSpiceSharpSubcircuit()
     {
-        if (!Complete)
-            throw new Exception("Module not yet complete");
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+
+        if (!IsComplete())
+            throw new IncompleteException("Module not yet complete");
 
         EntityCollection entities = [];
         string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
@@ -358,8 +430,10 @@ public class Module : IModule
         entities.Add(pmosModel);
 
         // Add instantiations
-        foreach (IEntity entity in IInstantiation.GetSpiceSharpEntities(Instantiations))
+        ignoreValidity = true; // Subcircuits already checked
+        foreach (IEntity entity in Instantiations.GetSpiceSharpEntities())
             entities.Add(entity);
+        ignoreValidity = false;
 
         // Add behaviors
         int i = 0;
@@ -370,7 +444,8 @@ public class Module : IModule
         }
         
         // Add large resistors from output/bidirectional ports to ground
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal))
+        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
+        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
@@ -396,127 +471,49 @@ public class Module : IModule
     {
         INamedSignal[] namedSignals = [.. NamedSignals];
         // True if directly contained
-        if (NamedSignals.Contains(signal))
+        if (namedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
         if (signal is ISingleNodeNamedSignal)
             return namedSignals.Contains(signal.TopLevelSignal);
         return false;
     }
-    
-    /// <summary>
-    /// Should be surrounded in try-catch so that offending action can be undone
-    /// </summary>
-    /// <exception cref="Exception"></exception>
-    private void InvokeModuleUpdated(object? sender, EventArgs e)
-    {
-        CheckValid();
-        UpdateNamedSignals();
-        moduleUpdated?.Invoke(this, e);
-    }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+        // Track each new behavior in validity manager
+        if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                {
-                    // Add InvokeModuleUpdated to each new behavior
-                    kvp.Value.BehaviorUpdated += InvokeModuleUpdated;
+                    childrenEntities.Add(kvp.Value);
+        
+        // If something has been removed, remove behavior from tracking
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
+                    childrenEntities.Remove(kvp.Value);
 
-                    // Throw error if a parent is overwriting a child or vice versa
-                    List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals)];
-                    foreach (ISingleNodeNamedSignal newItemSingleNode in kvp.Key.ToSingleNodeSignals)
-                        if (allSingleNodeOutputSignals.Count(s => s == newItemSingleNode) > 1)
-                        {
-                            SignalBehaviors.Remove(kvp.Key);
-                            throw new Exception("Module already defines behavior for part or all of this signal");
-                        }
-                }
-
-        try
-        {
-            InvokeModuleUpdated(sender, e);
-        }
-        catch (Exception)
-        { 
-            // Undo anything added
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                        SignalBehaviors.Remove(kvp);
-
-            // Undo anything replaced
-            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
-                foreach (object oldItem in e.OldItems)
-                    if (oldItem is KeyValuePair<INamedSignal, IBehavior> kvp)
-                        SignalBehaviors[kvp.Key] = kvp.Value;
-
-            // No other type of action (remove) needs to be handled/should cause errors
-            throw;
-        }
-    }
-
-    private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-                if (newItem is IInstantiation instantiation)
-                {
-                    // Don't allow duplicate instantiation names in the list
-                    if (Instantiations.Count(i => i.Name == instantiation.Name) > 1)
-                    {
-                        Instantiations.Remove(instantiation);
-                        throw new Exception($"The same instantiation ({newItem}) should not be added twice");
-                    }
-                    // Add InvokeModuleUpdated to each new instantiation
-                    instantiation.InstantiatedModuleUpdated += InvokeModuleUpdated;
-                }
-
-        try
-        {
-            InvokeModuleUpdated(sender, e);
-        }
-        catch (Exception)
-        { 
-            // Remove just-added instantiation
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is IInstantiation instantiation)
-                            Instantiations.Remove(instantiation);
-            throw;
-        }
+        // Invoke module update
+        updated?.Invoke(this, e);
     }
 
     private void PortsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // Track each new port, if a validity-managed entity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
-                if (newItem is IPort port)
-                {
-                    if (Ports.Count(i => i.Signal == port.Signal) > 1)
-                    {
-                        Ports.Remove(port);
-                        throw new Exception($"The same signal ({port.Signal}) cannot be added as two different ports");
-                    }
-                }
+                childrenEntities.Add(newItem);
+        
+        // If something has been removed, remove from tracking
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                childrenEntities.Remove(oldItem);
 
-        try
-        {
-            InvokeModuleUpdated(sender, e);
-        }
-        catch (Exception)
-        { 
-            // Remove just-added port
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-                foreach (object newItem in e.NewItems)
-                    if (newItem is IPort port)
-                            Ports.Remove(port);
-            throw;
-        }
+        updated?.Invoke(this, e);
     }
 
-    private string GetComponentDeclaration()
+    /// <inheritdoc/>
+    public string GetVhdlComponentDeclaration()
     {
         StringBuilder sb = new();
 
@@ -531,48 +528,46 @@ public class Module : IModule
         return sb.ToString();
     }
 
-    // Contains error-checking logic that can't be confined to one callback
-    private void CheckValid()
+    /// <inheritdoc/>
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        exception = null;
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            // TODO make better exception names
             if (outputSignal.ParentModule != this)
-                throw new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
+                exception = new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.ParentModule is not null && behavior.ParentModule != this)
-                throw new Exception($"Behavior must have this module as parent");
+                exception = new Exception($"Behavior must have this module as parent");
             if (!behavior.IsCompatible(outputSignal))
-                throw new Exception($"Behavior must be compatible with output signal");
+                exception = new Exception($"Behavior must be compatible with output signal");
             if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
-                throw new Exception($"Output signal ({outputSignal}) must not be an input port");
+                exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
-    }
 
-    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    private void UpdateNamedSignals()
-    {
-        // Get list of all single-node named signals used
-        HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
-            .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-            .Union(SignalBehaviors.Keys)
-            .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-            .SelectMany(s => s.ToSingleNodeSignals)];
-
-        HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-        HashSet<INamedSignal> allNamedSignals = [];
-
-        foreach (INamedSignal topLevelSignal in topLevelSignals)
+        // Throw error if a signal has two assignments--either from behavior mapping or as output port of instantiation
+        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals), .. Instantiations.SelectMany(i => i.GetSignals(PortDirection.Output).SelectMany(s => s.ToSingleNodeSignals))];
+        if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
         {
-            // If all child signals are present, add top level one
-            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                allNamedSignals.Add(topLevelSignal);
+            ISingleNodeNamedSignal child = allSingleNodeOutputSignals.First(s => allSingleNodeOutputSignals.Count(s2 => s2 == s) > 1);
+            INamedSignal? parent = child.ParentSignal;
+            if (parent is not null)
+                exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
             else
-            // Otherwise, add single-node signals that are present
-                foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                    allNamedSignals.Add(singleNodeSignal);
+                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior or instantiation output");
         }
 
-        NamedSignals = allNamedSignals;
+        // Don't allow ports with the same signal or with wrong parent module
+        HashSet<ISignal> portSignals = [];
+        if (!Ports.All(p => portSignals.Add(p.Signal) && p.Signal.ParentModule == this))
+        {
+            string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
+            if (duplicate is not null)
+                exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+            else
+                exception = new Exception("Port signals must have this module as parent");
+        }
+
+        return exception is null;
     }
 }

@@ -5,28 +5,19 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// A signal that is a port of a module
 /// </summary>
-public class Port : IPort
+/// <param name="signal"></param>
+/// <param name="direction"></param>
+public class Port(INamedSignal signal, PortDirection direction) : IPort
 {
-    private INamedSignal? signal;
-
     /// <summary>
     /// The signal object that this refers to
     /// </summary>
-    public required INamedSignal Signal
-    {
-        get => signal ?? throw new("Should be impossible");
-        set
-        {
-            signal = value;
-            if (signal.ParentSignal is not null)
-                throw new Exception("Port signal should be top-level signal");
-        }
-    }
+    public INamedSignal Signal { get; } = signal;
 
     /// <summary>
     /// The direction that this port is with respect to the module
     /// </summary>
-    public required PortDirection Direction { get; set; }
+    public PortDirection Direction { get; } = direction;
 
     /// <summary>
     /// Get port as VHDL port declaration that goes in an entity declaration
@@ -39,7 +30,10 @@ public class Port : IPort
         {
             PortDirection.Input => "in",
             PortDirection.Output => "out",
-            PortDirection.Bidirectional => "inout",
+            // PortDirection.Bidirectional => "inout", TODO
             _ => "inout",
         };
+
+    /// <inheritdoc/>
+    public override string ToString() => Signal.ToString() ?? "";
 }

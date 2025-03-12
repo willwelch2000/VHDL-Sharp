@@ -13,12 +13,6 @@ namespace VHDLSharp.Modules;
 public interface IModule
 {
     /// <summary>
-    /// Event called when a property of the module is changed that could affect other objects, 
-    /// such as port mapping
-    /// </summary>
-    public event EventHandler? ModuleUpdated;
-
-    /// <summary>
     /// Name of the module
     /// </summary>
     public string Name { get; }
@@ -34,9 +28,9 @@ public interface IModule
     public ObservableCollection<IPort> Ports { get; }
 
     /// <summary>
-    /// List of module instantiations inside of this module
+    /// Collection of module instantiations inside of this module
     /// </summary>
-    public ObservableCollection<IInstantiation> Instantiations { get; }
+    public InstantiationCollection Instantiations { get; }
 
     /// <summary>
     /// Get all named signals used in this module. 
@@ -54,7 +48,7 @@ public interface IModule
     /// <summary>
     /// True if module is ready to be used
     /// </summary>
-    public bool Complete { get; }
+    public bool IsComplete();
 
     /// <summary>
     /// Convert to string
@@ -89,7 +83,7 @@ public interface IModule
     public string GetSpice(bool subcircuit);
 
     /// <summary>
-    /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
+    /// Convert module to a singleton Spice# <see cref="SubcircuitDefinition"/> object
     /// </summary>
     /// <returns></returns>
     public SubcircuitDefinition GetSpiceSharpSubcircuit();
@@ -106,4 +100,10 @@ public interface IModule
     /// <param name="signal"></param>
     /// <returns></returns>
     public bool ContainsSignal(INamedSignal signal);
+
+    /// <summary>
+    /// Get VHDL component declaration for the module
+    /// </summary>
+    /// <returns></returns>
+    public string GetVhdlComponentDeclaration();
 }

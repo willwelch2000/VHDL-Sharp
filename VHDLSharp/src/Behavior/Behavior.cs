@@ -2,16 +2,34 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
+using VHDLSharp.Validation;
+using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
 /// Abstract class defining a behavior that makes up a module
 /// </summary>
-public abstract class Behavior : IBehavior
+public abstract class Behavior : IBehavior, IValidityManagedEntity
 {
-    private EventHandler? behaviorUpdated;
+    private EventHandler? updated;
 
+    private readonly ValidityManager validityManager;
+    
+    // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
+    // It also doesn't track the signals, because they are not supposed to change their parent module
+    private readonly ObservableCollection<object> childEntities;
+
+    /// <summary>
+    /// Default constructor
+    /// </summary>
+    public Behavior()
+    {
+        childEntities = [];
+        validityManager = new ValidityManager<object>(this, childEntities);
+    }
+    
     /// <summary>
     /// Get all of the named input signals used in this behavior
     /// </summary>
@@ -30,14 +48,14 @@ public abstract class Behavior : IBehavior
     /// <summary>
     /// Event called when a property of the behavior is changed that could affect other objects
     /// </summary>
-    public event EventHandler? BehaviorUpdated
+    public event EventHandler? Updated
     {
         add
         {
-            behaviorUpdated -= value; // remove if already present
-            behaviorUpdated += value;
+            updated -= value; // remove if already present
+            updated += value;
         }
-        remove => behaviorUpdated -= value;
+        remove => updated -= value;
     }
 
     /// <summary>
@@ -48,17 +66,23 @@ public abstract class Behavior : IBehavior
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals. 
-    /// Base version just checks that all input signals come from the same module. 
-    /// This should be wrapped in a try-catch so that whatever causes the problem can be undone
+    /// Base version just checks that all input signals come from the same module
     /// </summary>
     /// <exception cref="Exception"></exception>
-    protected virtual void CheckValid()
+    protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        exception = null;
         var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
-            throw new Exception("Input signals should all come from the same module");
+            exception = new Exception("Input signals should all come from the same module");
+        return exception is null;
     }
 
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception) => CheckTopLevelValidity(out exception);
+
+    /// <inheritdoc/>
+    public ValidityManager ValidityManager => validityManager;
+    
     /// <summary>
     /// Convert to spice
     /// </summary>
@@ -76,11 +100,11 @@ public abstract class Behavior : IBehavior
     public abstract IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
-    /// Call this method to raise the <see cref="BehaviorUpdated"/> event
+    /// Call this method to raise the <see cref="Updated"/> event
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected void RaiseBehaviorChanged(object? sender, EventArgs e) => behaviorUpdated?.Invoke(sender, e);
+    protected void InvokeBehaviorUpdated(object? sender, EventArgs e) => updated?.Invoke(sender, e);
 
     /// <summary>
     /// Check that a given output signal is compatible with this

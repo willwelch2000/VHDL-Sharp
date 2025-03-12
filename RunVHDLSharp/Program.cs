@@ -7,6 +7,7 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Simulations;
 using SpiceSharp.Entities;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp;
 
@@ -25,11 +26,7 @@ public static class Program
         Signal s1 = new("s1", module1);
         Signal s2 = new("s2", module1);
         Signal s3 = new("s3", module1);
-        Port p3 = new()
-        {
-            Signal = s3, 
-            Direction = PortDirection.Output,
-        };
+        Port p3 = new(s3, PortDirection.Output);
         LogicExpression expression1 = new(s2.Not().And(s1));
         LogicTree<ISignal> expression2 = new And<ISignal>(expression1, new Or<ISignal>(s1, s2));
         module1.AddNewPort(s1, PortDirection.Input);

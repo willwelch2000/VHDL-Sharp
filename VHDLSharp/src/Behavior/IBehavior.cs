@@ -26,11 +26,6 @@ public interface IBehavior
     public Dimension Dimension { get; }
 
     /// <summary>
-    /// Event called when a property of the behavior is changed that could affect other objects
-    /// </summary>
-    public event EventHandler? BehaviorUpdated;
-
-    /// <summary>
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>

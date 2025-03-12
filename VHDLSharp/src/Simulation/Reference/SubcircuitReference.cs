@@ -1,15 +1,21 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
 /// <summary>
 /// Reference to a subcircuit instantiation in the circuit hierarchy
 /// </summary>
-public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitReference
+public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitReference, IValidityManagedEntity
 {
+    private EventHandler? updated;
+
+    private readonly ValidityManager manager;
+
     /// <summary>
     /// Create subcircuit reference given top-level module and path to subcircuit
     /// </summary>
@@ -19,10 +25,21 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     {
         TopLevelModule = topLevelModule;
         Path = new([.. path]);
-        CheckValid();
+        manager = new ValidityManager<object>(this, [topLevelModule, .. path]);
+        // Call updated to check after construction
+        updated?.Invoke(this, EventArgs.Empty);
+    }
 
-        // Check valid whenever module is updated
-        TopLevelModule.ModuleUpdated += (object? sender, EventArgs e) => CheckValid();
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+    
+    event EventHandler? IValidityManagedEntity.Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
     }
 
     /// <inheritdoc/>
@@ -171,16 +188,18 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         return hash.ToHashCode();
     }
 
-    internal void CheckValid()
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        exception = null;
         IModule module = TopLevelModule;
         foreach (IInstantiation instantiation in Path)
         {
             if (instantiation.ParentModule != module)
-                throw new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
+                exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
-                throw new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
+                exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
             module = instantiation.InstantiatedModule;
         }
+        return exception is null;
     }
 }
