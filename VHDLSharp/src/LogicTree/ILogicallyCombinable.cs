@@ -15,13 +15,14 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     public bool CanCombine(ILogicallyCombinable<T> other);
 
     /// <summary>
-    /// Given other things of type T, this is true if they are all compatible for a logic tree
+    /// Given other things of type T, this is true if they are all compatible for a logic tree.
+    /// Should be overridden if there is a more efficient method
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
     public bool CanCombine(IEnumerable<ILogicallyCombinable<T>> others)
     {
-        IEnumerable<ILogicallyCombinable<T>> all = [.. others, this];
+        IEnumerable<ILogicallyCombinable<T>> all = [this, .. others];
         foreach (var thing1 in all)
             foreach (var thing2 in all.Except([thing1]))
                 if (!thing1.CanCombine(thing2))
@@ -55,7 +56,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     {
         if (this is T t)
             return options.BaseFunction(t, additionalInput);
-        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(ToLogicString)}");
+        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(GenerateLogicalObject)}");
     }
 
     /// <summary>
@@ -85,7 +86,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+    public And<T> And(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
 
     /// <summary>
     /// Generate an Or with this and another <see cref="ILogicallyCombinable{T}"/>
@@ -99,7 +100,7 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <param name="others"></param>
     /// <returns></returns>
-    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([.. others, this]);
+    public Or<T> Or(IEnumerable<ILogicallyCombinable<T>> others) => new([this, .. others]);
 
     /// <summary>
     /// Generate a Not with this

@@ -26,12 +26,12 @@ public class ValueBehaviorTests
         Assert.IsTrue(behavior.IsCompatible(v2));
 
         // Check Spice
-        string spice = behavior.ToSpice(s1, "0");
+        string spice = behavior.GetSpice(s1, "0");
         string expectedSpice = "Vn0x0_value s1 0 5";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check VHDL
-        string vhdl = behavior.ToVhdl(s1);
+        string vhdl = behavior.GetVhdlStatement(s1);
         string expectedVhdl = "s1 <= \"1\";";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
     }
@@ -65,7 +65,7 @@ public class ValueBehaviorTests
         Assert.IsTrue(behavior2.IsCompatible(v3));
 
         // Check Spice
-        string spice = behavior1.ToSpice(v2, "0");
+        string spice = behavior1.GetSpice(v2, "0");
         string expectedSpice = 
         """
         Vn0x0_value v2_0 0 0
@@ -76,7 +76,7 @@ public class ValueBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check VHDL
-        string vhdl = behavior1.ToVhdl(v2);
+        string vhdl = behavior1.GetVhdlStatement(v2);
         string expectedVhdl = "v2 <= \"1010\";";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
     }

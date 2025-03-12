@@ -6,24 +6,52 @@ using SpiceSharp.Entities;
 using SpiceSharp.Simulations;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
 /// <summary>
 /// Class representing a simulation setup
 /// </summary>
-public class SimulationSetup
+public class SimulationSetup : IValidityManagedEntity
 {
+    private readonly ValidityManager manager;
+
+    private readonly ObservableCollection<object> childEntities;
+
+    private EventHandler? updated;
+
+    private double length = 1e-3;
+
+    private double stepSize = 1e-6;
+
     /// <summary>
     /// Create simulation setup given module to simulate
     /// </summary>
     /// <param name="module">Module that is simulated</param>
-    public SimulationSetup(Module module)
+    public SimulationSetup(IModule module)
     {
         StimulusMapping = new(module);
         Module = module;
+        childEntities = [StimulusMapping, module];
+        manager = new ValidityManager<object>(this, childEntities);
         SignalsToMonitor = [];
-        SignalsToMonitor.CollectionChanged += CheckValidNewItem;
+        SignalsToMonitor.CollectionChanged += SignalsListUpdated;
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Event called when a property of this setup is changed that could affect other objects
+    /// </summary>
+    public event EventHandler? Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
     }
 
     /// <summary>
@@ -34,7 +62,7 @@ public class SimulationSetup
     /// <summary>
     /// Module that has stimuli applied
     /// </summary>
-    public Module Module { get; }
+    public IModule Module { get; }
 
     /// <summary>
     /// List of signals to receive output for
@@ -44,19 +72,35 @@ public class SimulationSetup
     /// <summary>
     /// How long the simulation should be
     /// </summary>
-    public double Length { get; set; } = 1e-3;
+    public double Length
+    {
+        get => length;
+        set
+        {
+            updated?.Invoke(this, EventArgs.Empty);
+            length = value;
+        }
+    }
 
     /// <summary>
     /// Time between steps
     /// </summary>
-    public double StepSize { get; set; } = 1e-6;
+    public double StepSize
+    {
+        get => stepSize;
+        set
+        {
+            updated?.Invoke(this, EventArgs.Empty);
+            stepSize = value;
+        }
+    }
 
     /// <summary>
     /// Assign a stimulus set to a port
     /// </summary>
     /// <param name="port"></param>
     /// <param name="stimulus"></param>
-    public void AssignStimulus(Port port, IStimulusSet stimulus) => StimulusMapping[port] = stimulus;
+    public void AssignStimulus(IPort port, IStimulusSet stimulus) => StimulusMapping[port] = stimulus;
 
     /// <summary>
     /// True if ready to convert to Spice or simulate
@@ -67,17 +111,19 @@ public class SimulationSetup
     /// Get Spice representation of the setup
     /// </summary>
     /// <returns></returns>
-    public string ToSpice()
+    public string GetSpice()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Simulation setup must be valid to convert to Spice");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to Spice");
 
-        string toReturn = Module.ToSpice();
+        string toReturn = Module.GetSpice();
 
         // Connect stimuli to ports
         int i = 0;
-        foreach ((Port port, IStimulusSet stimulus) in StimulusMapping)
-            toReturn += $"{stimulus.ToSpice(port.Signal, i++.ToString())}\n";
+        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
+            toReturn += $"{stimulus.GetSpice(port.Signal, i++.ToString())}\n";
 
         return toReturn;
     }
@@ -86,17 +132,19 @@ public class SimulationSetup
     /// Get Spice# Circuit representation of setup
     /// </summary>
     /// <returns></returns>
-    public Circuit ToSpiceSharpCircuit()
+    public Circuit GetSpiceSharpCircuit()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
-        Circuit circuit = Module.ToSpiceSharpCircuit();
+        Circuit circuit = Module.GetSpiceSharpCircuit();
 
         // Connect stimuli to ports
         int i = 0;
-        foreach ((Port port, IStimulusSet stimulus) in StimulusMapping)
-            foreach (IEntity entity in stimulus.ToSpiceSharpEntities(port.Signal, i++.ToString()))
+        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
+            foreach (IEntity entity in stimulus.GetSpiceSharpEntities(port.Signal, i++.ToString()))
                 circuit.Add(entity);
 
         return circuit;
@@ -105,7 +153,7 @@ public class SimulationSetup
     /// <inheritdoc/>
     public IEnumerable<SimulationResult> Simulate()
     {
-        Circuit circuit = ToSpiceSharpCircuit();
+        Circuit circuit = GetSpiceSharpCircuit();
         
         var tran = new Transient("Tran 1", StepSize, Length);
 
@@ -122,12 +170,17 @@ public class SimulationSetup
         return results;
     }
 
-    private void CheckValidNewItem(object? sender, NotifyCollectionChangedEventArgs e)
+    private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // Check that reference has correct top-level module
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
+            {
                 if (newItem is SignalReference signalReference && signalReference.TopLevelModule != Module)
                     throw new Exception($"Added signal reference must use module {Module} as top-level module");
+                childEntities.Add(newItem);
+            }
+
+        updated?.Invoke(this, e);
     }
 }

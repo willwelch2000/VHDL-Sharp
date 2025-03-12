@@ -15,7 +15,7 @@ public class LiteralNode : ISingleNodeSignal
     /// <param name="literal"></param>
     /// <param name="node"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public LiteralNode(Literal literal, int node)
+    internal LiteralNode(Literal literal, int node)
     {
         Literal = literal;
         Node = node;
@@ -40,9 +40,6 @@ public class LiteralNode : ISingleNodeSignal
 
     /// <inheritdoc/>
     public DefiniteDimension Dimension => new(1);
-
-    /// <inheritdoc/>
-    public Module? ParentModule => null;
 
     /// <inheritdoc/>
     public IEnumerable<LiteralNode> ToSingleNodeSignals => [this];
@@ -89,7 +86,13 @@ public class LiteralNode : ISingleNodeSignal
     }
 
     /// <inheritdoc/>
-    public string ToLogicString() => Value.ToString();
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
+    /// <inheritdoc/>
+    public string GetVhdlName() => Value.ToString();
+
+    /// <inheritdoc/>
+    public string ToLogicString() => GetVhdlName();
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
@@ -98,5 +101,5 @@ public class LiteralNode : ISingleNodeSignal
     /// Power (VDD) if high bit, ground otherwise
     /// </summary>
     /// <returns></returns>
-    public string ToSpice() => Value ? "VDD" : "0";
+    public string GetSpiceName() => Value ? "VDD" : "0";
 }

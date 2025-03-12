@@ -39,7 +39,7 @@ public class Literal : ISignal
 
         Dimension = new(dimension);
 
-        bits = Enumerable.Range(0, dimension).Select(i => new LiteralNode(this, i)).ToArray();
+        bits = [.. Enumerable.Range(0, dimension).Select(i => new LiteralNode(this, i))];
     }
 
     /// <summary>
@@ -49,9 +49,6 @@ public class Literal : ISignal
 
     /// <inheritdoc/>
     public DefiniteDimension Dimension { get; }
-
-    /// <inheritdoc/>
-    public Module? ParentModule => null;
 
     /// <summary>
     /// Top-level signal is just this object
@@ -110,7 +107,10 @@ public class Literal : ISignal
     public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
 
     /// <inheritdoc/>
-    public string ToLogicString() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
+    public string GetVhdlName() => $"\"{Value.ToBinaryString(Dimension.NonNullValue)}\"";
+
+    /// <inheritdoc/>
+    public string ToLogicString() => GetVhdlName();
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
@@ -121,13 +121,13 @@ public class Literal : ISignal
     public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Not<ISignal> Not() => new(this);

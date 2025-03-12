@@ -1,3 +1,4 @@
+using VHDLSharp.Behaviors;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -7,12 +8,12 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Single-node and vector signals that are contained in a module and have a name
 /// </summary>
-public abstract class NamedSignal : ISignal
+public abstract class NamedSignal : INamedSignal
 {
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public abstract Module ParentModule { get; }
+    public abstract IModule ParentModule { get; }
 
     /// <summary>
     /// Name of the signal
@@ -25,7 +26,7 @@ public abstract class NamedSignal : ISignal
     public abstract string VhdlType { get; }
 
     /// <summary>
-    /// Dimension of signal with definite value
+    /// Dimension of signal with definite value. 
     /// Of type <see cref="DefiniteDimension"/>
     /// </summary>
     public abstract DefiniteDimension Dimension { get; }
@@ -33,12 +34,12 @@ public abstract class NamedSignal : ISignal
     /// <summary>
     /// Parent signal of this, if it exists
     /// </summary>
-    public abstract NamedSignal? ParentSignal { get; }
+    public abstract INamedSignal? ParentSignal { get; }
 
     /// <summary>
     /// Top-level signal of this
     /// </summary>
-    public abstract NamedSignal TopLevelSignal { get; }
+    public abstract INamedSignal TopLevelSignal { get; }
 
     ISignal ISignal.TopLevelSignal => TopLevelSignal;
 
@@ -47,7 +48,7 @@ public abstract class NamedSignal : ISignal
     /// <summary>
     /// Child signals of this
     /// </summary>
-    public abstract IEnumerable<NamedSignal> ChildSignals { get; }
+    public abstract IEnumerable<INamedSignal> ChildSignals { get; }
 
     IEnumerable<ISignal> ISignal.ChildSignals => ChildSignals;
 
@@ -55,9 +56,24 @@ public abstract class NamedSignal : ISignal
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1
     /// If it is dimension 1, then return itself
     /// </summary>
-    public abstract IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals { get; }
+    public abstract IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Behavior assigned to this signal in its module
+    /// </summary>
+    public IBehavior? Behavior
+    {
+        get => ParentModule.SignalBehaviors.TryGetValue(this, out IBehavior? value) ? value : null;
+        set
+        {
+            if (value is null)
+                RemoveBehavior();
+            else
+                AssignBehavior(value);
+        }
+    }
 
     /// <summary>
     /// Indexer for multi-dimensional signals
@@ -65,7 +81,7 @@ public abstract class NamedSignal : ISignal
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public virtual SingleNodeNamedSignal this[int index]
+    public virtual ISingleNodeNamedSignal this[int index]
     {
         get
         {
@@ -81,6 +97,12 @@ public abstract class NamedSignal : ISignal
     public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);
 
     /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
+    /// <inheritdoc/>
+    public abstract string GetVhdlName();
+
+    /// <inheritdoc/>
     public abstract string ToLogicString();
 
     /// <inheritdoc/>
@@ -90,10 +112,10 @@ public abstract class NamedSignal : ISignal
     public override string ToString() => Name;
 
     /// <summary>
-    /// Get signal as VHDL
+    /// Get signal declaration as VHDL
     /// </summary>
     /// <returns></returns>
-    public abstract string ToVhdl();
+    public virtual string GetVhdlDeclaration() => $"signal {Name}\t: {VhdlType}";
 
     // The following functions are given here so that they can be accessed without referring to this object as ISignal
     
@@ -101,17 +123,49 @@ public abstract class NamedSignal : ISignal
     public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
 
     /// <inheritdoc/>
-    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([.. others, this]);
+    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
 
     /// <inheritdoc/>
     public Not<ISignal> Not() => new(this);
 
-    /// <inheritdoc/>
-    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+    // Methods that are shortcuts for adding behaviors
+
+    /// <summary>
+    /// Assign a specified behavior to the signal
+    /// </summary>
+    /// <param name="behavior"></param>
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(IBehavior behavior)
+    {
+        ParentModule.SignalBehaviors[this] = behavior;
+        return behavior;
+    }
+
+    /// <summary>
+    /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(int value) => AssignBehavior(new ValueBehavior(value));
+
+    /// <summary>
+    /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
+    /// </summary>
+    /// <param name="expression"></param>
+    /// <returns>Assigned behavior</returns>
+    public IBehavior AssignBehavior(ILogicallyCombinable<ISignal> expression) => AssignBehavior(new LogicBehavior(expression));
+
+    /// <summary>
+    /// Remove behavior assignment from this signal
+    /// </summary>
+    public void RemoveBehavior()
+    {
+        ParentModule.SignalBehaviors.Remove(this);
+    }
 }

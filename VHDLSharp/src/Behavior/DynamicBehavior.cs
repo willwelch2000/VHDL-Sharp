@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Text;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
@@ -7,39 +6,46 @@ using VHDLSharp.Conditions;
 using VHDLSharp.Signals;
 using VHDLSharp.Dimensions;
 using SpiceSharp.Entities;
+using VHDLSharp.Exceptions;
+using VHDLSharp.Validation;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
-/// Behavior that uses sequential rather than combinational logic
-/// Maps <see cref="Condition"/> objects to <see cref="CombinationalBehavior"/> objects
-/// The output signal is assigned the value from the combinational behavior when the condition is met
+/// Behavior that uses sequential rather than combinational logic. 
+/// Maps <see cref="Condition"/> objects to <see cref="ICombinationalBehavior"/> objects. 
+/// The output signal is assigned the value from the combinational behavior when the condition is met. 
 /// Priority is used for the conditions
 /// </summary>
-public class DynamicBehavior : DigitalBehavior
+public class DynamicBehavior : Behavior
 {
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private ObservableCollection<(ILogicallyCombinable<Condition> Condition, CombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+    private ObservableCollection<(ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
     /// </summary>
     public DynamicBehavior()
     {
-        ConditionMappings.CollectionChanged += CasesListUpdated;
+        ConditionMappings.CollectionChanged += InvokeBehaviorUpdated;
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is NamedSignal).Select(s => (NamedSignal)s))).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is INamedSignal).Select(s => (INamedSignal)s))).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
-    public override string ToVhdl(NamedSignal outputSignal)
+    public override string GetVhdlStatement(INamedSignal outputSignal)
     {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Dynamic behavior must be valid to convert to VHDL");
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
         
@@ -48,15 +54,15 @@ public class DynamicBehavior : DigitalBehavior
         sb.AppendLine("begin");
 
         // First condition
-        (ILogicallyCombinable<Condition> firstCondition, CombinationalBehavior firstBehavior) = ConditionMappings.First();
+        (ILogicallyCombinable<ICondition> firstCondition, ICombinationalBehavior firstBehavior) = ConditionMappings.First();
         sb.AppendLine($"\tif ({firstCondition.ToLogicString()}) then");
-        sb.AppendLine(firstBehavior.ToVhdl(outputSignal).AddIndentation(2));
+        sb.AppendLine(firstBehavior.GetVhdlStatement(outputSignal).AddIndentation(2));
 
         // Remaining conditions
-        foreach ((ILogicallyCombinable<Condition> condition, CombinationalBehavior behavior) in ConditionMappings.Skip(1))
+        foreach ((ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) in ConditionMappings.Skip(1))
         {
             sb.AppendLine($"\telse if ({condition.ToLogicString()}) then");
-            sb.AppendLine(behavior.ToVhdl(outputSignal).AddIndentation(2));
+            sb.AppendLine(behavior.GetVhdlStatement(outputSignal).AddIndentation(2));
         }
 
         sb.AppendLine("\tend if;");
@@ -66,28 +72,26 @@ public class DynamicBehavior : DigitalBehavior
     }
 
     /// <inheritdoc/>
-    protected override void CheckValid()
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         // Check parent modules
-        base.CheckValid();
+        base.CheckTopLevelValidity(out exception);
+
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
-            throw new Exception("Expressions are incompatible. Must have same or compatible dimensions");
-    }
+            exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");
 
-    private void CasesListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        CheckValid();
+        return exception is null;
     }
 
     /// <inheritdoc/>
-    public override string ToSpice(NamedSignal outputSignal, string uniqueId)
+    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(NamedSignal outputSignal, string uniqueId)
+    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }

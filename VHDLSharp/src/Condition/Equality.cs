@@ -7,14 +7,14 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Comparison between signal and either another signal or a value
 /// </summary>
-public class Equality : ConstantCondition
+public class Equality : Condition, IConstantCondition
 {
     /// <summary>
     /// Generate equality comparison between two signals
     /// </summary>
     /// <param name="mainSignal"></param>
     /// <param name="comparison">Signal to compare against</param>
-    public Equality(NamedSignal mainSignal, ISignal comparison)
+    public Equality(INamedSignal mainSignal, ISignal comparison)
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
@@ -24,7 +24,7 @@ public class Equality : ConstantCondition
     /// <summary>
     /// Main signal that gets evaluated
     /// </summary>
-    public NamedSignal MainSignal { get; }
+    public INamedSignal MainSignal { get; }
 
     /// <summary>
     /// If specified, the main signal is compared against this
@@ -33,7 +33,7 @@ public class Equality : ConstantCondition
     public ISignal ComparisonSignal { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<NamedSignal> InputSignals => ComparisonSignal is NamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
+    public override IEnumerable<INamedSignal> InputSignals => ComparisonSignal is INamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";

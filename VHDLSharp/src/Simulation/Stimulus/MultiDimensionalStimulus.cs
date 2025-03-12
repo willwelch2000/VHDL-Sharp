@@ -5,7 +5,7 @@ using VHDLSharp.Signals;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Multi-dimensional stimulus set
+/// Multi-dimensional stimulus set. 
 /// Made up of multiple <see cref="Stimulus"/> objects
 /// </summary>
 public class MultiDimensionalStimulus : IStimulusSet
@@ -36,32 +36,32 @@ public class MultiDimensionalStimulus : IStimulusSet
     IEnumerable<Stimulus> IStimulusSet.Stimuli => Stimuli;
 
     /// <inheritdoc/>
-    public string ToSpice(NamedSignal signal, string uniqueId)
+    public string GetSpice(INamedSignal signal, string uniqueId)
     {
         if (!signal.Dimension.Compatible(Dimension))
             throw new Exception("Signal must be compatible with stimulus dimension");
             
         string toReturn = "";
-        SingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
 
         // Pair each stimulus with corresponding signal
         for (int i = 0; i < Stimuli.Count; i++)
-            toReturn += $"{Stimuli[i].ToSpice(signals[i], $"{uniqueId}_{i}")}\n";
+            toReturn += $"{Stimuli[i].GetSpice(signals[i], $"{uniqueId}_{i}")}\n";
 
         return toReturn;
     }
 
     /// <inheritdoc/>
-    public IEnumerable<IEntity> ToSpiceSharpEntities(NamedSignal signal, string uniqueId)
+    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal signal, string uniqueId)
     {
         if (!signal.Dimension.Compatible(Dimension))
             throw new Exception("Signal must be compatible with stimulus dimension");
             
-        SingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] signals = [.. signal.ToSingleNodeSignals];
         
         // Pair each stimulus with corresponding signal
         for (int i = 0; i < Stimuli.Count; i++)
-            foreach (IEntity entity in Stimuli[i].ToSpiceSharpEntities(signals[i], $"{uniqueId}_{i}"))
+            foreach (IEntity entity in Stimuli[i].GetSpiceSharpEntities(signals[i], $"{uniqueId}_{i}"))
                 yield return entity;
     }
 }

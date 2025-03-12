@@ -1,5 +1,9 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Modules;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
 
@@ -36,54 +40,65 @@ public class StimulusMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
+public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity
 {
-    private readonly Module module;
+    private readonly ValidityManager manager;
+
+    private readonly ObservableCollection<object> trackedEntities;
+    
+    private EventHandler? updated;
+    
+    private readonly IModule module;
     
     /// <summary>
     /// Construct port mapping given module that has stimuli applied to its ports
     /// </summary>
     /// <param name="module">Module that has stimuli applied to its ports</param>
-    public StimulusMapping(Module module)
+    public StimulusMapping(IModule module)
     {
         this.module = module;
-        this.module.ModuleUpdated += ModuleUpdated;
+        trackedEntities = [module];
+        manager = new ValidityManager<object>(this, [], trackedEntities);
+        CollectionChanged += HandleCollectionChanged;
+    }
+
+    ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Event called when mapping is updated
+    /// </summary>
+    event EventHandler? IValidityManagedEntity.Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
     }
 
     /// <summary>
     /// Get all ports that need assignment
     /// </summary>
-    public IEnumerable<Port> PortsToAssign => module.Ports.Except(Keys);
+    public IEnumerable<IPort> PortsToAssign => module.Ports.Except(Keys);
 
-    /// <inheritdoc/>
-    public override IStimulusSet this[Port port]
+    bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        get => base[port];
-        set
+        exception = null;
+        foreach ((IPort port, IStimulusSet stimulus) in this)
         {
-            base[port] = value;
-            CheckValid();
-        }
-    }
-
-    private void ModuleUpdated(object? sender, EventArgs eventArgs)
-    {
-        CheckValid();
-    }
-
-    private void CheckValid()
-    {
-        foreach ((Port port, IStimulusSet stimulus) in this)
-        {
-            if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional))
-                throw new StimulusMappingException($"Port {port} must be input or bidirectional");
+            // if (!(port.Direction == PortDirection.Input || port.Direction == PortDirection.Bidirectional)) TODO
+            if (!(port.Direction == PortDirection.Input))
+                exception = new StimulusMappingException($"Port {port} must be input or bidirectional");
             if (!port.Signal.Dimension.Compatible(stimulus.Dimension))
-                throw new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");
+                exception = new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");
             if (port.Signal.ParentModule != module)
-                throw new StimulusMappingException($"Ports must have the specified module {module} as parent");
+                exception = new StimulusMappingException($"Ports must have the specified module {module} as parent");
             if (!module.Ports.Contains(port))
-                throw new StimulusMappingException($"Port {port} must be in the list of ports of specified module {module}");
+                exception = new StimulusMappingException($"Port {port} must be in the list of ports of specified module {module}");
         }
+
+        return exception is null;
     }
 
     /// <summary>
@@ -91,11 +106,30 @@ public class StimulusMapping : ObservableDictionary<Port, IStimulusSet>
     /// </summary>
     /// <returns></returns>
     public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
-
-    /// <inheritdoc/>
-    public override void Add(Port port, IStimulusSet stimulus)
+    
+    private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        base.Add(port, stimulus);
-        CheckValid();
+        try
+        {
+            updated?.Invoke(this, e);
+        }
+        catch
+        {
+            // Undo anything added
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+                foreach (object newItem in e.NewItems)
+                    if (newItem is KeyValuePair<IPort, IStimulusSet> kvp)
+                        Remove(kvp);
+
+            // Undo anything replaced
+            if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems is not null)
+                foreach (object oldItem in e.OldItems)
+                    if (oldItem is KeyValuePair<IPort, IStimulusSet> kvp)
+                        this[kvp.Key] = kvp.Value;
+
+            // Remove/clear/move action shouldn't cause issues
+
+            throw;
+        }
     }
 }

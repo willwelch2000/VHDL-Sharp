@@ -16,9 +16,9 @@ public class TimeDefinedStimulus : Stimulus
     public Dictionary<double, bool> Points { get; } = [];
 
     /// <inheritdoc/>
-    protected override string ToSpiceGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
+    protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
-        string toReturn = $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.ToSpice()} 0 PWL(";
+        string toReturn = $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PWL(";
 
         // Get points as (time, val) ordered by time
         List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
@@ -52,7 +52,7 @@ public class TimeDefinedStimulus : Stimulus
     private static double GetVoltage(bool input) => input ? Util.VDD : 0;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IEntity> ToSpiceSharpEntitiesGivenSingleNodeSignal(SingleNodeNamedSignal signal, string uniqueId)
+    protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         // Get points as (time, val) ordered by time
         List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
@@ -78,6 +78,6 @@ public class TimeDefinedStimulus : Stimulus
 
         Pwl pwl = new();
         pwl.SetPoints([.. vector]);
-        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pwl")}", signal.ToSpice(), "0", pwl);
+        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pwl")}", signal.GetSpiceName(), "0", pwl);
     }
 }
