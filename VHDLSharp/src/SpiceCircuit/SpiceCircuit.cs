@@ -1,0 +1,48 @@
+using SpiceSharp;
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
+
+namespace VHDLSharp.SpiceCircuits;
+
+/// <summary>
+/// Class used to define a Spice circuit, using Spice# entities
+/// </summary>
+/// <param name="circuitElements">entities in the circuit</param>
+public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
+{
+    /// <summary>
+    /// Entities in the circuit
+    /// </summary>
+    public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
+
+    /// <summary>
+    /// Subcircuit names, if known. 
+    /// If the name isn't given for a subcircuit, it will check the utility class and otherwise just generate a numeric name
+    /// </summary>
+    public Dictionary<SubcircuitDefinition, string> SubcircuitNames = [];
+
+    /// <summary>
+    /// Get object as a Spice# <see cref="Circuit"/>
+    /// </summary>
+    /// <returns></returns>
+    public Circuit AsCircuit() => [.. CircuitElements];
+
+    /// <summary>
+    /// Get object as a string, including used subcircuits
+    /// </summary>
+    /// <returns></returns>
+    public string AsString()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Generate a <see cref="SpiceCircuit"/> by combining several object
+    /// </summary>
+    /// <param name="circuits"></param>
+    /// <returns></returns>
+    public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
+    {
+        throw new NotImplementedException();
+    }
+}

@@ -5,6 +5,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Behaviors;
@@ -61,31 +62,33 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <param name="outputSignal">Output signal for this expression</param>
     /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
     /// <returns></returns>
-    public string GetSpice(INamedSignal outputSignal, string uniqueId)
+    public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
-        SignalSpiceObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
+        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {
             UniqueId = uniqueId,
         });
+
+        List<IEntity> entities = [.. output.SpiceSharpEntities];
 
         ISingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
         if (output.Dimension != singleNodeSignals.Length)
             throw new Exception("Expression dimension didn't match output signal dimension");
 
         // Convert final output signals from output into correct output signals
-        string value = output.SpiceString;
         for (int i = 0; i < output.Dimension; i++)
         {
             string newSignalName = singleNodeSignals[i].GetSpiceName();
             string oldSignalName = output.OutputSignalNames[i];
-
-            value = Regex.Replace(value, $@"\b{oldSignalName}\b", newSignalName);
+            
+            // Connect oldSignalName to newSignalName via 1m resistor
+            entities.Add(new Resistor("R" + Util.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
-        return value;
+        return new SpiceCircuit(entities);
     }
 
     /// <summary>

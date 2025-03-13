@@ -2,6 +2,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
 using SpiceSharp.Entities;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Behaviors;
 
@@ -31,13 +32,13 @@ public interface IBehavior
     /// </summary>
     public IModule? ParentModule { get; }
 
-    /// <summary>
-    /// Convert to Spice
-    /// </summary>
-    /// <param name="outputSignal">Output signal for this behavior</param>
-    /// <param name="uniqueId">Unique string provided to this instantiation so that it can have a unique name</param>
-    /// <returns></returns>
-    public string GetSpice(INamedSignal outputSignal, string uniqueId);
+    // /// <summary>
+    // /// Convert to Spice
+    // /// </summary>
+    // /// <param name="outputSignal">Output signal for this behavior</param>
+    // /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
+    // /// <returns></returns>
+    // public string GetSpice(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Get behavior as list of entities for Spice#
@@ -46,6 +47,14 @@ public interface IBehavior
     /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
     /// <returns></returns>
     public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId);
+
+    /// <summary>
+    /// Get Spice circuit object
+    /// </summary>
+    /// <param name="outputSignal">Output signal for this behavior</param>
+    /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
+    /// <returns></returns>
+    public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId);
 
     /// <summary>
     /// Check that a given output signal is compatible with this
