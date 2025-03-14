@@ -45,12 +45,15 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, circuitElements);
 
     /// <summary>
-    /// Generate a <see cref="SpiceCircuit"/> by combining several object
+    /// Generate a <see cref="SpiceCircuit"/> by combining several objects.
+    /// Ignores duplicate entities so that common entities/models don't appear twice
     /// </summary>
     /// <param name="circuits"></param>
     /// <returns></returns>
     public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
     {
-        throw new NotImplementedException();
+        // Use set to ignore duplicates
+        HashSet<IEntity> entities = [.. circuits.SelectMany(c => c.CircuitElements)];
+        return new(entities);
     }
 }

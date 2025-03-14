@@ -353,7 +353,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
-        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
+        string[] pins = [.. PortsToSpice()];
 
         // Initialize collection of additional entities to add
         EntityCollection additionalEntities = [.. SpiceUtil.CommonEntities];
