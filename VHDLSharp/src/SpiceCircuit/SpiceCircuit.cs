@@ -37,6 +37,14 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     }
 
     /// <summary>
+    /// Convert to Spice subcircuit object given name and pins
+    /// </summary>
+    /// <param name="name">Name to use for subcircuit</param>
+    /// <param name="pins">Array of pins for subcircuit</param>
+    /// <returns></returns>
+    public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, circuitElements);
+
+    /// <summary>
     /// Generate a <see cref="SpiceCircuit"/> by combining several object
     /// </summary>
     /// <param name="circuits"></param>

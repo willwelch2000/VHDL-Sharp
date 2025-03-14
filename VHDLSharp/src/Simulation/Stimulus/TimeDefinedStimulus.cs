@@ -18,7 +18,7 @@ public class TimeDefinedStimulus : Stimulus
     /// <inheritdoc/>
     protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
-        string toReturn = $"V{Util.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PWL(";
+        string toReturn = $"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PWL(";
 
         // Get points as (time, val) ordered by time
         List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
@@ -49,7 +49,7 @@ public class TimeDefinedStimulus : Stimulus
         return toReturn;
     }
 
-    private static double GetVoltage(bool input) => input ? Util.VDD : 0;
+    private static double GetVoltage(bool input) => input ? SpiceUtil.VDD : 0;
 
     /// <inheritdoc/>
     protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
@@ -78,6 +78,6 @@ public class TimeDefinedStimulus : Stimulus
 
         Pwl pwl = new();
         pwl.SetPoints([.. vector]);
-        yield return new VoltageSource($"V{Util.GetSpiceName(uniqueId, 0, "pwl")}", signal.GetSpiceName(), "0", pwl);
+        yield return new VoltageSource($"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pwl")}", signal.GetSpiceName(), "0", pwl);
     }
 }

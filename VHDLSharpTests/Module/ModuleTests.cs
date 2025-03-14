@@ -66,7 +66,7 @@ public class ModuleTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedVhdl, vhdl));
 
         // Check SPICE
-        string spice = m1.GetSpice();
+        string spice = m1.GetSpice().AsString();
         string expectedSpice = 
         """
         V_VDD VDD 0 5
@@ -93,7 +93,7 @@ public class ModuleTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
 
         // Check SPICE as subcircuit
-        string spiceSubcircuit = m1.GetSpice(true);
+        string spiceSubcircuit = m1.GetSpice().AsSubcircuitString();
         string expectedSpiceSubcircuit = ".subckt m1 s1 s2 s4\n" + expectedSpice + "\n.ends m1";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpiceSubcircuit, spiceSubcircuit));
     }

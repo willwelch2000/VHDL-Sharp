@@ -3,6 +3,7 @@ using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -54,21 +55,21 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
         return$"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
     }
 
-    /// <inheritdoc/>
-    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Value behavior must be valid to convert to Spice");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        string toReturn = "";
-        int i = 0;
-        // Loop through single-node signals and apply corresponding bit of Value
-        foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
-            // TODO voltage sources could be standardized better
-            toReturn += $"V{Util.GetSpiceName(uniqueId, i, "value")} {singleNodeSignal.GetSpiceName()} 0 {((Value & 1<<i++) > 0 ? Util.VDD : 0)}\n";
-        return toReturn;
-    }
+    // /// <inheritdoc/>
+    // public override string GetSpice(INamedSignal outputSignal, string uniqueId)
+    // {
+    //     if (!ValidityManager.IsValid())
+    //         throw new InvalidException("Value behavior must be valid to convert to Spice");
+    //     if (!IsCompatible(outputSignal))
+    //         throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+    //     string toReturn = "";
+    //     int i = 0;
+    //     // Loop through single-node signals and apply corresponding bit of Value
+    //     foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+    //         // TODO voltage sources could be standardized better
+    //         toReturn += $"V{Util.GetSpiceName(uniqueId, i, "value")} {singleNodeSignal.GetSpiceName()} 0 {((Value & 1<<i++) > 0 ? Util.VDD : 0)}\n";
+    //     return toReturn;
+    // }
 
     /// <inheritdoc/>
     public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
@@ -80,6 +81,22 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
         foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
-            yield return new VoltageSource(Util.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? Util.VDD : 0);
+            yield return new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? SpiceUtil.VDD : 0);
+    }
+
+    /// <inheritdoc/>
+    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Value behavior must be valid to convert to Spice# entities");
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+
+        int i = 0;
+        // Loop through single-node signals and apply corresponding bit of Value
+        List<IEntity> entities = [];
+        foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
+            entities.Add(new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? SpiceUtil.VDD : 0));
+        return new(entities);
     }
 }

@@ -6,10 +6,6 @@ internal static class Util
 {
     internal static double RiseFall => 1e-6;
 
-    internal static string NmosModelName => "NmosMod";
-
-    internal static string PmosModelName => "PmosMod";
-
     internal static string AddIndentation(this string s, int indents)
     {
         return string.Concat(Enumerable.Repeat("\t", indents)) + s.ReplaceLineEndings($"\n{string.Concat(Enumerable.Repeat("\t", indents))}");
@@ -46,16 +42,4 @@ internal static class Util
 
         return true;
     }
-
-    /// <summary>
-    /// Method to generate Spice node name
-    /// </summary>
-    /// <param name="uniqueId">Unique id for portion of the circuit</param>
-    /// <param name="dimensionIndex">Number given to differentiate duplicates for multi-dimensional signals</param>
-    /// <param name="ending">Name given to node to differentiate within portion</param>
-    /// <returns></returns>
-    internal static string GetSpiceName(string uniqueId, int dimensionIndex, string ending) => $"n{uniqueId}x{dimensionIndex}_{ending}";
-
-    internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? PmosModelName : NmosModelName)} W=100u L=1u\n";
-
 }

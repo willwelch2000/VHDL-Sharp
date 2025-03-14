@@ -52,7 +52,7 @@ public class LogicBehaviorTests
         LogicBehavior behavior = new(s1.And(s2));
 
         // Check Spice
-        string spice = behavior.GetSpice(s3, "0");
+        string spice = behavior.GetSpice(s3, "0").AsString();
         string expectedSpice = 
         """
         Rn0_0x0_res s1 n0_0x0_baseout 1m

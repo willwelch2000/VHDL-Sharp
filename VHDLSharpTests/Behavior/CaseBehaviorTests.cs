@@ -52,7 +52,7 @@ public class CaseBehaviorTests
         Assert.IsFalse(behavior.IsCompatible(v2));
 
         // Check Spice
-        string spice = behavior.GetSpice(v1, "0");
+        string spice = behavior.GetSpice(v1, "0").AsString();
         string expectedSpice = 
         """
         Rn0_0x0_res VDD n0x0_case0_0 1m

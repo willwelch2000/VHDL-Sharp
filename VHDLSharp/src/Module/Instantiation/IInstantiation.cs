@@ -1,5 +1,6 @@
 using SpiceSharp.Components;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
@@ -36,13 +37,6 @@ public interface IInstantiation : IValidityManagedEntity
     public string SpiceName => $"X{Name}";
 
     /// <summary>
-    /// Convert to spice. 
-    /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
-    /// </summary>
-    /// <returns></returns>
-    public string GetSpice();
-
-    /// <summary>
     /// Convert to VHDL. 
     /// For instantiation, not component declaration. 
     /// </summary>
@@ -51,11 +45,11 @@ public interface IInstantiation : IValidityManagedEntity
 
     /// <summary>
     /// Given a dictionary mapping modules to subcircuit definition objects,
-    /// generate a Spice# subcircuit object for this instantiation
+    /// generate a Spice circuit object for this instantiation
     /// </summary>
     /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects so that they only one is used per module</param>
     /// <returns></returns>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions);
+    public SpiceCircuit GetSpice(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions);
 
     /// <inheritdoc/>
     public string ToString();

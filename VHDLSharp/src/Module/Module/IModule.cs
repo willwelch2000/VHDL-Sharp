@@ -3,6 +3,7 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Modules;
@@ -73,26 +74,7 @@ public interface IModule
     /// Convert module to Spice circuit
     /// </summary>
     /// <returns></returns>
-    public string GetSpice();
-
-    /// <summary>
-    /// Convert module to Spice circuit
-    /// </summary>
-    /// <param name="subcircuit">Whether it should be wrapped in a subcircuit or top-level</param>
-    /// <returns></returns>
-    public string GetSpice(bool subcircuit);
-
-    /// <summary>
-    /// Convert module to a singleton Spice# <see cref="SubcircuitDefinition"/> object
-    /// </summary>
-    /// <returns></returns>
-    public SubcircuitDefinition GetSpiceSharpSubcircuit();
-
-    /// <summary>
-    /// Convert module to Spice# <see cref="Circuit"/> object
-    /// </summary>
-    /// <returns></returns>
-    public Circuit GetSpiceSharpCircuit();
+    public SpiceSubcircuit GetSpice();
 
     /// <summary>
     /// Test if the module contains a signal

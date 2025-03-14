@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Exceptions;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -62,21 +63,21 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// </summary>
     public string SpiceName => $"X{Name}";
 
-    /// <summary>
-    /// Convert to spice. 
-    /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
-    /// </summary>
-    /// <returns></returns>
-    public string GetSpice()
-    {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation is invalid");
+    // /// <summary>
+    // /// Convert to spice. 
+    // /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
+    // /// </summary>
+    // /// <returns></returns>
+    // public string GetSpice()
+    // {
+    //     if (!validityManager.IsValid())
+    //         throw new InvalidException("Instantiation is invalid");
 
-        if (!PortMapping.IsComplete())
-            throw new IncompleteException("Instantiation not yet complete");
+    //     if (!PortMapping.IsComplete())
+    //         throw new IncompleteException("Instantiation not yet complete");
 
-        return $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
-    }
+    //     return $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
+    // }
 
     /// <summary>
     /// Convert to VHDL. 
@@ -104,7 +105,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public Subcircuit GetSpiceSharpSubcircuit(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions)
+    public SpiceCircuit GetSpice(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions)
     {
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation is invalid");
@@ -113,7 +114,9 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
             throw new IncompleteException("Instantiation not yet complete");
 
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-        return new Subcircuit($"X{SpiceName}", subcircuitDefinitions[InstantiatedModule], nodes);
+        Subcircuit entity = new($"X{SpiceName}", subcircuitDefinitions[InstantiatedModule], nodes);
+
+        return new([entity]);
     }
 
     /// <inheritdoc/>

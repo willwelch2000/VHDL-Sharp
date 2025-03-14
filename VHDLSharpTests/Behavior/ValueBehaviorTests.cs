@@ -26,7 +26,7 @@ public class ValueBehaviorTests
         Assert.IsTrue(behavior.IsCompatible(v2));
 
         // Check Spice
-        string spice = behavior.GetSpice(s1, "0");
+        string spice = behavior.GetSpice(s1, "0").AsString();
         string expectedSpice = "Vn0x0_value s1 0 5";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
@@ -65,7 +65,7 @@ public class ValueBehaviorTests
         Assert.IsTrue(behavior2.IsCompatible(v3));
 
         // Check Spice
-        string spice = behavior1.GetSpice(v2, "0");
+        string spice = behavior1.GetSpice(v2, "0").AsString();
         string expectedSpice = 
         """
         Vn0x0_value v2_0 0 0

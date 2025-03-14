@@ -85,7 +85,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             string oldSignalName = output.OutputSignalNames[i];
             
             // Connect oldSignalName to newSignalName via 1m resistor
-            entities.Add(new Resistor("R" + Util.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
+            entities.Add(new Resistor("R" + SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
         return new SpiceCircuit(entities);
@@ -119,7 +119,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             string oldSignalName = output.OutputSignalNames[i];
             
             // Connect oldSignalName to newSignalName via 1m resistor
-            entities.Add(new Resistor("R" + Util.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
+            entities.Add(new Resistor("R" + SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
         return entities;

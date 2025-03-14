@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -74,19 +75,34 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         return exception is null;
     }
 
+    // /// <summary>
+    // /// Get list of instantiations as list of entities for Spice#
+    // /// </summary>
+    // public IEnumerable<IEntity> GetSpiceSharpEntities()
+    // {
+    //     // Make subcircuit definitions for all distinct modules
+    //     Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
+    //     foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
+    //         subcircuitDefinitions[submodule] = submodule.GetSpiceSharpSubcircuit();
+
+    //     // Add instantiations
+    //     foreach (IInstantiation instantiation in instantiations)
+    //         yield return instantiation.GetSpiceSharpSubcircuit(subcircuitDefinitions);
+    // }
+
     /// <summary>
-    /// Get list of instantiations as list of entities for Spice#
+    /// Get Spice circuit representing the collection of instantiations
     /// </summary>
-    public IEnumerable<IEntity> GetSpiceSharpEntities()
+    /// <returns></returns>
+    public SpiceCircuit GetSpice()
     {
         // Make subcircuit definitions for all distinct modules
         Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
         foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            subcircuitDefinitions[submodule] = submodule.GetSpiceSharpSubcircuit();
+            subcircuitDefinitions[submodule] = submodule.GetSpice().AsSubcircuit();
 
-        // Add instantiations
-        foreach (IInstantiation instantiation in instantiations)
-            yield return instantiation.GetSpiceSharpSubcircuit(subcircuitDefinitions);
+        // Combine all instantiations into one circuit
+        return SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
     }
 
     /// <summary>
@@ -107,16 +123,16 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Get all instantiated subcircuits' Spice declarations, as enumerable of strings
-    /// </summary>
-    /// <returns></returns>
-    public IEnumerable<string> GetSpiceSubcircuitDeclarations()
-    {
-        // Add all inner modules' subcircuit declarations--no recursion needed here because the inner modules' inner modules are declared in the subcircuit
-        foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            yield return submodule.GetSpice(true) + "\n";
-    }
+    // /// <summary>
+    // /// Get all instantiated subcircuits' Spice declarations, as enumerable of strings
+    // /// </summary>
+    // /// <returns></returns>
+    // public IEnumerable<string> GetSpiceSubcircuitDeclarations()
+    // {
+    //     // Add all inner modules' subcircuit declarations--no recursion needed here because the inner modules' inner modules are declared in the subcircuit
+    //     foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
+    //         yield return submodule.GetSpice(true) + "\n";
+    // }
 
     /// <summary>
     /// Get all instantiations as Spice instance statements, together in a string
@@ -128,8 +144,8 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
             return "";
 
         StringBuilder sb = new();
-        foreach (IInstantiation instantiation in instantiations)
-            sb.AppendLine(instantiation.GetSpice());
+        // foreach (IInstantiation instantiation in instantiations)
+        //     sb.AppendLine(instantiation.GetSpice());
         sb.AppendLine();
         return sb.ToString();
     }

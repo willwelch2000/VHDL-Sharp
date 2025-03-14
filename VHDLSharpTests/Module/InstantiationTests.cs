@@ -25,12 +25,11 @@ public class InstantiationTests
         Assert.AreEqual("Xi1", instantiation.SpiceName);
         Assert.AreEqual("instanceMod in parentMod", instantiation.ToString());
 
-        Assert.ThrowsException<IncompleteException>(instantiation.GetSpice);
         Dictionary<IModule, SubcircuitDefinition> definitions = new()
         {
             {instanceMod, new SubcircuitDefinition(new EntityCollection())}
         };
-        Assert.ThrowsException<IncompleteException>(() => instantiation.GetSpiceSharpSubcircuit(definitions));
+        Assert.ThrowsException<IncompleteException>(() => instantiation.GetSpice(definitions));
         Assert.ThrowsException<IncompleteException>(instantiation.GetVhdlStatement);
     }
 
@@ -68,7 +67,7 @@ public class InstantiationTests
         parentMod.Instantiations.Add(i2);
         parentMod.Instantiations.Add(i3);
 
-        IEnumerable<Subcircuit> spiceInstantiations = parentMod.Instantiations.GetSpiceSharpEntities().Where(e => e is Subcircuit).Select(e => (Subcircuit)e);
+        IEnumerable<Subcircuit> spiceInstantiations = parentMod.Instantiations.GetSpice().AsCircuit().Where(e => e is Subcircuit).Select(e => (Subcircuit)e);
         Assert.AreEqual(2, spiceInstantiations.Select(i => i.Parameters.Definition).Distinct().Count());
     }
 }
