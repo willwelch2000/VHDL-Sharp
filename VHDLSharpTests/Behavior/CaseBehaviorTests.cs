@@ -55,6 +55,9 @@ public class CaseBehaviorTests
         string spice = behavior.GetSpice(v1, "0").AsString();
         string expectedSpice = 
         """
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        
         Rn0_0_0x0_res VDD n0_0_0x0_baseout 0.001
         Rn0_0_0x1_res VDD n0_0_0x1_baseout 0.001
         Rn0_0_0x2_res VDD n0_0_0x2_baseout 0.001

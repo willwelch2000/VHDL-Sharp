@@ -1,6 +1,7 @@
 using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
+using SpiceSharp.Documentation;
 using SpiceSharp.Entities;
 using VHDLSharp.Utility;
 
@@ -55,9 +56,24 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
             sb.AppendLine(subcircuit.AsSubcircuitString().AddIndentation(1));
         }
 
-        // Add all entities
+        // Sort entities into groups for ordering
+        int groups = 3;
+        List<IEntity>[] orderedElements = new List<IEntity>[groups];
+        for (int j = 0; j < groups; j++)
+            orderedElements[j] = [];
+
+        IEntity[] commonEntities = [.. SpiceUtil.CommonEntities];
         foreach (IEntity element in CircuitElements)
-            sb.AppendLine(element.GetSpice());
+        {
+            int group = element is Mosfet1Model or Mosfet2Model or Mosfet3Model ? 0 :
+                        commonEntities.Contains(element) ? 1 : 2;
+            orderedElements[group].Add(element);
+        }
+
+        // Add all entities by group
+        for (int j = 0; j < groups; j++)
+            foreach (IEntity element in orderedElements[j])
+                sb.AppendLine(element.GetSpice());
 
         return sb.ToString();
     }
