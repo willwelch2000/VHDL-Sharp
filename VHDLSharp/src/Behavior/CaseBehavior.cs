@@ -211,7 +211,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
 
-        return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
+        return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)

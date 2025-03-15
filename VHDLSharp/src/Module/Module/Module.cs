@@ -381,7 +381,7 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         circuits.Add(new(additionalEntities));
-        return SpiceCircuit.Combine(circuits).ToSpiceSubcircuit(Name, pins);
+        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(Name, pins);
     }
 
     /// <summary>

@@ -68,6 +68,6 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
         List<IEntity> entities = [];
         foreach (ISingleNodeNamedSignal singleNodeSignal in outputSignal.ToSingleNodeSignals)
             entities.Add(new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? SpiceUtil.VDD : 0));
-        return new(entities);
+        return new SpiceCircuit(entities).WithCommonEntities();
     }
 }

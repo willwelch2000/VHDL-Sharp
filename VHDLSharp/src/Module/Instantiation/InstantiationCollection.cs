@@ -109,7 +109,7 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         // Combine all instantiations into one circuit
         SpiceCircuit circuit = SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
         circuit.SubcircuitNames = subcircuitNames;
-        return circuit;
+        return circuit.WithCommonEntities();
     }
 
     /// <summary>

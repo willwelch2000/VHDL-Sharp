@@ -1,6 +1,7 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Simulations;
@@ -48,14 +49,15 @@ public class PulseStimulus : Stimulus
     /// </summary>
     public double Period { get; set; }
 
-    /// <inheritdoc/>
-    protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
-        $"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PULSE(0 {SpiceUtil.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
+    // /// <inheritdoc/>
+    // protected override SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
+    //     $"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PULSE(0 {SpiceUtil.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
 
     /// <inheritdoc/>
-    protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
+    protected override SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         Pulse pulse = new(0, SpiceUtil.VDD, DelayTime, Util.RiseFall, Util.RiseFall, PulseWidth, Period);
-        yield return new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "pulse"), signal.GetSpiceName(), "0", pulse);
+        VoltageSource source = new(SpiceUtil.GetSpiceName(uniqueId, 0, "pulse"), signal.GetSpiceName(), "0", pulse);
+        return new([source]);
     }
 }

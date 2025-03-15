@@ -88,7 +88,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             entities.Add(new Resistor(SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
-        return new SpiceCircuit(entities);
+        return new SpiceCircuit(entities).WithCommonEntities();
     }
 
     /// <summary>

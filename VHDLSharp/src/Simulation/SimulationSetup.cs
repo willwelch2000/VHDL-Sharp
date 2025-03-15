@@ -108,28 +108,6 @@ public class SimulationSetup : IValidityManagedEntity
     /// </summary>
     public bool IsComplete() => StimulusMapping.IsComplete();
 
-    // TODO
-    // /// <summary>
-    // /// Get Spice representation of the setup
-    // /// </summary>
-    // /// <returns></returns>
-    // public string GetSpice()
-    // {
-    //     if (!manager.IsValid())
-    //         throw new InvalidException("Simulation setup must be valid to convert to Spice");
-    //     if (!IsComplete())
-    //         throw new IncompleteException("Simulation setup must be complete to convert to Spice");
-
-    //     string toReturn = Module.GetSpice();
-
-    //     // Connect stimuli to ports
-    //     int i = 0;
-    //     foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-    //         toReturn += $"{stimulus.GetSpice(port.Signal, i++.ToString())}\n";
-
-    //     return toReturn;
-    // }
-
     /// <summary>
     /// Get Spice# Circuit representation of setup
     /// </summary>
@@ -144,14 +122,13 @@ public class SimulationSetup : IValidityManagedEntity
         SpiceCircuit circuit = Module.GetSpice();
 
         // Connect stimuli to ports
-        List<IEntity> additionalEntities = [];
+        List<SpiceCircuit> additionalCircuits = [];
         int i = 0;
         foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            foreach (IEntity entity in stimulus.GetSpiceSharpEntities(port.Signal, i++.ToString()))
-                additionalEntities.Add(entity);
+            additionalCircuits.Add(stimulus.GetSpice(port.Signal, i++.ToString()));
 
         // Combine module circuit with additional entities
-        return SpiceCircuit.Combine([circuit, new(additionalEntities)]);
+        return SpiceCircuit.Combine([circuit, .. additionalCircuits]);
     }
 
     /// <inheritdoc/>

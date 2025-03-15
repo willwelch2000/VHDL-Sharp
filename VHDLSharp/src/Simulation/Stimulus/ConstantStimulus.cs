@@ -1,6 +1,7 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Simulations;
@@ -28,15 +29,11 @@ public class ConstantStimulus : Stimulus
     /// Digital value of stimulus
     /// </summary>
     public bool Value { get; set; } = false;
-
+    
     /// <inheritdoc/>
-    protected override string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
-        $"V{SpiceUtil.GetSpiceName(uniqueId, 0, "const")} {signal.GetSpiceName()} 0 {(Value ? SpiceUtil.VDD.ToString() : "0")}";
-
-    /// <inheritdoc/>
-    protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
+    protected override SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         // DC voltage source at signal with VDD or 0
-        yield return new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "const"), signal.GetSpiceName(), "0", Value ? SpiceUtil.VDD : 0);
+        return new([new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "const"), signal.GetSpiceName(), "0", Value ? SpiceUtil.VDD : 0)]);
     }
 }

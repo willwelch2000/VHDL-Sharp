@@ -63,22 +63,6 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// </summary>
     public string SpiceName => $"X{Name}";
 
-    // /// <summary>
-    // /// Convert to spice. 
-    // /// Looks at each port in the instantiated module and appends the corresponding signal to the spice
-    // /// </summary>
-    // /// <returns></returns>
-    // public string GetSpice()
-    // {
-    //     if (!validityManager.IsValid())
-    //         throw new InvalidException("Instantiation is invalid");
-
-    //     if (!PortMapping.IsComplete())
-    //         throw new IncompleteException("Instantiation not yet complete");
-
-    //     return $"{SpiceName} " + string.Join(' ', InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName()));
-    // }
-
     /// <summary>
     /// Convert to VHDL. 
     /// For instantiation, not component declaration. 

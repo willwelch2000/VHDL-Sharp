@@ -1,7 +1,6 @@
 using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
-using SpiceSharp.Documentation;
 using SpiceSharp.Entities;
 using VHDLSharp.Utility;
 
@@ -70,6 +69,18 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <param name="pins">Array of pins for subcircuit</param>
     /// <returns></returns>
     public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, circuitElements);
+
+    /// <summary>
+    /// Add on common entities from Spice Util
+    /// </summary>
+    /// <returns></returns>
+    internal SpiceCircuit WithCommonEntities()
+    {
+        foreach (IEntity entity in SpiceUtil.CommonEntities)
+            if (!CircuitElements.Contains(entity))
+                CircuitElements.Add(entity);
+        return this;
+    }
 
     /// <summary>
     /// Generate a <see cref="SpiceCircuit"/> by combining several objects.

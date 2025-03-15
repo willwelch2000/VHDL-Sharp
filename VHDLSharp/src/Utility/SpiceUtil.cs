@@ -29,6 +29,8 @@ internal static class SpiceUtil
 
             nmosModel = new("NmosMod");
             nmosModel.Parameters.SetNmos(true);
+            nmosModel.Parameters.Width = 100e-6;
+            nmosModel.Parameters.Length = 1e-6;
             return nmosModel;
         }
     }
@@ -45,6 +47,8 @@ internal static class SpiceUtil
 
             pmosModel = new("PmosMod");
             pmosModel.Parameters.SetPmos(true);
+            pmosModel.Parameters.Width = 100e-6;
+            pmosModel.Parameters.Length = 1e-6;
             return pmosModel;
         }
     }
@@ -55,7 +59,7 @@ internal static class SpiceUtil
     internal static VoltageSource VddSource { get; } = new("VDD", "VDD", "0", VDD);
 
     /// <summary>
-    /// Entities to be included everywhere
+    /// Entities to be included whenever MOSFETs or the VDD node are used
     /// </summary>
     internal static IEnumerable<IEntity> CommonEntities
     {
@@ -86,21 +90,21 @@ internal static class SpiceUtil
     /// <summary>
     /// Get Spice for a specific Spice# entity. Does not add a new line.
     /// Prepends Spice letters to the beginning
+    /// TODO add other types of voltage sources--PWL, Pulse
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
     internal static string GetSpice(this IEntity entity) => entity switch
     {
         // Note: this does the bare minimum, does not exhaustively convert entities to string
-        VoltageSource voltageSource => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} {voltageSource.Parameters.DcValue}",
-        Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model} W={mosfet1.Parameters.Width} L={mosfet1.Parameters.Length}",
+        Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model}",
         Resistor resistor => $"R{resistor.Name} {string.Join(' ', resistor.Nodes)} {resistor.Parameters.Resistance.Value}",
-        Mosfet1Model mosfet1Model => $".MODEL {mosfet1Model.Name} {mosfet1Model.Parameters.TypeName}",
+        Mosfet1Model mosfet1Model => $".MODEL {mosfet1Model.Name} {mosfet1Model.Parameters.TypeName} W={mosfet1Model.Parameters.Width.Value} L={mosfet1Model.Parameters.Length.Value}",
+        VoltageSource voltageSource => voltageSource switch
+        {
+            // {Parameters.Waveform : Pwl}
+            _ => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} {voltageSource.Parameters.DcValue.Value}",
+        },
         _ => throw new Exception("Unknown entity type")
     };
-
-    // TODO remove
-    internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? PmosModelName : NmosModelName)} W=100u L=1u\n";
-    internal static string PmosModelName => "PmosMod";
-    internal static string NmosModelName => "NmosMod";
 }
