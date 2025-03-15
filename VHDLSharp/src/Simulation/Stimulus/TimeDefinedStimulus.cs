@@ -78,6 +78,6 @@ public class TimeDefinedStimulus : Stimulus
 
         Pwl pwl = new();
         pwl.SetPoints([.. vector]);
-        yield return new VoltageSource($"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pwl")}", signal.GetSpiceName(), "0", pwl);
+        yield return new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "pwl"), signal.GetSpiceName(), "0", pwl);
     }
 }

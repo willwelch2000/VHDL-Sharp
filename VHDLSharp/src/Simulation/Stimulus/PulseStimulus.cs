@@ -56,6 +56,6 @@ public class PulseStimulus : Stimulus
     protected override IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {
         Pulse pulse = new(0, SpiceUtil.VDD, DelayTime, Util.RiseFall, Util.RiseFall, PulseWidth, Period);
-        yield return new VoltageSource($"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pulse")}", signal.GetSpiceName(), "0", pulse);
+        yield return new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "pulse"), signal.GetSpiceName(), "0", pulse);
     }
 }

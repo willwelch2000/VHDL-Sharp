@@ -52,7 +52,7 @@ internal static class SpiceUtil
     /// <summary>
     /// Get singleton VDD voltage source object
     /// </summary>
-    internal static VoltageSource VddSource { get; } = new("V_VDD", "VDD", "0", VDD);
+    internal static VoltageSource VddSource { get; } = new("VDD", "VDD", "0", VDD);
 
     /// <summary>
     /// Entities to be included everywhere
@@ -94,7 +94,7 @@ internal static class SpiceUtil
         // Note: this does the bare minimum, does not exhaustively convert entities to string
         VoltageSource voltageSource => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} {voltageSource.Parameters.DcValue}",
         Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model} W={mosfet1.Parameters.Width} L={mosfet1.Parameters.Length}",
-        Resistor resistor => $"R{resistor.Name} {string.Join(' ', resistor.Nodes)} {resistor.Parameters.Resistance}",
+        Resistor resistor => $"R{resistor.Name} {string.Join(' ', resistor.Nodes)} {resistor.Parameters.Resistance.Value}",
         Mosfet1Model mosfet1Model => $".MODEL {mosfet1Model.Name} {mosfet1Model.Parameters.TypeName}",
         _ => throw new Exception("Unknown entity type")
     };

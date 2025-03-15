@@ -69,7 +69,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
 
         SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {
-            UniqueId = uniqueId,
+            UniqueId = $"{uniqueId}_0",
         });
 
         List<IEntity> entities = [.. output.SpiceSharpEntities];
@@ -85,44 +85,10 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             string oldSignalName = output.OutputSignalNames[i];
             
             // Connect oldSignalName to newSignalName via 1m resistor
-            entities.Add(new Resistor("R" + SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
+            entities.Add(new Resistor(SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
         return new SpiceCircuit(entities);
-    }
-
-    /// <summary>
-    /// Get expression as list of entities for Spice#
-    /// </summary>
-    /// <param name="outputSignal">Output signal for this expression</param>
-    /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
-    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
-
-        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
-        {
-            UniqueId = uniqueId,
-        });
-
-        List<IEntity> entities = [.. output.SpiceSharpEntities];
-
-        ISingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
-        if (output.Dimension != singleNodeSignals.Length)
-            throw new Exception("Expression dimension didn't match output signal dimension");
-
-        // Convert final output signals from output into correct output signals
-        for (int i = 0; i < output.Dimension; i++)
-        {
-            string newSignalName = singleNodeSignals[i].GetSpiceName();
-            string oldSignalName = output.OutputSignalNames[i];
-            
-            // Connect oldSignalName to newSignalName via 1m resistor
-            entities.Add(new Resistor("R" + SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
-        }
-
-        return entities;
     }
 
     /// <summary>

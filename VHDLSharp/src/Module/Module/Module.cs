@@ -377,7 +377,7 @@ public class Module : IModule, IValidityManagedEntity
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                additionalEntities.Add(new Resistor($"R{SpiceUtil.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.GetSpiceName(), "0", 1e9));
+                additionalEntities.Add(new Resistor(SpiceUtil.GetSpiceName(i++.ToString(), j++, "floating"), singleNodeSignal.GetSpiceName(), "0", 1e9));
         }
 
         circuits.Add(new(additionalEntities));

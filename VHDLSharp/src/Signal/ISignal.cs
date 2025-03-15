@@ -151,16 +151,16 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                     foreach ((string inputSignal, int j) in inputSignalNames.Select((s, j) => (s[i], j)))
                     {
                         // PMOSs go in parallel from VDD to nandSignal
-                        entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"pnand{j}")}", nandSignalNames[i], inputSignal, "VDD", "VDD", SpiceUtil.PmosModelName));
+                        entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"pnand{j}"), nandSignalNames[i], inputSignal, "VDD", "VDD", SpiceUtil.PmosModelName));
                         // NMOSs go in series from nandSignal to ground
                         string nDrain = j == 0 ? nandSignalNames[i] : SpiceUtil.GetSpiceName(uniqueId, i, $"nand{j}");
                         string nSource = j == inputSignalNames.Count - 1 ? "0" : SpiceUtil.GetSpiceName(uniqueId, i, $"nand{j+1}");
-                        entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"nnand{j}")}", nDrain, inputSignal, nSource, nSource, SpiceUtil.NmosModelName));
+                        entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"nnand{j}"), nDrain, inputSignal, nSource, nSource, SpiceUtil.NmosModelName));
                     }
 
                     // Add PMOS and NMOS to form NOT gate going from nand signal name to output signal name
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"pnot")}", outputSignalNames[i], nandSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], nandSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"pnot"), outputSignalNames[i], nandSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"nnot"), outputSignalNames[i], nandSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
                 }
 
                 return new()
@@ -216,14 +216,14 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                         // PMOSs go in series from VDD to norSignal
                         string pDrain = j == 0 ? norSignalNames[i] : SpiceUtil.GetSpiceName(uniqueId, i, $"nor{j}");
                         string pSource = j == inputSignalNames.Count - 1 ? "VDD" : SpiceUtil.GetSpiceName(uniqueId, i, $"nor{j+1}");
-                        entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"pnor{j}")}", pDrain, inputSignal, pSource, pSource, SpiceUtil.PmosModelName));
+                        entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"pnor{j}"), pDrain, inputSignal, pSource, pSource, SpiceUtil.PmosModelName));
                         // NMOSs go in parallel from norSignal to ground
-                        entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"nnor{j}")}", norSignalNames[i], inputSignal, "0", "0", SpiceUtil.NmosModelName));
+                        entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"nnor{j}"), norSignalNames[i], inputSignal, "0", "0", SpiceUtil.NmosModelName));
                     }
 
                     // Add PMOS and NMOS to form NOT gate going from nor signal name to output signal name
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"pnot")}", outputSignalNames[i], norSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, $"nnot")}", outputSignalNames[i], norSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"pnot"), outputSignalNames[i], norSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, $"nnot"), outputSignalNames[i], norSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
                 }
 
                 return new()
@@ -253,8 +253,8 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 List<IEntity> entities = [.. innerOutput.SpiceSharpEntities];
                 for (int i = 0; i < dimension; i++)
                 {
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, "p")}", outputSignalNames[i], innerOutput.OutputSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
-                    entities.Add(new Mosfet1($"M{SpiceUtil.GetSpiceName(uniqueId, i, "n")}", outputSignalNames[i], innerOutput.OutputSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, "p"), outputSignalNames[i], innerOutput.OutputSignalNames[i], "VDD", "VDD", SpiceUtil.PmosModelName));
+                    entities.Add(new Mosfet1(SpiceUtil.GetSpiceName(uniqueId, i, "n"), outputSignalNames[i], innerOutput.OutputSignalNames[i], "0", "0", SpiceUtil.NmosModelName));
                 }
 
                 return new()
@@ -274,7 +274,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 
                 // Add 1m resistors between signals and output signals
                 IEnumerable<IEntity> entities = Enumerable.Range(0, signals.Length).Select(i =>
-                    new Resistor($"R{SpiceUtil.GetSpiceName(uniqueId, i, "res")}", signals[i], outputSignals[i], 1e-3));
+                    new Resistor(SpiceUtil.GetSpiceName(uniqueId, i, "res"), signals[i], outputSignals[i], 1e-3));
 
                 return new()
                 {
