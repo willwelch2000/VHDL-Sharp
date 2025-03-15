@@ -15,7 +15,9 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        
+        Mosfet1Model model = new("test");
+        model.Parameters.SetNmos(true);
+        string type = model.Parameters.TypeName;
     }
 
     public static void MainTest()
@@ -36,7 +38,7 @@ public static class Program
 
         Console.WriteLine(module1.GetSpice());
 
-        Circuit circuit = module1.GetSpiceSharpCircuit();
+        Circuit circuit = module1.GetSpice().AsCircuit();
         IEntity[] entities = [.. circuit];
     }
 

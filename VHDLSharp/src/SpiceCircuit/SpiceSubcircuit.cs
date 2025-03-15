@@ -1,5 +1,6 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.SpiceCircuits;
 
@@ -9,7 +10,7 @@ namespace VHDLSharp.SpiceCircuits;
 /// <param name="name">name of the subcircuit</param>
 /// <param name="pins">names of pins to be included in subcircuit definition</param>
 /// <param name="circuitElements">entities in the circuit</param>
-public class SpiceSubcircuit(string name, string[] pins, IEnumerable<IEntity> circuitElements) : SpiceCircuit(circuitElements)
+public class SpiceSubcircuit(string name, IEnumerable<string> pins, IEnumerable<IEntity> circuitElements) : SpiceCircuit(circuitElements)
 {
     /// <summary>
     /// Name of the subcircuit
@@ -19,7 +20,7 @@ public class SpiceSubcircuit(string name, string[] pins, IEnumerable<IEntity> ci
     /// <summary>
     /// Names of pins to be included in subcircuit definition
     /// </summary>
-    public string[] Pins { get; } = pins;
+    public string[] Pins { get; } = [.. pins];
 
     /// <summary>
     /// Get object as a Spice# <see cref="SubcircuitDefinition"/>
@@ -31,8 +32,5 @@ public class SpiceSubcircuit(string name, string[] pins, IEnumerable<IEntity> ci
     /// Get object as a string, including used subcircuits
     /// </summary>
     /// <returns></returns>
-    public string AsSubcircuitString()
-    {
-        throw new NotImplementedException();
-    }
+    public string AsSubcircuitString() => $".subckt {string.Join(' ', Pins)}" + AsString().AddIndentation(1) + ".ends";
 }

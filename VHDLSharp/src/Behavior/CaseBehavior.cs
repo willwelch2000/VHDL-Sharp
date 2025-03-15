@@ -211,20 +211,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
 
-        return new(ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId)));
-    }
-
-    /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to Spice# entities");
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to Spice# entities");
-
-        return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
+        return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)

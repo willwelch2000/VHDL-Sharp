@@ -1,6 +1,9 @@
+using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
+using SpiceSharp.Documentation;
 using SpiceSharp.Entities;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.SpiceCircuits;
 
@@ -19,7 +22,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// Subcircuit names, if known. 
     /// If the name isn't given for a subcircuit, it will check the utility class and otherwise just generate a numeric name
     /// </summary>
-    public Dictionary<SubcircuitDefinition, string> SubcircuitNames = [];
+    public Dictionary<ISubcircuitDefinition, string> SubcircuitNames { get; set; } = [];
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
@@ -33,7 +36,31 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <returns></returns>
     public string AsString()
     {
-        throw new NotImplementedException();
+        StringBuilder sb = new();
+
+        // Add subcircuit declarations
+        HashSet<string> subcircuitNames = [];
+        int i = 0;
+        IEnumerable<Subcircuit> instantiations = CircuitElements.Where(e => e is Subcircuit).Select(e => (Subcircuit)e);
+        foreach (ISubcircuitDefinition subcircuitDef in instantiations.Select(i => i.Parameters.Definition).Distinct())
+        {
+            string? name = SubcircuitNames.TryGetValue(subcircuitDef, out string? val) ? val : (SpiceUtil.SubcircuitNames.TryGetValue(subcircuitDef, out val) ? val : null);
+            if (name is null)
+                do
+                    name = $"subcircuit{i}";
+                while (!subcircuitNames.Add(name));
+            else
+                subcircuitNames.Add(name);
+
+            SpiceSubcircuit subcircuit = new(name, subcircuitDef.Pins, subcircuitDef.Entities);
+            sb.AppendLine(subcircuit.AsSubcircuitString().AddIndentation(1));
+        }
+
+        // Add all entities
+        foreach (IEntity element in CircuitElements)
+            sb.AppendLine(element.GetSpice());
+
+        return sb.ToString();
     }
 
     /// <summary>
@@ -50,10 +77,5 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// </summary>
     /// <param name="circuits"></param>
     /// <returns></returns>
-    public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
-    {
-        // Use set to ignore duplicates
-        HashSet<IEntity> entities = [.. circuits.SelectMany(c => c.CircuitElements)];
-        return new(entities);
-    }
+    public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits) => new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
 }

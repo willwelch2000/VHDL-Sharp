@@ -58,21 +58,4 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
     }
-
-    /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice# entities");
-            
-        // Don't call IsCompatible here since it does it in LogicExpression
-        try
-        {
-            return LogicExpression.GetSpiceSharpEntities(outputSignal, uniqueId);
-        }
-        catch (IncompatibleSignalException)
-        {
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        }
-    }
 }

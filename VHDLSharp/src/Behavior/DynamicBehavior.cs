@@ -90,10 +90,4 @@ public class DynamicBehavior : Behavior
     {
         throw new NotImplementedException();
     }
-
-    /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
-    {
-        throw new NotImplementedException();
-    }
 }

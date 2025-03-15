@@ -98,11 +98,18 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     {
         // Make subcircuit definitions for all distinct modules
         Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
+        Dictionary<ISubcircuitDefinition, string> subcircuitNames = [];
         foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
-            subcircuitDefinitions[submodule] = submodule.GetSpice().AsSubcircuit();
+        {
+            SubcircuitDefinition subcircuitDefinition = submodule.GetSpice().AsSubcircuit();
+            subcircuitDefinitions[submodule] = subcircuitDefinition;
+            subcircuitNames[subcircuitDefinition] = submodule.Name;
+        }
 
         // Combine all instantiations into one circuit
-        return SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
+        SpiceCircuit circuit = SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
+        circuit.SubcircuitNames = subcircuitNames;
+        return circuit;
     }
 
     /// <summary>

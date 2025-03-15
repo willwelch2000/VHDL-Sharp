@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using SpiceSharp.Components;
+using SpiceSharp.Documentation;
 using SpiceSharp.Entities;
 
 namespace VHDLSharp.Utility;
@@ -12,7 +13,7 @@ internal static class SpiceUtil
     private static Mosfet1Model? nmosModel = null;
     private static Mosfet1Model? pmosModel = null;
     
-    private static readonly Dictionary<SubcircuitDefinition, string> subcircuitNames = [];
+    private static readonly Dictionary<ISubcircuitDefinition, string> subcircuitNames = [];
 
     internal static double VDD => 5.0;
 
@@ -71,7 +72,7 @@ internal static class SpiceUtil
     /// <summary>
     /// Dictionary mapping Spice# subcircuits to their names to be used in Spice
     /// </summary>
-    internal static ReadOnlyDictionary<SubcircuitDefinition, string> SubcircuitNames => new(subcircuitNames);
+    internal static ReadOnlyDictionary<ISubcircuitDefinition, string> SubcircuitNames => new(subcircuitNames);
 
     /// <summary>
     /// Method to generate Spice node name
@@ -81,6 +82,22 @@ internal static class SpiceUtil
     /// <param name="ending">Name given to node to differentiate within portion</param>
     /// <returns></returns>
     internal static string GetSpiceName(string uniqueId, int dimensionIndex, string ending) => $"n{uniqueId}x{dimensionIndex}_{ending}";
+
+    /// <summary>
+    /// Get Spice for a specific Spice# entity. Does not add a new line.
+    /// Prepends Spice letters to the beginning
+    /// </summary>
+    /// <param name="entity"></param>
+    /// <returns></returns>
+    internal static string GetSpice(this IEntity entity) => entity switch
+    {
+        // Note: this does the bare minimum, does not exhaustively convert entities to string
+        VoltageSource voltageSource => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} {voltageSource.Parameters.DcValue}",
+        Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model} W={mosfet1.Parameters.Width} L={mosfet1.Parameters.Length}",
+        Resistor resistor => $"R{resistor.Name} {string.Join(' ', resistor.Nodes)} {resistor.Parameters.Resistance}",
+        Mosfet1Model mosfet1Model => $".MODEL {mosfet1Model.Name} {mosfet1Model.Parameters.TypeName}",
+        _ => throw new Exception("Unknown entity type")
+    };
 
     // TODO remove
     internal static string GetMosfetSpiceLine(string name, string drain, string gate, string source, bool pmos) => $"M{name} {drain} {gate} {source} {source} {(pmos ? PmosModelName : NmosModelName)} W=100u L=1u\n";

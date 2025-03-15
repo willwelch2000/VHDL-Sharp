@@ -72,7 +72,7 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
 
         // Check Spice# entities
-        IEntity[] entities = [.. behavior.GetSpiceSharpEntities(s3, "0")];
+        IEntity[] entities = [.. behavior.GetSpice(s3, "0").CircuitElements];
         Assert.AreEqual(entities.Length, 9);
         Resistor resistor0 = entities.First(e => e.Name == "Rn0_0x0_res") as Resistor ?? throw new();
         Assert.IsTrue(resistor0.Nodes.SequenceEqual(["s1", "n0_0x0_baseout"]));
@@ -124,7 +124,6 @@ public class LogicBehaviorTests
         Assert.IsFalse(behavior.IsCompatible(v4));
         Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpice(v4, "0"));
         Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetVhdlStatement(v4));
-        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpiceSharpEntities(v4, "0"));
     }
 
     [TestMethod]

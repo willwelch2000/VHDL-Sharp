@@ -391,62 +391,6 @@ public class Module : IModule, IValidityManagedEntity
     private IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName());
 
     /// <summary>
-    /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
-    /// </summary>
-    /// <returns></returns>
-    public SubcircuitDefinition GetSpiceSharpSubcircuit()
-    {
-        if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
-
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
-
-        EntityCollection entities = [];
-        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-
-        // Add VDD node and PMOS/NMOS models
-        // entities.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
-        // Mosfet1Model nmosModel = new(Util.NmosModelName);
-        // nmosModel.Parameters.SetNmos(true);
-        // Mosfet1Model pmosModel = new(Util.PmosModelName);
-        // pmosModel.Parameters.SetPmos(true);
-        // entities.Add(nmosModel);
-        // entities.Add(pmosModel);
-
-        // Add instantiations
-        ignoreValidity = true; // Subcircuits already checked
-        // foreach (IEntity entity in Instantiations.GetSpiceSharpEntities())
-        //     entities.Add(entity);
-        ignoreValidity = false;
-
-        // Add behaviors
-        int i = 0;
-        foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
-        {
-            foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i++.ToString()))
-                entities.Add(entity);
-        }
-        
-        // Add large resistors from output/bidirectional ports to ground
-        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
-        {
-            int j = 0;
-            foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                entities.Add(new Resistor($"R{SpiceUtil.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.GetSpiceName(), "0", 1e9));
-        }
-
-        return new(entities, pins);
-    }
-
-    /// <summary>
-    /// Convert module to Spice# <see cref="Circuit"/> object
-    /// </summary>
-    /// <returns></returns>
-    public Circuit GetSpiceSharpCircuit() => [.. GetSpiceSharpSubcircuit().Entities];
-
-    /// <summary>
     /// Test if the module contains a signal
     /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
     /// </summary>
