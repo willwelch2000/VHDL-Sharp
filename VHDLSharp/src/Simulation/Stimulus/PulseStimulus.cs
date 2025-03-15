@@ -48,11 +48,7 @@ public class PulseStimulus : Stimulus
     /// Period for pulse
     /// </summary>
     public double Period { get; set; }
-
-    // /// <inheritdoc/>
-    // protected override SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId) =>
-    //     $"V{SpiceUtil.GetSpiceName(uniqueId, 0, "pulse")} {signal.GetSpiceName()} 0 PULSE(0 {SpiceUtil.VDD} {DelayTime} {Util.RiseFall} {Util.RiseFall} {PulseWidth} {Period})";
-
+    
     /// <inheritdoc/>
     protected override SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId)
     {

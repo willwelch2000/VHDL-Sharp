@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using SpiceSharp.Components;
-using SpiceSharp.Documentation;
 using SpiceSharp.Entities;
 
 namespace VHDLSharp.Utility;
@@ -90,7 +89,6 @@ internal static class SpiceUtil
     /// <summary>
     /// Get Spice for a specific Spice# entity. Does not add a new line.
     /// Prepends Spice letters to the beginning
-    /// TODO add other types of voltage sources--PWL, Pulse
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
@@ -100,10 +98,11 @@ internal static class SpiceUtil
         Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model}",
         Resistor resistor => $"R{resistor.Name} {string.Join(' ', resistor.Nodes)} {resistor.Parameters.Resistance.Value}",
         Mosfet1Model mosfet1Model => $".MODEL {mosfet1Model.Name} {mosfet1Model.Parameters.TypeName} W={mosfet1Model.Parameters.Width.Value} L={mosfet1Model.Parameters.Length.Value}",
-        VoltageSource voltageSource => voltageSource switch
+        VoltageSource voltageSource => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} " + voltageSource switch
         {
-            // {Parameters.Waveform : Pwl}
-            _ => $"V{voltageSource.Name} {string.Join(' ', voltageSource.Nodes)} {voltageSource.Parameters.DcValue.Value}",
+            {Parameters.Waveform : Pwl pwl} => "PWL(" + string.Join(" ", pwl.Points.Select(p => $"{p.Time:G7} {p.Value:G7}")) + ")",
+            {Parameters.Waveform : Pulse pulse} => $"PULSE({pulse.InitialValue} {pulse.PulsedValue} {pulse.Delay} {pulse.RiseTime} {pulse.FallTime} {pulse.PulseWidth} {pulse.Period})",
+            _ => $"V{voltageSource.Parameters.DcValue.Value}",
         },
         _ => throw new Exception("Unknown entity type")
     };
