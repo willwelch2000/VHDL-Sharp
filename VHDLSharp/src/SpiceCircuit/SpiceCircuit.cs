@@ -75,7 +75,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
             foreach (IEntity element in orderedElements[j])
                 sb.AppendLine(element.GetSpice());
 
-        return sb.ToString();
+        return sb.ToString()[0..^2]; // Skip last new line (/r/n)
     }
 
     /// <summary>

@@ -32,5 +32,5 @@ public class SpiceSubcircuit(string name, IEnumerable<string> pins, IEnumerable<
     /// Get object as a string, including used subcircuits
     /// </summary>
     /// <returns></returns>
-    public string AsSubcircuitString() => $".subckt {string.Join(' ', Pins)}" + AsString().AddIndentation(1) + ".ends";
+    public string AsSubcircuitString() => $".subckt {Name} {string.Join(' ', Pins)}\n" + AsString().AddIndentation(1) + $"\n.ends {Name}";
 }

@@ -27,7 +27,10 @@ public class ValueBehaviorTests
 
         // Check Spice
         string spice = behavior.GetSpice(s1, "0").AsString();
-        string expectedSpice = "Vn0x0_value s1 0 5";
+        string expectedSpice = 
+        """
+        Vn0x0_value s1 0 5
+        """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check VHDL

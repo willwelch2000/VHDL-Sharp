@@ -69,26 +69,26 @@ public class ModuleTests
         string spice = m1.GetSpice().AsString();
         string expectedSpice = 
         """
-        V_VDD VDD 0 5
-        .MODEL NmosMod NMOS
-        .MODEL PmosMod PMOS
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
 
-        Rn0_0x0_res s1 n0_0x0_baseout 1m
-        Mn0x0_p s3 n0_0x0_baseout VDD VDD PmosMod W=100u L=1u
-        Mn0x0_n s3 n0_0x0_baseout 0 0 NmosMod W=100u L=1u
+        Rn0_0_0x0_res s1 n0_0_0x0_baseout 0.001
+        Mn0_0x0_p n0_0x0_notout n0_0_0x0_baseout VDD VDD PmosMod
+        Mn0_0x0_n n0_0x0_notout n0_0_0x0_baseout 0 0 NmosMod
+        Rn0x0_connect n0_0x0_notout s3 0.001
+        
+        Rn1_0_0x0_res s3 n1_0_0x0_baseout 0.001
+        Rn1_0_1x0_res s2 n1_0_1x0_baseout 0.001
+        Mn1_0x0_pnand0 n1_0x0_nandout n1_0_0x0_baseout VDD VDD PmosMod
+        Mn1_0x0_nnand0 n1_0x0_nandout n1_0_0x0_baseout n1_0x0_nand1 n1_0x0_nand1 NmosMod
+        Mn1_0x0_pnand1 n1_0x0_nandout n1_0_1x0_baseout VDD VDD PmosMod
+        Mn1_0x0_nnand1 n1_0x0_nand1 n1_0_1x0_baseout 0 0 NmosMod
+        Mn1_0x0_pnot n1_0x0_andout n1_0x0_nandout VDD VDD PmosMod
+        Mn1_0x0_nnot n1_0x0_andout n1_0x0_nandout 0 0 NmosMod
+        Rn1x0_connect n1_0x0_andout s4 0.001
 
-
-        Rn1_0x0_res s3 n1_0x0_baseout 1m
-        Rn1_1x0_res s2 n1_1x0_baseout 1m
-        Mn1x0_pnand0 n1x0_nandout n1_0x0_baseout VDD VDD PmosMod W=100u L=1u
-        Mn1x0_nnand0 n1x0_nandout n1_0x0_baseout n1x0_nand1 n1x0_nand1 NmosMod W=100u L=1u
-        Mn1x0_pnand1 n1x0_nandout n1_1x0_baseout VDD VDD PmosMod W=100u L=1u
-        Mn1x0_nnand1 n1x0_nand1 n1_1x0_baseout 0 0 NmosMod W=100u L=1u
-        Mn1x0_pnot s4 n1x0_nandout VDD VDD PmosMod W=100u L=1u
-        Mn1x0_nnot s4 n1x0_nandout 0 0 NmosMod W=100u L=1u
-
-
-        Rn2x0_floating s4 0 1e9
+        Rn2x0_floating s4 0 1000000000
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
 
