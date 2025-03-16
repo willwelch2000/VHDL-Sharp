@@ -59,11 +59,6 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     public string Name { get; }
 
     /// <summary>
-    /// Name used for spice instantiation
-    /// </summary>
-    public string SpiceName => $"X{Name}";
-
-    /// <summary>
     /// Convert to VHDL. 
     /// For instantiation, not component declaration. 
     /// </summary>
@@ -98,9 +93,15 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
             throw new IncompleteException("Instantiation not yet complete");
 
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-        Subcircuit entity = new($"X{SpiceName}", subcircuitDefinitions[InstantiatedModule], nodes);
+        Subcircuit entity = new(Name, subcircuitDefinitions[InstantiatedModule], nodes);
 
-        return new([entity]);
+        return new([entity])
+        {
+            SubcircuitNames = new()
+            {
+                {subcircuitDefinitions[InstantiatedModule], InstantiatedModule.Name}
+            }
+        };
     }
 
     /// <inheritdoc/>

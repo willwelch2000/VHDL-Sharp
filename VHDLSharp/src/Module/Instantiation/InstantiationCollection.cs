@@ -103,13 +103,10 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         {
             SubcircuitDefinition subcircuitDefinition = submodule.GetSpice().AsSubcircuit();
             subcircuitDefinitions[submodule] = subcircuitDefinition;
-            subcircuitNames[subcircuitDefinition] = submodule.Name;
         }
 
         // Combine all instantiations into one circuit
-        SpiceCircuit circuit = SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
-        circuit.SubcircuitNames = subcircuitNames;
-        return circuit.WithCommonEntities();
+        return SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions))).WithCommonEntities();
     }
 
     /// <summary>

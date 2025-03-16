@@ -65,7 +65,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
 
         // Declare all subcircuit definitions needed
         foreach (SpiceSubcircuit subcircuitToDeclare in subcircuitsToDeclare)
-            sb.AppendLine(subcircuitToDeclare.AsSubcircuitString(innerContext).AddIndentation(1));
+            sb.AppendLine(subcircuitToDeclare.AsSubcircuitString(innerContext) + "\n");
 
         // Create groups for ordering entities
         int groups = 3;
@@ -97,11 +97,17 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
 
         // Check dictionary for subcircuit names
         if (SubcircuitNames.TryGetValue(subcircuitDef, out string? name))
+        {
+            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, name);
             return name;
+        }
 
         // Then, check SpiceUtil subcircuit definition dictionary
         if (SpiceUtil.SubcircuitNames.TryGetValue(subcircuitDef, out name))
+        {
+            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, name);
             return name;
+        }
 
         // Otherwise, generate a name that is in none of the dictionaries and add it to the context
         int i = 0;
@@ -137,5 +143,14 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// </summary>
     /// <param name="circuits"></param>
     /// <returns></returns>
-    public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits) => new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
+    public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
+    {
+        SpiceCircuit combinedCircuit = new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
+        // Combine subcircuit names
+        foreach (var kvp in circuits.SelectMany(c => c.SubcircuitNames))
+            if (!combinedCircuit.SubcircuitNames.TryAdd(kvp.Key, kvp.Value))
+                if (kvp.Value != combinedCircuit.SubcircuitNames[kvp.Key])
+                    throw new Exception("Conflicting names for subcircuit definition");
+        return combinedCircuit;
+    }
 }

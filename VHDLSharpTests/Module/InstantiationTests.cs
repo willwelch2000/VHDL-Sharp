@@ -1,5 +1,6 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
@@ -14,15 +15,14 @@ public class InstantiationTests
     {
         Module parentMod = new("parentMod");
         Module instanceMod = new("instanceMod");
-        instanceMod.AddNewPort("p1", PortDirection.Input);
-        instanceMod.AddNewPort("p2", 2, PortDirection.Output);
+        Port p1 = instanceMod.AddNewPort("p1", PortDirection.Input);
+        Port p2 = instanceMod.AddNewPort("p2", 2, PortDirection.Output);
 
         Instantiation instantiation = new(instanceMod, parentMod, "i1");
 
         Assert.AreEqual(parentMod, instantiation.ParentModule);
         Assert.AreEqual(instanceMod, instantiation.InstantiatedModule);
         Assert.AreEqual("i1", instantiation.Name);
-        Assert.AreEqual("Xi1", instantiation.SpiceName);
         Assert.AreEqual("instanceMod in parentMod", instantiation.ToString());
 
         Dictionary<IModule, SubcircuitDefinition> definitions = new()
@@ -31,6 +31,50 @@ public class InstantiationTests
         };
         Assert.ThrowsException<IncompleteException>(() => instantiation.GetSpice(definitions));
         Assert.ThrowsException<IncompleteException>(instantiation.GetVhdlStatement);
+
+        Signal s1 = parentMod.GenerateSignal("s1");
+        Vector v1 = parentMod.GenerateVector("v1", 2);
+        instantiation.PortMapping.SetPort("p1", s1);
+        instantiation.PortMapping.SetPort("p2", v1);
+        instanceMod.SignalBehaviors[p2.Signal] = new ValueBehavior(3);
+
+        parentMod.Instantiations.Add(instantiation);
+        definitions[instanceMod] = instanceMod.GetSpice().AsSubcircuit();
+        string spice = instantiation.GetSpice(definitions).AsString();
+        string expectedSpice = 
+        """
+        .subckt instanceMod p1 p2_0 p2_1
+            .MODEL NmosMod nmos W=0.0001 L=1E-06
+            .MODEL PmosMod pmos W=0.0001 L=1E-06
+            VVDD VDD 0 5
+            Vn0x0_value p2_0 0 5
+            Vn0x1_value p2_1 0 5
+            Rn1x0_floating p2_0 0 1000000000
+            Rn2x1_floating p2_1 0 1000000000
+        .ends instanceMod
+
+        Xi1 s1 v1_0 v1_1 instanceMod
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check module Spice
+        spice = parentMod.GetSpice().AsString();
+        expectedSpice = 
+        """
+        .subckt subcircuit0 p1 p2_0 p2_1
+            VVDD VDD 0 5
+            Vn0x0_value p2_0 0 5
+            Vn0x1_value p2_1 0 5
+            Rn1x0_floating p2_0 0 1000000000
+            Rn2x1_floating p2_1 0 1000000000
+        .ends subcircuit0
+
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+        Xi1 s1 v1_0 v1_1 subcircuit0
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
     }
 
     [TestMethod]
