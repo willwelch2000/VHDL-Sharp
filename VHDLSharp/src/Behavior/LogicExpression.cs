@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;

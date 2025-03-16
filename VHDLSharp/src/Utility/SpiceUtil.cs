@@ -102,7 +102,7 @@ internal static class SpiceUtil
         {
             {Parameters.Waveform : Pwl pwl} => "PWL(" + string.Join(" ", pwl.Points.Select(p => $"{p.Time:G7} {p.Value:G7}")) + ")",
             {Parameters.Waveform : Pulse pulse} => $"PULSE({pulse.InitialValue} {pulse.PulsedValue} {pulse.Delay} {pulse.RiseTime} {pulse.FallTime} {pulse.PulseWidth} {pulse.Period})",
-            _ => $"V{voltageSource.Parameters.DcValue.Value}",
+            _ => $"{voltageSource.Parameters.DcValue.Value}",
         },
         _ => throw new Exception("Unknown entity type")
     };
