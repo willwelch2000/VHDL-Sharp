@@ -91,8 +91,9 @@ internal static class SpiceUtil
     /// Prepends Spice letters to the beginning
     /// </summary>
     /// <param name="entity"></param>
+    /// <param name="subcircuitNames">mapping of subcircuit definitions to their names</param>
     /// <returns></returns>
-    internal static string GetSpice(this IEntity entity) => entity switch
+    internal static string GetSpice(this IEntity entity, IDictionary<ISubcircuitDefinition, string> subcircuitNames) => entity switch
     {
         // Note: this does the bare minimum, does not exhaustively convert entities to string
         Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model}",
@@ -104,6 +105,14 @@ internal static class SpiceUtil
             {Parameters.Waveform : Pulse pulse} => $"PULSE({pulse.InitialValue} {pulse.PulsedValue} {pulse.Delay} {pulse.RiseTime} {pulse.FallTime} {pulse.PulseWidth} {pulse.Period})",
             _ => $"{voltageSource.Parameters.DcValue.Value}",
         },
+        Subcircuit subcircuit => $"X{subcircuit.Name} {string.Join(' ', subcircuit.Nodes)} {(subcircuitNames.TryGetValue(subcircuit.Parameters.Definition, out string? name) ? name : throw new Exception("Can't find subcircuit definition's name"))}",
         _ => throw new Exception("Unknown entity type")
     };
+
+    /// <summary>
+    /// True if the entity is a model
+    /// </summary>
+    /// <param name="entity"></param>
+    /// <returns></returns>
+    internal static bool IsModel(this IEntity entity) => entity is Mosfet1Model or Mosfet2Model or Mosfet3Model;
 }

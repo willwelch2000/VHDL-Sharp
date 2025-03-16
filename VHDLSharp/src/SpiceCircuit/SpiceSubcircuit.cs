@@ -32,5 +32,13 @@ public class SpiceSubcircuit(string name, IEnumerable<string> pins, IEnumerable<
     /// Get object as a string, including used subcircuits
     /// </summary>
     /// <returns></returns>
-    public string AsSubcircuitString() => $".subckt {Name} {string.Join(' ', Pins)}\n" + AsString().AddIndentation(1) + $"\n.ends {Name}";
+    public string AsSubcircuitString() => AsSubcircuitString(new());
+    
+    /// <summary>
+    /// Internal version of <see cref="AsSubcircuitString()"/> function that accepts context for models 
+    /// and subcircuit definitions that are declared at a higher level so that they can be ignored
+    /// </summary>
+    /// <param name="circuitContext">Context for models and subcircuit definitions declared at a higher level</param>
+    /// <returns></returns>
+    internal string AsSubcircuitString(CircuitContext circuitContext) => $".subckt {Name} {string.Join(' ', Pins)}\n" + AsString(circuitContext).AddIndentation(1) + $"\n.ends {Name}";
 }
