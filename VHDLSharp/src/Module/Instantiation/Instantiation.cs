@@ -97,9 +97,9 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 
         return new([entity])
         {
-            SubcircuitNames = new()
+            SubcircuitModules = new()
             {
-                {subcircuitDefinitions[InstantiatedModule], InstantiatedModule.Name}
+                {subcircuitDefinitions[InstantiatedModule], InstantiatedModule}
             }
         };
     }

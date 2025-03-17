@@ -2,6 +2,7 @@ using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Modules;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.SpiceCircuits;
@@ -18,10 +19,12 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
 
     /// <summary>
-    /// Subcircuit names, if known. 
-    /// If the name isn't given for a subcircuit, it will check the utility class and otherwise just generate a numeric name
+    /// Mapping of subcircuit definitions to their associated modules, if known. 
+    /// If it exists, it will use the module to get the subcircuit definition's Spice name. 
+    /// If it doesn't exist, it will check the subcircuits in the utility class for names and otherwise just generate a numeric name. 
+    /// This is also useful for subcircuit definition re-use, so that the subcircuit definitions can be reused
     /// </summary>
-    public Dictionary<ISubcircuitDefinition, string> SubcircuitNames { get; set; } = [];
+    public Dictionary<ISubcircuitDefinition, IModule> SubcircuitModules { get; set; } = [];
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
@@ -96,14 +99,14 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         // Don't have to check pre-existing context--it shouldn't have made it here if it's been declared already
 
         // Check dictionary for subcircuit names
-        if (SubcircuitNames.TryGetValue(subcircuitDef, out string? name))
+        if (SubcircuitModules.TryGetValue(subcircuitDef, out IModule? module))
         {
-            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, name);
-            return name;
+            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, module.Name);
+            return module.Name;
         }
 
         // Then, check SpiceUtil subcircuit definition dictionary
-        if (SpiceUtil.SubcircuitNames.TryGetValue(subcircuitDef, out name))
+        if (SpiceUtil.SubcircuitNames.TryGetValue(subcircuitDef, out string? name))
         {
             circuitContext.SubcircuitDefinitions.Add(subcircuitDef, name);
             return name;
@@ -113,7 +116,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         int i = 0;
         do
             name = $"subcircuit{i++}";
-        while (!SubcircuitNames.ContainsValue(name) && !SpiceUtil.SubcircuitNames.Values.Contains(name) && !circuitContext.SubcircuitDefinitions.TryAdd(subcircuitDef, name));
+        while (!SubcircuitModules.Select(kvp => kvp.Value.Name).Contains(name) && !SpiceUtil.SubcircuitNames.Values.Contains(name) && !circuitContext.SubcircuitDefinitions.TryAdd(subcircuitDef, name));
         return name;
     }
 
@@ -147,10 +150,10 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     {
         SpiceCircuit combinedCircuit = new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
         // Combine subcircuit names
-        foreach (var kvp in circuits.SelectMany(c => c.SubcircuitNames))
-            if (!combinedCircuit.SubcircuitNames.TryAdd(kvp.Key, kvp.Value))
-                if (kvp.Value != combinedCircuit.SubcircuitNames[kvp.Key])
-                    throw new Exception("Conflicting names for subcircuit definition");
+        foreach (var kvp in circuits.SelectMany(c => c.SubcircuitModules))
+            if (!combinedCircuit.SubcircuitModules.TryAdd(kvp.Key, kvp.Value))
+                if (kvp.Value != combinedCircuit.SubcircuitModules[kvp.Key])
+                    throw new Exception("Conflicting modules for subcircuit definition");
         return combinedCircuit;
     }
 }

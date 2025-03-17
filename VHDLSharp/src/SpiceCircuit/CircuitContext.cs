@@ -16,6 +16,7 @@ internal class CircuitContext
     /// <summary>
     /// Subcircuit definitions declared at a higher level that can be ignored here, 
     /// mapped to their names
+    /// TODO try changing to module
     /// </summary>
     internal IDictionary<ISubcircuitDefinition, string> SubcircuitDefinitions { get; set; } = new Dictionary<ISubcircuitDefinition, string>();
 }

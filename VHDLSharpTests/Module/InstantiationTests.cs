@@ -216,6 +216,7 @@ public class InstantiationTests
         instMiddle.PortMapping.SetPort("OUT", out2);
 
         string spice = parentMod.Instantiations.GetSpice().AsString();
+        // TODO IN PROGRESS
     }
 
     [TestMethod]

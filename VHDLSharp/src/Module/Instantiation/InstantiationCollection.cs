@@ -92,6 +92,7 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation collection is invalid");
 
+        // TODO NEXT
         // Make subcircuit definitions for all distinct modules
         Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
         Dictionary<ISubcircuitDefinition, string> subcircuitNames = [];
