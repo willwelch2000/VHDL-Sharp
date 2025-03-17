@@ -9,6 +9,8 @@ internal partial class Util
 {
     private static Module? sampleModule1 = null;
     private static Module? sampleModule2 = null;
+    private static Module? andModule = null;
+    private static Module? orModule = null;
 
     public static Module GetSampleModule1()
     {
@@ -46,6 +48,34 @@ internal partial class Util
         s2.AssignBehavior(s1.Not());
         sampleModule2.SignalBehaviors[s3] = new ValueBehavior(3);
         return sampleModule2;
+    }
+
+    public static Module GetAndModule()
+    {
+        if (orModule is not null)
+            return orModule;
+
+        orModule = new("AND");
+        Port pIn1 = orModule.AddNewPort("IN1", PortDirection.Input);
+        Port pIn2 = orModule.AddNewPort("IN2", PortDirection.Input);
+        Port pOut = orModule.AddNewPort("OUT", PortDirection.Output);
+        orModule.SignalBehaviors[pOut.Signal] = new LogicBehavior(pIn1.Signal.Or(pIn2.Signal));
+
+        return orModule;
+    }
+
+    public static Module GetOrModule()
+    {
+        if (andModule is not null)
+            return andModule;
+
+        andModule = new("OR");
+        Port pIn1 = andModule.AddNewPort("IN1", PortDirection.Input);
+        Port pIn2 = andModule.AddNewPort("IN2", PortDirection.Input);
+        Port pOut = andModule.AddNewPort("OUT", PortDirection.Output);
+        andModule.SignalBehaviors[pOut.Signal] = new LogicBehavior(pIn1.Signal.And(pIn2.Signal));
+
+        return andModule;
     }
     
     // From ChatGPT

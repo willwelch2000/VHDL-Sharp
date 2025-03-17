@@ -225,7 +225,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public IInstantiation AddNewInstantiation(Module module, string name) => Instantiations.Add(module, name);
+    public Instantiation AddNewInstantiation(IModule module, string name) => Instantiations.Add(module, name);
 
     /// <summary>
     /// True if module is ready to be used
@@ -234,11 +234,12 @@ public class Module : IModule, IValidityManagedEntity
     public bool IsComplete()
     {
         // If any output signal hasn't been assigned
+        INamedSignal[] instantiationOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)];
         foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
         {
-            if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
+            if (SignalBehaviors.ContainsKey(port.Signal) || instantiationOutputSignals.Contains(port.Signal)) // Assigned as itself
                 continue;
-            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
+            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey) || port.Signal.ToSingleNodeSignals.All(instantiationOutputSignals.Contains)) // Assigned as all children
                 continue;
             return false;
         }
