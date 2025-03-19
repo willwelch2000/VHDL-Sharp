@@ -356,7 +356,7 @@ public class Module : IModule, IValidityManagedEntity
         string[] pins = [.. PortsToSpice()];
 
         // Initialize collection of additional entities to add
-        EntityCollection additionalEntities = [.. SpiceUtil.CommonEntities];
+        EntityCollection additionalEntities = [];
 
         // List of circuits that will be combined
         List<SpiceCircuit> circuits = [];
@@ -381,7 +381,7 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         circuits.Add(new(additionalEntities));
-        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(Name, pins);
+        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
     }
 
     /// <summary>

@@ -10,9 +10,7 @@ namespace VHDLSharp.SpiceCircuits;
 /// </summary>
 public class SpiceSubcircuit : SpiceCircuit
 {
-    private readonly IEnumerable<IEntity> circuitElements;
-
-    private string? name = null;
+    private readonly string? name = null;
 
     /// <summary>
     /// Constructor given module, pins, and circuit elements
@@ -24,7 +22,6 @@ public class SpiceSubcircuit : SpiceCircuit
     {
         Module = module;
         Pins = [.. pins];
-        this.circuitElements = circuitElements;
     }
 
     /// <summary>
@@ -37,7 +34,6 @@ public class SpiceSubcircuit : SpiceCircuit
     {
         this.name = name;
         Pins = [.. pins];
-        this.circuitElements = circuitElements;
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharpTests;
 
@@ -25,12 +26,10 @@ public class InstantiationTests
         Assert.AreEqual("i1", instantiation.Name);
         Assert.AreEqual("instanceMod in parentMod", instantiation.ToString());
 
-        Dictionary<IModule, SubcircuitDefinition> definitions = new()
-        {
-            {instanceMod, new SubcircuitDefinition(new EntityCollection())}
-        };
+        HashSet<IModuleLinkedSubcircuitDefinition> definitions = new([new ModuleLinkedSubcircuitDefinition(instanceMod, new EntityCollection(), [])]);
         Assert.ThrowsException<IncompleteException>(() => instantiation.GetSpice(definitions));
         Assert.ThrowsException<IncompleteException>(instantiation.GetVhdlStatement);
+        definitions.Clear();
 
         Signal s1 = parentMod.GenerateSignal("s1");
         Vector v1 = parentMod.GenerateVector("v1", 2);
@@ -39,7 +38,7 @@ public class InstantiationTests
         instanceMod.SignalBehaviors[p2.Signal] = new ValueBehavior(3);
 
         parentMod.Instantiations.Add(instantiation);
-        definitions[instanceMod] = instanceMod.GetSpice().AsSubcircuit();
+        definitions.Add(instanceMod.GetSpice().AsModuleLinkedSubcircuit());
         string spice = instantiation.GetSpice(definitions).AsString();
         string expectedSpice = 
         """
@@ -61,18 +60,18 @@ public class InstantiationTests
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
         """
-        .subckt subcircuit0 p1 p2_0 p2_1
+        .subckt instanceMod p1 p2_0 p2_1
             VVDD VDD 0 5
             Vn0x0_value p2_0 0 5
             Vn0x1_value p2_1 0 5
             Rn1x0_floating p2_0 0 1000000000
             Rn2x1_floating p2_1 0 1000000000
-        .ends subcircuit0
+        .ends instanceMod
 
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
-        Xi1 s1 v1_0 v1_1 subcircuit0
+        Xi1 s1 v1_0 v1_1 instanceMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
     }
@@ -148,7 +147,7 @@ public class InstantiationTests
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
         """
-        .subckt subcircuit0 IN1 IN2 OUT
+        .subckt AND IN1 IN2 OUT
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -160,9 +159,9 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends subcircuit0
+        .ends AND
 
-        .subckt subcircuit0 IN1 IN2 OUT
+        .subckt OR IN1 IN2 OUT
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -174,14 +173,14 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
             Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends subcircuit0
+        .ends OR
 
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
-        Xand1 in1 in2 out1 subcircuit0
-        Xand2 in2 in3 out2 subcircuit0
-        Xor1 out1 out2 out3 subcircuit0
+        Xand1 in1 in2 out1 AND
+        Xand2 in2 in3 out2 AND
+        Xor1 out1 out2 out3 OR
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
     }

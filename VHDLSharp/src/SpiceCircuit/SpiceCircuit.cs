@@ -2,6 +2,7 @@ using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Modules;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.SpiceCircuits;
@@ -111,7 +112,16 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <param name="name">Name to use for subcircuit</param>
     /// <param name="pins">Array of pins for subcircuit</param>
     /// <returns></returns>
-    public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, circuitElements);
+    public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, CircuitElements);
+
+
+    /// <summary>
+    /// Convert to Spice subcircuit object given name and pins
+    /// </summary>
+    /// <param name="module">Module that is the basis for subcircuit</param>
+    /// <param name="pins">Array of pins for subcircuit</param>
+    /// <returns></returns>
+    public SpiceSubcircuit ToSpiceSubcircuit(IModule module, string[] pins) => new(module, pins, CircuitElements);
 
     /// <summary>
     /// Get subcircuits used by this circuit
