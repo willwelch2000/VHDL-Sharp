@@ -77,6 +77,14 @@ public interface IModule
     public SpiceSubcircuit GetSpice();
 
     /// <summary>
+    /// Convert module to Spice circuit given dictionary of modules that already have subcircuit definitions.
+    /// This uses the given subcircuit definitions for applicable instances
+    /// </summary>
+    /// <param name="existingModuleLinkedSubcircuits">Set of all module-linked subcircuit definitions that already exist, so that this can point to one of those if applicable instead of making a new one</param>
+    /// <returns></returns>
+    public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
+
+    /// <summary>
     /// Test if the module contains a signal
     /// </summary>
     /// <param name="signal"></param>

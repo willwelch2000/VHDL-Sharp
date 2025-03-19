@@ -87,24 +87,55 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     /// Get Spice circuit representing the collection of instantiations
     /// </summary>
     /// <returns></returns>
-    public SpiceCircuit GetSpice()
+    public SpiceCircuit GetSpice() => GetSpice(new HashSet<IModuleLinkedSubcircuitDefinition>());
+
+    /// <summary>
+    /// Get Spice circuit representing collection of instantiations. 
+    /// This uses the given subcircuit definitions for applicable instances to avoid unneccesary duplication
+    /// </summary>
+    /// <param name="existingModuleLinkedSubcircuits">Set of all module-linked subcircuit definitions that already exist, so that this can point to one of those if applicable instead of making a new one</param>
+    /// <returns></returns>
+    public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation collection is invalid");
 
-        // TODO NEXT
-        // Make subcircuit definitions for all distinct modules
-        Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions = [];
-        Dictionary<ISubcircuitDefinition, string> subcircuitNames = [];
-        foreach (IModule submodule in instantiations.Select(i => i.InstantiatedModule).Distinct())
+        // Add subcircuit definitions to the set for all distinct modules unless they've been made already
+        HashSet<IModuleLinkedSubcircuitDefinition> moduleSubcircuitDefinitions = [.. existingModuleLinkedSubcircuits];
+        foreach (IModule submodule in this.Select(i => i.InstantiatedModule).Distinct())
         {
-            SubcircuitDefinition subcircuitDefinition = submodule.GetSpice().AsSubcircuit();
-            subcircuitDefinitions[submodule] = subcircuitDefinition;
+            if (moduleSubcircuitDefinitions.Any(def => def.Module == submodule))
+                continue;
+            moduleSubcircuitDefinitions.Add(submodule.GetSpice(moduleSubcircuitDefinitions).AsModuleLinkedSubcircuit());
         }
 
         // Combine all instantiations into one circuit
-        return SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(subcircuitDefinitions)));
+        SpiceCircuit circuit = SpiceCircuit.Combine(instantiations.Select(i => i.GetSpice(moduleSubcircuitDefinitions)));
+        return circuit;
     }
+
+    // TODO remove
+    // private IEnumerable<IModule> TraverseDfs(IModule module, ISet<IModule>? alreadyFound = null)
+    // {
+    //     alreadyFound ??= new HashSet<IModule>();
+    //     IEnumerable<IModule> instantiatedMods = module.Instantiations.Select(i => i.InstantiatedModule).Distinct();
+    //     if (alreadyFound.Contains(module))
+    //     {
+    //         // Nothing
+    //     }
+    //     else
+    //     {
+    //         // Return children--this puts them in the set
+    //         foreach (IModule submodule in instantiatedMods.SelectMany(m => TraverseDfs(m, alreadyFound)))
+    //         {
+    //             yield return submodule;
+    //         }
+
+    //         // Return this and add to set
+    //         alreadyFound.Add(module);
+    //         yield return module;
+    //     }
+    // }
 
     /// <summary>
     /// Get all signals that are a given direction for the instantiations

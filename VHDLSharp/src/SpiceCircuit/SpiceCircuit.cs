@@ -2,7 +2,6 @@ using System.Text;
 using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
-using VHDLSharp.Modules;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.SpiceCircuits;
@@ -17,14 +16,6 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// Entities in the circuit
     /// </summary>
     public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
-
-    /// <summary>
-    /// Mapping of subcircuit definitions to their associated modules, if known. 
-    /// If it exists, it will use the module to get the subcircuit definition's Spice name. 
-    /// If it doesn't exist, it will check the subcircuits in the utility class for names and otherwise just generate a numeric name. 
-    /// This is also useful for subcircuit definition re-use, so that the subcircuit definitions can be reused
-    /// </summary>
-    public Dictionary<ISubcircuitDefinition, IModule> SubcircuitModules { get; set; } = [];
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
@@ -48,27 +39,24 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     {
         StringBuilder sb = new();
 
+        ISet<ISubcircuitDefinition> defsUsedHere = GetSubcircuitDefinitions(false);
+
         // Generate inner context to be used in subcircuits, initializing models context to all the models here + those in the given context
-        // and subcircuit definitions context to those in the given context
+        // and subcircuit definitions context to those in the given context + subcircuit definitions used here
         CircuitContext innerContext = new()
         {
             Models = new HashSet<IEntity>([.. circuitContext.Models, .. CircuitElements.Where(e => e.IsModel())]),
-            SubcircuitDefinitions = new Dictionary<ISubcircuitDefinition, string>(circuitContext.SubcircuitDefinitions),
+            SubcircuitDefinitions = new HashSet<ISubcircuitDefinition>([.. circuitContext.SubcircuitDefinitions, .. defsUsedHere]),
         };
 
-        // Decide on names for all subcircuit definitions except those declared at a higher level, get list of all subcircuit defs to declare
-        IEnumerable<Subcircuit> instantiations = CircuitElements.Where(e => e is Subcircuit).Select(e => (Subcircuit)e);
-        List<SpiceSubcircuit> subcircuitsToDeclare = [];
-        foreach (ISubcircuitDefinition subcircuitDef in instantiations.Select(i => i.Parameters.Definition).Except(circuitContext.SubcircuitDefinitions.Keys).Distinct())
+        // Declare subcircuits used here
+        foreach (ISubcircuitDefinition subcircuitDef in defsUsedHere.Except(circuitContext.SubcircuitDefinitions))
         {
-            // Find name, passing inner context that contains all just-added definitions for modification
-            string name = GetNameAndAdd(subcircuitDef, innerContext);
-            subcircuitsToDeclare.Add(new(name, subcircuitDef.Pins, subcircuitDef.Entities));
+            if (subcircuitDef is not INamedSubcircuitDefinition namedSubcircuitDef)
+                throw new Exception("Subcircuit definition must implement ISubcircuitDefinition to be turned into a string");
+            SpiceSubcircuit subcircuit = new(namedSubcircuitDef.Name, subcircuitDef.Pins, subcircuitDef.Entities);
+            sb.AppendLine(subcircuit.AsSubcircuitString(innerContext) + "\n");
         }
-
-        // Declare all subcircuit definitions needed
-        foreach (SpiceSubcircuit subcircuitToDeclare in subcircuitsToDeclare)
-            sb.AppendLine(subcircuitToDeclare.AsSubcircuitString(innerContext) + "\n");
 
         // Create groups for ordering entities
         int groups = 3;
@@ -88,37 +76,34 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         // Add all entities by group--pass along mapping of all subcircuit names, from the inner context
         for (int j = 0; j < groups; j++)
             foreach (IEntity element in orderedElements[j])
-                sb.AppendLine(element.GetSpice(innerContext.SubcircuitDefinitions));
+                sb.AppendLine(element.GetSpice());
 
         return sb.ToString().TrimEnd(); // Skip last new line
     }
 
-    // Modifies circuit context's subcircuit definitions
-    private string GetNameAndAdd(ISubcircuitDefinition subcircuitDef, CircuitContext circuitContext)
-    {
-        // Don't have to check pre-existing context--it shouldn't have made it here if it's been declared already
+    // // Modifies circuit context's subcircuit definitions
+    // private SpiceSubcircuit GetSubcircuitAndAdd(ISubcircuitDefinition subcircuitDef, CircuitContext circuitContext)
+    // {
+    //     // Don't have to check pre-existing context--it shouldn't have made it here if it's been declared already
 
-        // Check dictionary for subcircuit names
-        if (SubcircuitModules.TryGetValue(subcircuitDef, out IModule? module))
-        {
-            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, module.Name);
-            return module.Name;
-        }
+    //     // Check dictionary for subcircuit names
+    //     if (SubcircuitLinks.TryGetValue(subcircuitDef, out SpiceSubcircuit? subcircuit))
+    //     {
+    //         circuitContext.SubcircuitDefinitions.Add(subcircuitDef, subcircuit);
+    //         return subcircuit;
+    //     }
 
-        // Then, check SpiceUtil subcircuit definition dictionary
-        if (SpiceUtil.SubcircuitNames.TryGetValue(subcircuitDef, out string? name))
-        {
-            circuitContext.SubcircuitDefinitions.Add(subcircuitDef, name);
-            return name;
-        }
-
-        // Otherwise, generate a name that is in none of the dictionaries and add it to the context
-        int i = 0;
-        do
-            name = $"subcircuit{i++}";
-        while (!SubcircuitModules.Select(kvp => kvp.Value.Name).Contains(name) && !SpiceUtil.SubcircuitNames.Values.Contains(name) && !circuitContext.SubcircuitDefinitions.TryAdd(subcircuitDef, name));
-        return name;
-    }
+    //     // Otherwise, generate a name that is in none of the dictionaries and add it to the context
+    //     int i = 0;
+    //     string name;
+    //     do
+    //     {
+    //         name = $"subcircuit{i++}";
+    //         subcircuit = new(name, subcircuitDef.Pins, subcircuitDef.Entities);
+    //     }
+    //     while (!SubcircuitLinks.Select(kvp => kvp.Value.Name).Contains(name) && !circuitContext.SubcircuitDefinitions.TryAdd(subcircuitDef, subcircuit));
+    //     return subcircuit;
+    // }
 
     /// <summary>
     /// Convert to Spice subcircuit object given name and pins
@@ -127,6 +112,35 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <param name="pins">Array of pins for subcircuit</param>
     /// <returns></returns>
     public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, circuitElements);
+
+    /// <summary>
+    /// Get subcircuits used by this circuit
+    /// </summary>
+    /// <param name="recursive">If true, looks inside used subcircuits</param>
+    /// <returns></returns>
+    public ISet<ISubcircuitDefinition> GetSubcircuitDefinitions(bool recursive)
+    {
+        HashSet<ISubcircuitDefinition> alreadyFound = [];
+        Queue<ISubcircuitDefinition> definitions = [];
+
+        // Subcircuits directly used
+        foreach (Subcircuit instance in CircuitElements.Where(e => e is Subcircuit).Cast<Subcircuit>())
+            if (alreadyFound.Add(instance.Parameters.Definition))
+                definitions.Enqueue(instance.Parameters.Definition);
+
+        if (!recursive)
+            return alreadyFound;
+
+        // Recurse
+        while (definitions.TryDequeue(out ISubcircuitDefinition? subcircuitDef))
+        {
+            foreach (Subcircuit instance in subcircuitDef.Entities.Where(e => e is Subcircuit).Cast<Subcircuit>())
+                if (alreadyFound.Add(instance.Parameters.Definition))
+                    definitions.Enqueue(instance.Parameters.Definition);
+        }
+
+        return alreadyFound;
+    }
 
     /// <summary>
     /// Add on common entities from Spice Util
@@ -148,12 +162,6 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <returns></returns>
     public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
     {
-        SpiceCircuit combinedCircuit = new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
-        // Combine subcircuit names
-        foreach (var kvp in circuits.SelectMany(c => c.SubcircuitModules))
-            if (!combinedCircuit.SubcircuitModules.TryAdd(kvp.Key, kvp.Value))
-                if (kvp.Value != combinedCircuit.SubcircuitModules[kvp.Key])
-                    throw new Exception("Conflicting modules for subcircuit definition");
-        return combinedCircuit;
+        return new(circuits.SelectMany(c => c.CircuitElements).Distinct()); // Ignore duplicate entities
     }
 }

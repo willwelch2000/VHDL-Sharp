@@ -341,12 +341,11 @@ public class Module : IModule, IValidityManagedEntity
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Convert module to Spice circuit
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public SpiceSubcircuit GetSpice()
+    /// <inheritdoc/>
+    public SpiceSubcircuit GetSpice() => GetSpice(new HashSet<IModuleLinkedSubcircuitDefinition>());
+
+    /// <inheritdoc/>
+    public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
@@ -364,7 +363,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Add instantiations
         ignoreValidity = true; // Subcircuits already checked
-        circuits.Add(Instantiations.GetSpice());
+        circuits.Add(Instantiations.GetSpice(existingModuleLinkedSubcircuits));
         ignoreValidity = false;
 
         // Add behaviors

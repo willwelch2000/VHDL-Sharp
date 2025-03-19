@@ -14,9 +14,7 @@ internal class CircuitContext
     internal ISet<IEntity> Models { get; set; } = new HashSet<IEntity>();
 
     /// <summary>
-    /// Subcircuit definitions declared at a higher level that can be ignored here, 
-    /// mapped to their names
-    /// TODO try changing to module
+    /// Subcircuit definitions declared at a higher level that can be ignored here
     /// </summary>
-    internal IDictionary<ISubcircuitDefinition, string> SubcircuitDefinitions { get; set; } = new Dictionary<ISubcircuitDefinition, string>();
+    internal ISet<ISubcircuitDefinition> SubcircuitDefinitions { get; set; } = new HashSet<ISubcircuitDefinition>();
 }

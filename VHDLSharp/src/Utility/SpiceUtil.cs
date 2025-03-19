@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Utility;
 
@@ -72,10 +73,10 @@ internal static class SpiceUtil
 
     // TODO commonly-used subcircuits
 
-    /// <summary>
-    /// Dictionary mapping Spice# subcircuits to their names to be used in Spice
-    /// </summary>
-    internal static ReadOnlyDictionary<ISubcircuitDefinition, string> SubcircuitNames => new(subcircuitNames);
+    // /// <summary>
+    // /// Dictionary mapping Spice# subcircuits to their names to be used in Spice
+    // /// </summary>
+    // internal static ReadOnlyDictionary<ISubcircuitDefinition, string> SubcircuitNames => new(subcircuitNames);
 
     /// <summary>
     /// Method to generate Spice node name
@@ -91,9 +92,8 @@ internal static class SpiceUtil
     /// Prepends Spice letters to the beginning
     /// </summary>
     /// <param name="entity"></param>
-    /// <param name="subcircuitNames">mapping of subcircuit definitions to their names</param>
     /// <returns></returns>
-    internal static string GetSpice(this IEntity entity, IDictionary<ISubcircuitDefinition, string> subcircuitNames) => entity switch
+    internal static string GetSpice(this IEntity entity) => entity switch
     {
         // Note: this does the bare minimum, does not exhaustively convert entities to string
         Mosfet1 mosfet1 => $"M{mosfet1.Name} {string.Join(' ', mosfet1.Nodes)} {mosfet1.Model}",
@@ -105,7 +105,11 @@ internal static class SpiceUtil
             {Parameters.Waveform : Pulse pulse} => $"PULSE({pulse.InitialValue} {pulse.PulsedValue} {pulse.Delay} {pulse.RiseTime} {pulse.FallTime} {pulse.PulseWidth} {pulse.Period})",
             _ => $"{voltageSource.Parameters.DcValue.Value}",
         },
-        Subcircuit subcircuit => $"X{subcircuit.Name} {string.Join(' ', subcircuit.Nodes)} {(subcircuitNames.TryGetValue(subcircuit.Parameters.Definition, out string? name) ? name : throw new Exception("Can't find subcircuit definition's name"))}",
+        Subcircuit subcircuit => $"X{subcircuit.Name} {string.Join(' ', subcircuit.Nodes)} " + subcircuit.Parameters.Definition switch
+        {
+            INamedSubcircuitDefinition namedSubDef => namedSubDef.Name,
+            _ => throw new Exception("Cannot get Spice as string for subcircuit without named definition")
+        },
         _ => throw new Exception("Unknown entity type")
     };
 

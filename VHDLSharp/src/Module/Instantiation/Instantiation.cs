@@ -84,7 +84,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpice(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions)
+    public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation is invalid");
@@ -92,16 +92,13 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         if (!PortMapping.IsComplete())
             throw new IncompleteException("Instantiation not yet complete");
 
-        string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-        Subcircuit entity = new(Name, subcircuitDefinitions[InstantiatedModule], nodes);
+        if (existingModuleLinkedSubcircuits.FirstOrDefault(def => def.Module == InstantiatedModule) is not IModuleLinkedSubcircuitDefinition subcircuitDef)
+            subcircuitDef = InstantiatedModule.GetSpice(existingModuleLinkedSubcircuits).AsModuleLinkedSubcircuit();
 
-        return new([entity])
-        {
-            SubcircuitModules = new()
-            {
-                {subcircuitDefinitions[InstantiatedModule], InstantiatedModule}
-            }
-        };
+        string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];
+        Subcircuit entity = new(Name, subcircuitDef, nodes);
+
+        return new([entity]);
     }
 
     /// <inheritdoc/>

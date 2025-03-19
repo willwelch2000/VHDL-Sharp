@@ -44,12 +44,12 @@ public interface IInstantiation : IValidityManagedEntity
     public string GetVhdlStatement();
 
     /// <summary>
-    /// Given a dictionary mapping modules to subcircuit definition objects,
-    /// generate a Spice circuit object for this instantiation
+    /// Generate a Spice circuit object for this instantiation. 
+    /// This should use the given subcircuit definitions, if applicable, to avoid unneccesary duplication
     /// </summary>
-    /// <param name="subcircuitDefinitions">Dictionary mapping modules to Spice# subcircuit definition objects so that they only one is used per module</param>
+    /// <param name="existingModuleLinkedSubcircuits">Set of all module-linked subcircuit definitions that already exist, so that this can point to one of those if applicable instead of making a new one</param>
     /// <returns></returns>
-    public SpiceCircuit GetSpice(Dictionary<IModule, SubcircuitDefinition> subcircuitDefinitions);
+    public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
 
     /// <inheritdoc/>
     public string ToString();
