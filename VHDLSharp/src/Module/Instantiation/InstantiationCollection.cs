@@ -120,29 +120,6 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         return circuit;
     }
 
-    // TODO remove
-    // private IEnumerable<IModule> TraverseDfs(IModule module, ISet<IModule>? alreadyFound = null)
-    // {
-    //     alreadyFound ??= new HashSet<IModule>();
-    //     IEnumerable<IModule> instantiatedMods = module.Instantiations.Select(i => i.InstantiatedModule).Distinct();
-    //     if (alreadyFound.Contains(module))
-    //     {
-    //         // Nothing
-    //     }
-    //     else
-    //     {
-    //         // Return children--this puts them in the set
-    //         foreach (IModule submodule in instantiatedMods.SelectMany(m => TraverseDfs(m, alreadyFound)))
-    //         {
-    //             yield return submodule;
-    //         }
-
-    //         // Return this and add to set
-    //         alreadyFound.Add(module);
-    //         yield return module;
-    //     }
-    // }
-
     /// <summary>
     /// Get all signals that are a given direction for the instantiations
     /// </summary>

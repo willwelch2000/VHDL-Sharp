@@ -158,6 +158,42 @@ public class LogicBehaviorTests
         string vhdl = behavior.GetVhdlStatement(v3);
         string expectedVhdl = "v3 <= (v1 and v2);";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+
+        string spice = behavior.GetSpice(v3, "0").AsString();
+        string expectedSpice = 
+        """
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+        Rn0_0_0x0_res v1_0 n0_0_0x0_baseout 0.001
+        Rn0_0_0x1_res v1_1 n0_0_0x1_baseout 0.001
+        Rn0_0_0x2_res v1_2 n0_0_0x2_baseout 0.001
+        Rn0_0_1x0_res v2_0 n0_0_1x0_baseout 0.001
+        Rn0_0_1x1_res v2_1 n0_0_1x1_baseout 0.001
+        Rn0_0_1x2_res v2_2 n0_0_1x2_baseout 0.001
+        Mn0_0x0_pnand0 n0_0x0_nandout n0_0_0x0_baseout VDD VDD PmosMod
+        Mn0_0x0_nnand0 n0_0x0_nandout n0_0_0x0_baseout n0_0x0_nand1 n0_0x0_nand1 NmosMod
+        Mn0_0x0_pnand1 n0_0x0_nandout n0_0_1x0_baseout VDD VDD PmosMod
+        Mn0_0x0_nnand1 n0_0x0_nand1 n0_0_1x0_baseout 0 0 NmosMod
+        Mn0_0x0_pnot n0_0x0_andout n0_0x0_nandout VDD VDD PmosMod
+        Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
+        Mn0_0x1_pnand0 n0_0x1_nandout n0_0_0x1_baseout VDD VDD PmosMod
+        Mn0_0x1_nnand0 n0_0x1_nandout n0_0_0x1_baseout n0_0x1_nand1 n0_0x1_nand1 NmosMod
+        Mn0_0x1_pnand1 n0_0x1_nandout n0_0_1x1_baseout VDD VDD PmosMod
+        Mn0_0x1_nnand1 n0_0x1_nand1 n0_0_1x1_baseout 0 0 NmosMod
+        Mn0_0x1_pnot n0_0x1_andout n0_0x1_nandout VDD VDD PmosMod
+        Mn0_0x1_nnot n0_0x1_andout n0_0x1_nandout 0 0 NmosMod
+        Mn0_0x2_pnand0 n0_0x2_nandout n0_0_0x2_baseout VDD VDD PmosMod
+        Mn0_0x2_nnand0 n0_0x2_nandout n0_0_0x2_baseout n0_0x2_nand1 n0_0x2_nand1 NmosMod
+        Mn0_0x2_pnand1 n0_0x2_nandout n0_0_1x2_baseout VDD VDD PmosMod
+        Mn0_0x2_nnand1 n0_0x2_nand1 n0_0_1x2_baseout 0 0 NmosMod
+        Mn0_0x2_pnot n0_0x2_andout n0_0x2_nandout VDD VDD PmosMod
+        Mn0_0x2_nnot n0_0x2_andout n0_0x2_nandout 0 0 NmosMod
+        Rn0x0_connect n0_0x0_andout v3_0 0.001
+        Rn0x1_connect n0_0x1_andout v3_1 0.001
+        Rn0x2_connect n0_0x2_andout v3_2 0.001
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
     }
 
     // TODO expression with literal
