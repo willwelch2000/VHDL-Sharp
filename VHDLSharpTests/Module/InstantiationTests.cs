@@ -196,26 +196,153 @@ public class InstantiationTests
         Signal out1 = parentMod.GenerateSignal("out1");
         Signal out2 = parentMod.GenerateSignal("out2");
         
-        Module middleInstanceMod = new("middle");
-        Port midPIn = middleInstanceMod.AddNewPort("IN", PortDirection.Input);
-        Port midPOut = middleInstanceMod.AddNewPort("OUT", PortDirection.Output);
+        Module middleMod = new("middle");
+        Port midPIn = middleMod.AddNewPort("IN", PortDirection.Input);
+        Port midPOut = middleMod.AddNewPort("OUT", PortDirection.Output);
 
         Instantiation and1 = parentMod.AddNewInstantiation(andMod, "and1");
         and1.PortMapping.SetPort("IN1", in1);
         and1.PortMapping.SetPort("IN2", in2);
         and1.PortMapping.SetPort("OUT", out1);
 
-        Instantiation middleAnd1 = middleInstanceMod.AddNewInstantiation(andMod, "middleAnd");
+        Instantiation middleAnd1 = middleMod.AddNewInstantiation(andMod, "middleAnd");
         middleAnd1.PortMapping.SetPort("IN1", midPIn.Signal);
         middleAnd1.PortMapping.SetPort("IN2", midPIn.Signal);
         middleAnd1.PortMapping.SetPort("OUT", midPOut.Signal);
 
-        Instantiation instMiddle = parentMod.AddNewInstantiation(middleInstanceMod, "middleAndInst");
+        Instantiation instMiddle = parentMod.AddNewInstantiation(middleMod, "middleInst");
         instMiddle.PortMapping.SetPort("IN", in3);
         instMiddle.PortMapping.SetPort("OUT", out2);
 
         string spice = parentMod.Instantiations.GetSpice().AsString();
-        // TODO IN PROGRESS
+        string expectedSpice = 
+        """
+        .subckt AND IN1 IN2 OUT
+            .MODEL NmosMod nmos W=0.0001 L=1E-06
+            .MODEL PmosMod pmos W=0.0001 L=1E-06
+            VVDD VDD 0 5
+            Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
+            Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
+            Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
+            Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
+            Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
+            Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
+            Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
+            Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
+            Rn0x0_connect n0_0x0_orout OUT 0.001
+            Rn1x0_floating OUT 0 1000000000
+        .ends AND
+
+        .subckt middle IN OUT
+            .MODEL NmosMod nmos W=0.0001 L=1E-06
+            .MODEL PmosMod pmos W=0.0001 L=1E-06
+            VVDD VDD 0 5
+            XmiddleAnd IN IN OUT AND
+            Rn0x0_floating OUT 0 1000000000
+        .ends middle
+
+        Xand1 in1 in2 out1 AND
+        XmiddleInst in3 out2 middle
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+    }
+
+    [TestMethod]
+    public void HierarchicalInstanceTestWhereInnerModuleIsUsedByAnotherSubcircuit()
+    {
+        Module parentMod = new("parentMod");
+        Module andMod = Util.GetAndModule();
+        Signal in1 = parentMod.GenerateSignal("in1");
+        Signal in2 = parentMod.GenerateSignal("in2");
+        Signal out1 = parentMod.GenerateSignal("out1");
+        Signal out2 = parentMod.GenerateSignal("out2");
+        
+        Module middle1Mod = new("middle1");
+        Port mid1PIn = middle1Mod.AddNewPort("IN", PortDirection.Input);
+        Port mid1POut = middle1Mod.AddNewPort("OUT", PortDirection.Output);
+        
+        Module middle2Mod = new("middle2");
+        Port mid2PIn = middle2Mod.AddNewPort("IN", PortDirection.Input);
+        Port mid2POut = middle2Mod.AddNewPort("OUT", PortDirection.Output);
+
+        Instantiation instMiddle1 = parentMod.AddNewInstantiation(middle1Mod, "middle1Inst");
+        instMiddle1.PortMapping.SetPort("IN", in1);
+        instMiddle1.PortMapping.SetPort("OUT", out1);
+
+        Instantiation instMiddle2 = parentMod.AddNewInstantiation(middle2Mod, "middle2Inst");
+        instMiddle2.PortMapping.SetPort("IN", in2);
+        instMiddle2.PortMapping.SetPort("OUT", out2);
+
+        Instantiation middle1And = middle1Mod.AddNewInstantiation(andMod, "middle1And");
+        middle1And.PortMapping.SetPort("IN1", mid1PIn.Signal);
+        middle1And.PortMapping.SetPort("IN2", mid1PIn.Signal);
+        middle1And.PortMapping.SetPort("OUT", mid1POut.Signal);
+
+        Instantiation middle2And = middle2Mod.AddNewInstantiation(andMod, "middle2And");
+        middle2And.PortMapping.SetPort("IN1", mid2PIn.Signal);
+        middle2And.PortMapping.SetPort("IN2", mid2PIn.Signal);
+        middle2And.PortMapping.SetPort("OUT", mid2POut.Signal);
+
+        // Confirm that the AND used by both subcircuits is the same
+        SpiceSubcircuit moduleSubcircuit = parentMod.GetSpice();
+        ISubcircuitDefinition definition = moduleSubcircuit.AsSubcircuit();
+        Subcircuit middle1InstEntity = definition.Entities.First(e => e.Name == "middle1Inst") as Subcircuit ?? throw new Exception("Should be subcircuit");
+        Subcircuit middle2InstEntity = definition.Entities.First(e => e.Name == "middle2Inst") as Subcircuit ?? throw new Exception("Should be subcircuit");
+        Subcircuit middle1AndEntity = middle1InstEntity.Parameters.Definition.Entities.First(e => e.Name == "middle1And") as Subcircuit ?? throw new Exception("Should be subcircuit");
+        Subcircuit middle2AndEntity = middle2InstEntity.Parameters.Definition.Entities.First(e => e.Name == "middle2And") as Subcircuit ?? throw new Exception("Should be subcircuit");
+        Assert.AreEqual(middle1AndEntity.Parameters.Definition, middle2AndEntity.Parameters.Definition);
+
+        // Since AND isn't used at the top level, it is declared in both middle subcircuits
+        string spice = moduleSubcircuit.AsString();
+        string expectedSpice = 
+        """
+        .subckt middle1 IN OUT
+            .subckt AND IN1 IN2 OUT
+                VVDD VDD 0 5
+                Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
+                Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
+                Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
+                Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
+                Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
+                Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
+                Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
+                Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
+                Rn0x0_connect n0_0x0_orout OUT 0.001
+                Rn1x0_floating OUT 0 1000000000
+            .ends AND
+            
+            VVDD VDD 0 5
+            Xmiddle1And IN IN OUT AND
+            Rn0x0_floating OUT 0 1000000000
+        .ends middle1
+
+        .subckt middle2 IN OUT
+            .subckt AND IN1 IN2 OUT
+                VVDD VDD 0 5
+                Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
+                Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
+                Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
+                Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
+                Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
+                Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
+                Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
+                Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
+                Rn0x0_connect n0_0x0_orout OUT 0.001
+                Rn1x0_floating OUT 0 1000000000
+            .ends AND
+            
+            VVDD VDD 0 5
+            Xmiddle2And IN IN OUT AND
+            Rn0x0_floating OUT 0 1000000000
+        .ends middle2
+
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+        Xmiddle1Inst in1 out1 middle1
+        Xmiddle2Inst in2 out2 middle2
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
     }
 
     [TestMethod]

@@ -106,7 +106,13 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         {
             if (moduleSubcircuitDefinitions.Any(def => def.Module == submodule))
                 continue;
-            moduleSubcircuitDefinitions.Add(submodule.GetSpice(moduleSubcircuitDefinitions).AsModuleLinkedSubcircuit());
+            SpiceSubcircuit spiceCircuit = submodule.GetSpice(moduleSubcircuitDefinitions);
+
+            // Add all module-linked subcircuits that got declared there, and then the main one
+            foreach (ISubcircuitDefinition innerDefinition in spiceCircuit.GetSubcircuitDefinitions(true))
+                if (innerDefinition is IModuleLinkedSubcircuitDefinition moduleLinkedDefinition)
+                    moduleSubcircuitDefinitions.Add(moduleLinkedDefinition);
+            moduleSubcircuitDefinitions.Add(spiceCircuit.AsModuleLinkedSubcircuit());
         }
 
         // Combine all instantiations into one circuit
