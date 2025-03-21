@@ -96,8 +96,8 @@ internal static class SpiceUtil
             // PMOSs go in parallel from VDD to nandSignal
             circuit.Add(new Mosfet1($"pnand{i}", "nand", $"IN{i}", "VDD", "VDD", PmosModel.Name));
             // NMOSs go in series from nandSignal to ground
-            string nDrain = i == 0 ? "nand" : $"nand{i}";
-            string nSource = i == numInputs - 1 ? "0" : $"nand{i+1}";
+            string nDrain = i == 1 ? "nand" : $"nand{i}";
+            string nSource = i == numInputs ? "0" : $"nand{i+1}";
             circuit.Add(new Mosfet1($"nnand{i}", nDrain, $"IN{i}", nSource, nSource, NmosModel.Name));
         }
 
@@ -105,7 +105,7 @@ internal static class SpiceUtil
         circuit.Add(new Mosfet1($"pnot", "OUT", "nand", "VDD", "VDD", PmosModel.Name));
         circuit.Add(new Mosfet1($"nnot", "OUT", "nand", "0", "0", NmosModel.Name));
 
-        subcircuit = new NamedSubcircuitDefinition("AND", circuit, pins);
+        subcircuit = new NamedSubcircuitDefinition($"AND{numInputs}", circuit, pins);
         andSubcircuits[numInputs] = subcircuit;
         return subcircuit;
     }
@@ -127,8 +127,8 @@ internal static class SpiceUtil
         for (int i = 1; i <= numInputs; i++)
         {
             // PMOSs go in series from VDD to norSignal
-            string pDrain = i == 0 ? "nor" : $"nor{i}";
-            string pSource = i == numInputs - 1 ? "VDD" : $"nor{i+1}";
+            string pDrain = i == 1 ? "nor" : $"nor{i}";
+            string pSource = i == numInputs ? "VDD" : $"nor{i+1}";
             circuit.Add(new Mosfet1($"pnor{i}", pDrain, $"IN{i}", pSource, pSource, PmosModel.Name));
             // NMOSs go in parallel from norSignal to ground
             circuit.Add(new Mosfet1($"nnor{i}", "nor", $"IN{i}", "0", "0", NmosModel.Name));
@@ -138,7 +138,7 @@ internal static class SpiceUtil
         circuit.Add(new Mosfet1($"pnot", "OUT", "nor", "VDD", "VDD", PmosModel.Name));
         circuit.Add(new Mosfet1($"nnot", "OUT", "nor", "0", "0", NmosModel.Name));
 
-        subcircuit = new NamedSubcircuitDefinition("OR", circuit, pins);
+        subcircuit = new NamedSubcircuitDefinition($"OR{numInputs}", circuit, pins);
         orSubcircuits[numInputs] = subcircuit;
         return subcircuit;
     }

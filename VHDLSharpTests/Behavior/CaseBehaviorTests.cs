@@ -55,10 +55,42 @@ public class CaseBehaviorTests
         string spice = behavior.GetSpice(v1, "0").AsString();
         string expectedSpice = 
         """
+        .subckt NOT IN OUT
+            VVDD VDD 0 5
+            Mp OUT IN VDD VDD PmosMod
+            Mn OUT IN 0 0 NmosMod
+        .ends NOT
+
+        .subckt AND3 IN1 IN2 IN3 OUT
+            VVDD VDD 0 5
+            Mpnand1 nand IN1 VDD VDD PmosMod
+            Mnnand1 nand IN1 nand2 nand2 NmosMod
+            Mpnand2 nand IN2 VDD VDD PmosMod
+            Mnnand2 nand2 IN2 nand3 nand3 NmosMod
+            Mpnand3 nand IN3 VDD VDD PmosMod
+            Mnnand3 nand3 IN3 0 0 NmosMod
+            Mpnot OUT nand VDD VDD PmosMod
+            Mnnot OUT nand 0 0 NmosMod
+        .ends AND3
+
+        .subckt OR4 IN1 IN2 IN3 IN4 OUT
+            VVDD VDD 0 5
+            Mpnor1 nor IN1 nor2 nor2 PmosMod
+            Mnnor1 nor IN1 0 0 NmosMod
+            Mpnor2 nor2 IN2 nor3 nor3 PmosMod
+            Mnnor2 nor IN2 0 0 NmosMod
+            Mpnor3 nor3 IN3 nor4 nor4 PmosMod
+            Mnnor3 nor IN3 0 0 NmosMod
+            Mpnor4 nor4 IN4 VDD VDD PmosMod
+            Mnnor4 nor IN4 0 0 NmosMod
+            Mpnot OUT nor VDD VDD PmosMod
+            Mnnot OUT nor 0 0 NmosMod
+        .ends OR4
+
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
-        
+
         Rn0_0_0x0_res VDD n0_0_0x0_baseout 0.001
         Rn0_0_0x1_res VDD n0_0_0x1_baseout 0.001
         Rn0_0_0x2_res VDD n0_0_0x2_baseout 0.001
@@ -70,11 +102,11 @@ public class CaseBehaviorTests
         Rn0_1_0x0_res 0 n0_1_0x0_baseout 0.001
         Rn0_1_0x1_res VDD n0_1_0x1_baseout 0.001
         Rn0_1_0x2_res VDD n0_1_0x2_baseout 0.001
-        
+
         Rn0_1x0_connect n0_1_0x0_baseout n0x0_case1_0 0.001
         Rn0_1x1_connect n0_1_0x1_baseout n0x0_case1_1 0.001
         Rn0_1x2_connect n0_1_0x2_baseout n0x0_case1_2 0.001
-        
+
         Rn0_2_0x0_res VDD n0_2_0x0_baseout 0.001
         Rn0_2_0x1_res VDD n0_2_0x1_baseout 0.001
         Rn0_2_0x2_res 0 n0_2_0x2_baseout 0.001
@@ -92,219 +124,95 @@ public class CaseBehaviorTests
         Rn0_3x2_connect n0_3_0x2_baseout n0x0_case3_2 0.001
 
         Rn0_4_0_0_0_0x0_res selector_0 n0_4_0_0_0_0x0_baseout 0.001
-        Mn0_4_0_0_0x0_p n0_4_0_0_0x0_notout n0_4_0_0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_0_0x0_n n0_4_0_0_0x0_notout n0_4_0_0_0_0x0_baseout 0 0 NmosMod
+        Xn0_4_0_0_0x0_or n0_4_0_0_0_0x0_baseout n0_4_0_0_0x0_notout NOT
 
         Rn0_4_0_0_1_0x0_res selector_1 n0_4_0_0_1_0x0_baseout 0.001
-        Mn0_4_0_0_1x0_p n0_4_0_0_1x0_notout n0_4_0_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_0_1x0_n n0_4_0_0_1x0_notout n0_4_0_0_1_0x0_baseout 0 0 NmosMod
+        Xn0_4_0_0_1x0_or n0_4_0_0_1_0x0_baseout n0_4_0_0_1x0_notout NOT
 
         Rn0_4_0_0_2x0_res n0x0_case0_0 n0_4_0_0_2x0_baseout 0.001
-        Mn0_4_0_0x0_pnand0 n0_4_0_0x0_nandout n0_4_0_0_0x0_notout VDD VDD PmosMod
-        Mn0_4_0_0x0_nnand0 n0_4_0_0x0_nandout n0_4_0_0_0x0_notout n0_4_0_0x0_nand1 n0_4_0_0x0_nand1 NmosMod
-        Mn0_4_0_0x0_pnand1 n0_4_0_0x0_nandout n0_4_0_0_1x0_notout VDD VDD PmosMod
-        Mn0_4_0_0x0_nnand1 n0_4_0_0x0_nand1 n0_4_0_0_1x0_notout n0_4_0_0x0_nand2 n0_4_0_0x0_nand2 NmosMod
-        Mn0_4_0_0x0_pnand2 n0_4_0_0x0_nandout n0_4_0_0_2x0_baseout VDD VDD PmosMod
-        Mn0_4_0_0x0_nnand2 n0_4_0_0x0_nand2 n0_4_0_0_2x0_baseout 0 0 NmosMod
-        Mn0_4_0_0x0_pnot n0_4_0_0x0_andout n0_4_0_0x0_nandout VDD VDD PmosMod
-        Mn0_4_0_0x0_nnot n0_4_0_0x0_andout n0_4_0_0x0_nandout 0 0 NmosMod
+        Xn0_4_0_0x0_and n0_4_0_0_0x0_notout n0_4_0_0_1x0_notout n0_4_0_0_2x0_baseout n0_4_0_0x0_andout AND3
 
         Rn0_4_0_1_0x0_res selector_0 n0_4_0_1_0x0_baseout 0.001
         Rn0_4_0_1_1_0x0_res selector_1 n0_4_0_1_1_0x0_baseout 0.001
-        Mn0_4_0_1_1x0_p n0_4_0_1_1x0_notout n0_4_0_1_1_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_1_1x0_n n0_4_0_1_1x0_notout n0_4_0_1_1_0x0_baseout 0 0 NmosMod
+        Xn0_4_0_1_1x0_or n0_4_0_1_1_0x0_baseout n0_4_0_1_1x0_notout NOT
 
         Rn0_4_0_1_2x0_res n0x0_case1_0 n0_4_0_1_2x0_baseout 0.001
-        Mn0_4_0_1x0_pnand0 n0_4_0_1x0_nandout n0_4_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_1x0_nnand0 n0_4_0_1x0_nandout n0_4_0_1_0x0_baseout n0_4_0_1x0_nand1 n0_4_0_1x0_nand1 NmosMod
-        Mn0_4_0_1x0_pnand1 n0_4_0_1x0_nandout n0_4_0_1_1x0_notout VDD VDD PmosMod
-        Mn0_4_0_1x0_nnand1 n0_4_0_1x0_nand1 n0_4_0_1_1x0_notout n0_4_0_1x0_nand2 n0_4_0_1x0_nand2 NmosMod
-        Mn0_4_0_1x0_pnand2 n0_4_0_1x0_nandout n0_4_0_1_2x0_baseout VDD VDD PmosMod
-        Mn0_4_0_1x0_nnand2 n0_4_0_1x0_nand2 n0_4_0_1_2x0_baseout 0 0 NmosMod
-        Mn0_4_0_1x0_pnot n0_4_0_1x0_andout n0_4_0_1x0_nandout VDD VDD PmosMod
-        Mn0_4_0_1x0_nnot n0_4_0_1x0_andout n0_4_0_1x0_nandout 0 0 NmosMod
+        Xn0_4_0_1x0_and n0_4_0_1_0x0_baseout n0_4_0_1_1x0_notout n0_4_0_1_2x0_baseout n0_4_0_1x0_andout AND3
 
         Rn0_4_0_2_0_0x0_res selector_0 n0_4_0_2_0_0x0_baseout 0.001
-        Mn0_4_0_2_0x0_p n0_4_0_2_0x0_notout n0_4_0_2_0_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_2_0x0_n n0_4_0_2_0x0_notout n0_4_0_2_0_0x0_baseout 0 0 NmosMod
+        Xn0_4_0_2_0x0_or n0_4_0_2_0_0x0_baseout n0_4_0_2_0x0_notout NOT
 
         Rn0_4_0_2_1x0_res selector_1 n0_4_0_2_1x0_baseout 0.001
         Rn0_4_0_2_2x0_res n0x0_case2_0 n0_4_0_2_2x0_baseout 0.001
-        Mn0_4_0_2x0_pnand0 n0_4_0_2x0_nandout n0_4_0_2_0x0_notout VDD VDD PmosMod
-        Mn0_4_0_2x0_nnand0 n0_4_0_2x0_nandout n0_4_0_2_0x0_notout n0_4_0_2x0_nand1 n0_4_0_2x0_nand1 NmosMod
-        Mn0_4_0_2x0_pnand1 n0_4_0_2x0_nandout n0_4_0_2_1x0_baseout VDD VDD PmosMod
-        Mn0_4_0_2x0_nnand1 n0_4_0_2x0_nand1 n0_4_0_2_1x0_baseout n0_4_0_2x0_nand2 n0_4_0_2x0_nand2 NmosMod
-        Mn0_4_0_2x0_pnand2 n0_4_0_2x0_nandout n0_4_0_2_2x0_baseout VDD VDD PmosMod
-        Mn0_4_0_2x0_nnand2 n0_4_0_2x0_nand2 n0_4_0_2_2x0_baseout 0 0 NmosMod
-        Mn0_4_0_2x0_pnot n0_4_0_2x0_andout n0_4_0_2x0_nandout VDD VDD PmosMod
-        Mn0_4_0_2x0_nnot n0_4_0_2x0_andout n0_4_0_2x0_nandout 0 0 NmosMod
+        Xn0_4_0_2x0_and n0_4_0_2_0x0_notout n0_4_0_2_1x0_baseout n0_4_0_2_2x0_baseout n0_4_0_2x0_andout AND3
 
         Rn0_4_0_3_0x0_res selector_0 n0_4_0_3_0x0_baseout 0.001
         Rn0_4_0_3_1x0_res selector_1 n0_4_0_3_1x0_baseout 0.001
         Rn0_4_0_3_2x0_res n0x0_case3_0 n0_4_0_3_2x0_baseout 0.001
-        Mn0_4_0_3x0_pnand0 n0_4_0_3x0_nandout n0_4_0_3_0x0_baseout VDD VDD PmosMod
-        Mn0_4_0_3x0_nnand0 n0_4_0_3x0_nandout n0_4_0_3_0x0_baseout n0_4_0_3x0_nand1 n0_4_0_3x0_nand1 NmosMod
-        Mn0_4_0_3x0_pnand1 n0_4_0_3x0_nandout n0_4_0_3_1x0_baseout VDD VDD PmosMod
-        Mn0_4_0_3x0_nnand1 n0_4_0_3x0_nand1 n0_4_0_3_1x0_baseout n0_4_0_3x0_nand2 n0_4_0_3x0_nand2 NmosMod
-        Mn0_4_0_3x0_pnand2 n0_4_0_3x0_nandout n0_4_0_3_2x0_baseout VDD VDD PmosMod
-        Mn0_4_0_3x0_nnand2 n0_4_0_3x0_nand2 n0_4_0_3_2x0_baseout 0 0 NmosMod
-        Mn0_4_0_3x0_pnot n0_4_0_3x0_andout n0_4_0_3x0_nandout VDD VDD PmosMod
-        Mn0_4_0_3x0_nnot n0_4_0_3x0_andout n0_4_0_3x0_nandout 0 0 NmosMod
+        Xn0_4_0_3x0_and n0_4_0_3_0x0_baseout n0_4_0_3_1x0_baseout n0_4_0_3_2x0_baseout n0_4_0_3x0_andout AND3
+        Xn0_4_0x0_or n0_4_0_0x0_andout n0_4_0_1x0_andout n0_4_0_2x0_andout n0_4_0_3x0_andout n0_4_0x0_orout OR4
 
-        Mn0_4_0x0_pnor0 n0_4_0x0_norout n0_4_0_0x0_andout n0_4_0x0_nor1 n0_4_0x0_nor1 PmosMod
-        Mn0_4_0x0_nnor0 n0_4_0x0_norout n0_4_0_0x0_andout 0 0 NmosMod
-        Mn0_4_0x0_pnor1 n0_4_0x0_nor1 n0_4_0_1x0_andout n0_4_0x0_nor2 n0_4_0x0_nor2 PmosMod
-        Mn0_4_0x0_nnor1 n0_4_0x0_norout n0_4_0_1x0_andout 0 0 NmosMod
-        Mn0_4_0x0_pnor2 n0_4_0x0_nor2 n0_4_0_2x0_andout n0_4_0x0_nor3 n0_4_0x0_nor3 PmosMod
-        Mn0_4_0x0_nnor2 n0_4_0x0_norout n0_4_0_2x0_andout 0 0 NmosMod
-        Mn0_4_0x0_pnor3 n0_4_0x0_nor3 n0_4_0_3x0_andout VDD VDD PmosMod
-        Mn0_4_0x0_nnor3 n0_4_0x0_norout n0_4_0_3x0_andout 0 0 NmosMod
-        Mn0_4_0x0_pnot n0_4_0x0_orout n0_4_0x0_norout VDD VDD PmosMod
-        Mn0_4_0x0_nnot n0_4_0x0_orout n0_4_0x0_norout 0 0 NmosMod
         Rn0_4x0_connect n0_4_0x0_orout v1_0 0.001
-
         Rn0_5_0_0_0_0x0_res selector_0 n0_5_0_0_0_0x0_baseout 0.001
-        Mn0_5_0_0_0x0_p n0_5_0_0_0x0_notout n0_5_0_0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_0_0x0_n n0_5_0_0_0x0_notout n0_5_0_0_0_0x0_baseout 0 0 NmosMod
+        Xn0_5_0_0_0x0_or n0_5_0_0_0_0x0_baseout n0_5_0_0_0x0_notout NOT
 
         Rn0_5_0_0_1_0x0_res selector_1 n0_5_0_0_1_0x0_baseout 0.001
-        Mn0_5_0_0_1x0_p n0_5_0_0_1x0_notout n0_5_0_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_0_1x0_n n0_5_0_0_1x0_notout n0_5_0_0_1_0x0_baseout 0 0 NmosMod
+        Xn0_5_0_0_1x0_or n0_5_0_0_1_0x0_baseout n0_5_0_0_1x0_notout NOT
 
         Rn0_5_0_0_2x0_res n0x0_case0_1 n0_5_0_0_2x0_baseout 0.001
-        Mn0_5_0_0x0_pnand0 n0_5_0_0x0_nandout n0_5_0_0_0x0_notout VDD VDD PmosMod
-        Mn0_5_0_0x0_nnand0 n0_5_0_0x0_nandout n0_5_0_0_0x0_notout n0_5_0_0x0_nand1 n0_5_0_0x0_nand1 NmosMod
-        Mn0_5_0_0x0_pnand1 n0_5_0_0x0_nandout n0_5_0_0_1x0_notout VDD VDD PmosMod
-        Mn0_5_0_0x0_nnand1 n0_5_0_0x0_nand1 n0_5_0_0_1x0_notout n0_5_0_0x0_nand2 n0_5_0_0x0_nand2 NmosMod
-        Mn0_5_0_0x0_pnand2 n0_5_0_0x0_nandout n0_5_0_0_2x0_baseout VDD VDD PmosMod
-        Mn0_5_0_0x0_nnand2 n0_5_0_0x0_nand2 n0_5_0_0_2x0_baseout 0 0 NmosMod
-        Mn0_5_0_0x0_pnot n0_5_0_0x0_andout n0_5_0_0x0_nandout VDD VDD PmosMod
-        Mn0_5_0_0x0_nnot n0_5_0_0x0_andout n0_5_0_0x0_nandout 0 0 NmosMod
+        Xn0_5_0_0x0_and n0_5_0_0_0x0_notout n0_5_0_0_1x0_notout n0_5_0_0_2x0_baseout n0_5_0_0x0_andout AND3
 
         Rn0_5_0_1_0x0_res selector_0 n0_5_0_1_0x0_baseout 0.001
         Rn0_5_0_1_1_0x0_res selector_1 n0_5_0_1_1_0x0_baseout 0.001
-        Mn0_5_0_1_1x0_p n0_5_0_1_1x0_notout n0_5_0_1_1_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_1_1x0_n n0_5_0_1_1x0_notout n0_5_0_1_1_0x0_baseout 0 0 NmosMod
+        Xn0_5_0_1_1x0_or n0_5_0_1_1_0x0_baseout n0_5_0_1_1x0_notout NOT
 
         Rn0_5_0_1_2x0_res n0x0_case1_1 n0_5_0_1_2x0_baseout 0.001
-        Mn0_5_0_1x0_pnand0 n0_5_0_1x0_nandout n0_5_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_1x0_nnand0 n0_5_0_1x0_nandout n0_5_0_1_0x0_baseout n0_5_0_1x0_nand1 n0_5_0_1x0_nand1 NmosMod
-        Mn0_5_0_1x0_pnand1 n0_5_0_1x0_nandout n0_5_0_1_1x0_notout VDD VDD PmosMod
-        Mn0_5_0_1x0_nnand1 n0_5_0_1x0_nand1 n0_5_0_1_1x0_notout n0_5_0_1x0_nand2 n0_5_0_1x0_nand2 NmosMod
-        Mn0_5_0_1x0_pnand2 n0_5_0_1x0_nandout n0_5_0_1_2x0_baseout VDD VDD PmosMod
-        Mn0_5_0_1x0_nnand2 n0_5_0_1x0_nand2 n0_5_0_1_2x0_baseout 0 0 NmosMod
-        Mn0_5_0_1x0_pnot n0_5_0_1x0_andout n0_5_0_1x0_nandout VDD VDD PmosMod
-        Mn0_5_0_1x0_nnot n0_5_0_1x0_andout n0_5_0_1x0_nandout 0 0 NmosMod
+        Xn0_5_0_1x0_and n0_5_0_1_0x0_baseout n0_5_0_1_1x0_notout n0_5_0_1_2x0_baseout n0_5_0_1x0_andout AND3
 
         Rn0_5_0_2_0_0x0_res selector_0 n0_5_0_2_0_0x0_baseout 0.001
-        Mn0_5_0_2_0x0_p n0_5_0_2_0x0_notout n0_5_0_2_0_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_2_0x0_n n0_5_0_2_0x0_notout n0_5_0_2_0_0x0_baseout 0 0 NmosMod
+        Xn0_5_0_2_0x0_or n0_5_0_2_0_0x0_baseout n0_5_0_2_0x0_notout NOT
 
         Rn0_5_0_2_1x0_res selector_1 n0_5_0_2_1x0_baseout 0.001
         Rn0_5_0_2_2x0_res n0x0_case2_1 n0_5_0_2_2x0_baseout 0.001
-        Mn0_5_0_2x0_pnand0 n0_5_0_2x0_nandout n0_5_0_2_0x0_notout VDD VDD PmosMod
-        Mn0_5_0_2x0_nnand0 n0_5_0_2x0_nandout n0_5_0_2_0x0_notout n0_5_0_2x0_nand1 n0_5_0_2x0_nand1 NmosMod
-        Mn0_5_0_2x0_pnand1 n0_5_0_2x0_nandout n0_5_0_2_1x0_baseout VDD VDD PmosMod
-        Mn0_5_0_2x0_nnand1 n0_5_0_2x0_nand1 n0_5_0_2_1x0_baseout n0_5_0_2x0_nand2 n0_5_0_2x0_nand2 NmosMod
-        Mn0_5_0_2x0_pnand2 n0_5_0_2x0_nandout n0_5_0_2_2x0_baseout VDD VDD PmosMod
-        Mn0_5_0_2x0_nnand2 n0_5_0_2x0_nand2 n0_5_0_2_2x0_baseout 0 0 NmosMod
-        Mn0_5_0_2x0_pnot n0_5_0_2x0_andout n0_5_0_2x0_nandout VDD VDD PmosMod
-        Mn0_5_0_2x0_nnot n0_5_0_2x0_andout n0_5_0_2x0_nandout 0 0 NmosMod
+        Xn0_5_0_2x0_and n0_5_0_2_0x0_notout n0_5_0_2_1x0_baseout n0_5_0_2_2x0_baseout n0_5_0_2x0_andout AND3
 
         Rn0_5_0_3_0x0_res selector_0 n0_5_0_3_0x0_baseout 0.001
         Rn0_5_0_3_1x0_res selector_1 n0_5_0_3_1x0_baseout 0.001
         Rn0_5_0_3_2x0_res n0x0_case3_1 n0_5_0_3_2x0_baseout 0.001
-        Mn0_5_0_3x0_pnand0 n0_5_0_3x0_nandout n0_5_0_3_0x0_baseout VDD VDD PmosMod
-        Mn0_5_0_3x0_nnand0 n0_5_0_3x0_nandout n0_5_0_3_0x0_baseout n0_5_0_3x0_nand1 n0_5_0_3x0_nand1 NmosMod
-        Mn0_5_0_3x0_pnand1 n0_5_0_3x0_nandout n0_5_0_3_1x0_baseout VDD VDD PmosMod
-        Mn0_5_0_3x0_nnand1 n0_5_0_3x0_nand1 n0_5_0_3_1x0_baseout n0_5_0_3x0_nand2 n0_5_0_3x0_nand2 NmosMod
-        Mn0_5_0_3x0_pnand2 n0_5_0_3x0_nandout n0_5_0_3_2x0_baseout VDD VDD PmosMod
-        Mn0_5_0_3x0_nnand2 n0_5_0_3x0_nand2 n0_5_0_3_2x0_baseout 0 0 NmosMod
-        Mn0_5_0_3x0_pnot n0_5_0_3x0_andout n0_5_0_3x0_nandout VDD VDD PmosMod
-        Mn0_5_0_3x0_nnot n0_5_0_3x0_andout n0_5_0_3x0_nandout 0 0 NmosMod
 
-        Mn0_5_0x0_pnor0 n0_5_0x0_norout n0_5_0_0x0_andout n0_5_0x0_nor1 n0_5_0x0_nor1 PmosMod
-        Mn0_5_0x0_nnor0 n0_5_0x0_norout n0_5_0_0x0_andout 0 0 NmosMod
-        Mn0_5_0x0_pnor1 n0_5_0x0_nor1 n0_5_0_1x0_andout n0_5_0x0_nor2 n0_5_0x0_nor2 PmosMod
-        Mn0_5_0x0_nnor1 n0_5_0x0_norout n0_5_0_1x0_andout 0 0 NmosMod
-        Mn0_5_0x0_pnor2 n0_5_0x0_nor2 n0_5_0_2x0_andout n0_5_0x0_nor3 n0_5_0x0_nor3 PmosMod
-        Mn0_5_0x0_nnor2 n0_5_0x0_norout n0_5_0_2x0_andout 0 0 NmosMod
-        Mn0_5_0x0_pnor3 n0_5_0x0_nor3 n0_5_0_3x0_andout VDD VDD PmosMod
-        Mn0_5_0x0_nnor3 n0_5_0x0_norout n0_5_0_3x0_andout 0 0 NmosMod
-        Mn0_5_0x0_pnot n0_5_0x0_orout n0_5_0x0_norout VDD VDD PmosMod
-        Mn0_5_0x0_nnot n0_5_0x0_orout n0_5_0x0_norout 0 0 NmosMod
+        Xn0_5_0_3x0_and n0_5_0_3_0x0_baseout n0_5_0_3_1x0_baseout n0_5_0_3_2x0_baseout n0_5_0_3x0_andout AND3
+        Xn0_5_0x0_or n0_5_0_0x0_andout n0_5_0_1x0_andout n0_5_0_2x0_andout n0_5_0_3x0_andout n0_5_0x0_orout OR4
+
         Rn0_5x0_connect n0_5_0x0_orout v1_1 0.001
-
         Rn0_6_0_0_0_0x0_res selector_0 n0_6_0_0_0_0x0_baseout 0.001
-        Mn0_6_0_0_0x0_p n0_6_0_0_0x0_notout n0_6_0_0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_0_0x0_n n0_6_0_0_0x0_notout n0_6_0_0_0_0x0_baseout 0 0 NmosMod
+        Xn0_6_0_0_0x0_or n0_6_0_0_0_0x0_baseout n0_6_0_0_0x0_notout NOT
 
         Rn0_6_0_0_1_0x0_res selector_1 n0_6_0_0_1_0x0_baseout 0.001
-        Mn0_6_0_0_1x0_p n0_6_0_0_1x0_notout n0_6_0_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_0_1x0_n n0_6_0_0_1x0_notout n0_6_0_0_1_0x0_baseout 0 0 NmosMod
+        Xn0_6_0_0_1x0_or n0_6_0_0_1_0x0_baseout n0_6_0_0_1x0_notout NOT
 
         Rn0_6_0_0_2x0_res n0x0_case0_2 n0_6_0_0_2x0_baseout 0.001
-        Mn0_6_0_0x0_pnand0 n0_6_0_0x0_nandout n0_6_0_0_0x0_notout VDD VDD PmosMod
-        Mn0_6_0_0x0_nnand0 n0_6_0_0x0_nandout n0_6_0_0_0x0_notout n0_6_0_0x0_nand1 n0_6_0_0x0_nand1 NmosMod
-        Mn0_6_0_0x0_pnand1 n0_6_0_0x0_nandout n0_6_0_0_1x0_notout VDD VDD PmosMod
-        Mn0_6_0_0x0_nnand1 n0_6_0_0x0_nand1 n0_6_0_0_1x0_notout n0_6_0_0x0_nand2 n0_6_0_0x0_nand2 NmosMod
-        Mn0_6_0_0x0_pnand2 n0_6_0_0x0_nandout n0_6_0_0_2x0_baseout VDD VDD PmosMod
-        Mn0_6_0_0x0_nnand2 n0_6_0_0x0_nand2 n0_6_0_0_2x0_baseout 0 0 NmosMod
-        Mn0_6_0_0x0_pnot n0_6_0_0x0_andout n0_6_0_0x0_nandout VDD VDD PmosMod
-        Mn0_6_0_0x0_nnot n0_6_0_0x0_andout n0_6_0_0x0_nandout 0 0 NmosMod
+        Xn0_6_0_0x0_and n0_6_0_0_0x0_notout n0_6_0_0_1x0_notout n0_6_0_0_2x0_baseout n0_6_0_0x0_andout AND3
 
         Rn0_6_0_1_0x0_res selector_0 n0_6_0_1_0x0_baseout 0.001
         Rn0_6_0_1_1_0x0_res selector_1 n0_6_0_1_1_0x0_baseout 0.001
-        Mn0_6_0_1_1x0_p n0_6_0_1_1x0_notout n0_6_0_1_1_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_1_1x0_n n0_6_0_1_1x0_notout n0_6_0_1_1_0x0_baseout 0 0 NmosMod
+        Xn0_6_0_1_1x0_or n0_6_0_1_1_0x0_baseout n0_6_0_1_1x0_notout NOT
 
         Rn0_6_0_1_2x0_res n0x0_case1_2 n0_6_0_1_2x0_baseout 0.001
-        Mn0_6_0_1x0_pnand0 n0_6_0_1x0_nandout n0_6_0_1_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_1x0_nnand0 n0_6_0_1x0_nandout n0_6_0_1_0x0_baseout n0_6_0_1x0_nand1 n0_6_0_1x0_nand1 NmosMod
-        Mn0_6_0_1x0_pnand1 n0_6_0_1x0_nandout n0_6_0_1_1x0_notout VDD VDD PmosMod
-        Mn0_6_0_1x0_nnand1 n0_6_0_1x0_nand1 n0_6_0_1_1x0_notout n0_6_0_1x0_nand2 n0_6_0_1x0_nand2 NmosMod
-        Mn0_6_0_1x0_pnand2 n0_6_0_1x0_nandout n0_6_0_1_2x0_baseout VDD VDD PmosMod
-        Mn0_6_0_1x0_nnand2 n0_6_0_1x0_nand2 n0_6_0_1_2x0_baseout 0 0 NmosMod
-        Mn0_6_0_1x0_pnot n0_6_0_1x0_andout n0_6_0_1x0_nandout VDD VDD PmosMod
-        Mn0_6_0_1x0_nnot n0_6_0_1x0_andout n0_6_0_1x0_nandout 0 0 NmosMod
+        Xn0_6_0_1x0_and n0_6_0_1_0x0_baseout n0_6_0_1_1x0_notout n0_6_0_1_2x0_baseout n0_6_0_1x0_andout AND3
 
         Rn0_6_0_2_0_0x0_res selector_0 n0_6_0_2_0_0x0_baseout 0.001
-        Mn0_6_0_2_0x0_p n0_6_0_2_0x0_notout n0_6_0_2_0_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_2_0x0_n n0_6_0_2_0x0_notout n0_6_0_2_0_0x0_baseout 0 0 NmosMod
+        Xn0_6_0_2_0x0_or n0_6_0_2_0_0x0_baseout n0_6_0_2_0x0_notout NOT
 
         Rn0_6_0_2_1x0_res selector_1 n0_6_0_2_1x0_baseout 0.001
         Rn0_6_0_2_2x0_res n0x0_case2_2 n0_6_0_2_2x0_baseout 0.001
-        Mn0_6_0_2x0_pnand0 n0_6_0_2x0_nandout n0_6_0_2_0x0_notout VDD VDD PmosMod
-        Mn0_6_0_2x0_nnand0 n0_6_0_2x0_nandout n0_6_0_2_0x0_notout n0_6_0_2x0_nand1 n0_6_0_2x0_nand1 NmosMod
-        Mn0_6_0_2x0_pnand1 n0_6_0_2x0_nandout n0_6_0_2_1x0_baseout VDD VDD PmosMod
-        Mn0_6_0_2x0_nnand1 n0_6_0_2x0_nand1 n0_6_0_2_1x0_baseout n0_6_0_2x0_nand2 n0_6_0_2x0_nand2 NmosMod
-        Mn0_6_0_2x0_pnand2 n0_6_0_2x0_nandout n0_6_0_2_2x0_baseout VDD VDD PmosMod
-        Mn0_6_0_2x0_nnand2 n0_6_0_2x0_nand2 n0_6_0_2_2x0_baseout 0 0 NmosMod
-        Mn0_6_0_2x0_pnot n0_6_0_2x0_andout n0_6_0_2x0_nandout VDD VDD PmosMod
-        Mn0_6_0_2x0_nnot n0_6_0_2x0_andout n0_6_0_2x0_nandout 0 0 NmosMod
+        Xn0_6_0_2x0_and n0_6_0_2_0x0_notout n0_6_0_2_1x0_baseout n0_6_0_2_2x0_baseout n0_6_0_2x0_andout AND3
 
         Rn0_6_0_3_0x0_res selector_0 n0_6_0_3_0x0_baseout 0.001
         Rn0_6_0_3_1x0_res selector_1 n0_6_0_3_1x0_baseout 0.001
         Rn0_6_0_3_2x0_res n0x0_case3_2 n0_6_0_3_2x0_baseout 0.001
-        Mn0_6_0_3x0_pnand0 n0_6_0_3x0_nandout n0_6_0_3_0x0_baseout VDD VDD PmosMod
-        Mn0_6_0_3x0_nnand0 n0_6_0_3x0_nandout n0_6_0_3_0x0_baseout n0_6_0_3x0_nand1 n0_6_0_3x0_nand1 NmosMod
-        Mn0_6_0_3x0_pnand1 n0_6_0_3x0_nandout n0_6_0_3_1x0_baseout VDD VDD PmosMod
-        Mn0_6_0_3x0_nnand1 n0_6_0_3x0_nand1 n0_6_0_3_1x0_baseout n0_6_0_3x0_nand2 n0_6_0_3x0_nand2 NmosMod
-        Mn0_6_0_3x0_pnand2 n0_6_0_3x0_nandout n0_6_0_3_2x0_baseout VDD VDD PmosMod
-        Mn0_6_0_3x0_nnand2 n0_6_0_3x0_nand2 n0_6_0_3_2x0_baseout 0 0 NmosMod
-        Mn0_6_0_3x0_pnot n0_6_0_3x0_andout n0_6_0_3x0_nandout VDD VDD PmosMod
-        Mn0_6_0_3x0_nnot n0_6_0_3x0_andout n0_6_0_3x0_nandout 0 0 NmosMod
 
-        Mn0_6_0x0_pnor0 n0_6_0x0_norout n0_6_0_0x0_andout n0_6_0x0_nor1 n0_6_0x0_nor1 PmosMod
-        Mn0_6_0x0_nnor0 n0_6_0x0_norout n0_6_0_0x0_andout 0 0 NmosMod
-        Mn0_6_0x0_pnor1 n0_6_0x0_nor1 n0_6_0_1x0_andout n0_6_0x0_nor2 n0_6_0x0_nor2 PmosMod
-        Mn0_6_0x0_nnor1 n0_6_0x0_norout n0_6_0_1x0_andout 0 0 NmosMod
-        Mn0_6_0x0_pnor2 n0_6_0x0_nor2 n0_6_0_2x0_andout n0_6_0x0_nor3 n0_6_0x0_nor3 PmosMod
-        Mn0_6_0x0_nnor2 n0_6_0x0_norout n0_6_0_2x0_andout 0 0 NmosMod
-        Mn0_6_0x0_pnor3 n0_6_0x0_nor3 n0_6_0_3x0_andout VDD VDD PmosMod
-        Mn0_6_0x0_nnor3 n0_6_0x0_norout n0_6_0_3x0_andout 0 0 NmosMod
-        Mn0_6_0x0_pnot n0_6_0x0_orout n0_6_0x0_norout VDD VDD PmosMod
-        Mn0_6_0x0_nnot n0_6_0x0_orout n0_6_0x0_norout 0 0 NmosMod
+        Xn0_6_0_3x0_and n0_6_0_3_0x0_baseout n0_6_0_3_1x0_baseout n0_6_0_3_2x0_baseout n0_6_0_3x0_andout AND3
+        Xn0_6_0x0_or n0_6_0_0x0_andout n0_6_0_1x0_andout n0_6_0_2x0_andout n0_6_0_3x0_andout n0_6_0x0_orout OR4
         Rn0_6x0_connect n0_6_0x0_orout v1_2 0.001
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));

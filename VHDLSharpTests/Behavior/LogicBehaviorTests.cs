@@ -5,6 +5,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharpTests;
 
@@ -55,17 +56,23 @@ public class LogicBehaviorTests
         string spice = behavior.GetSpice(s3, "0").AsString();
         string expectedSpice = 
         """
+        .subckt AND2 IN1 IN2 OUT
+            VVDD VDD 0 5
+            Mpnand1 nand IN1 VDD VDD PmosMod
+            Mnnand1 nand IN1 nand2 nand2 NmosMod
+            Mpnand2 nand IN2 VDD VDD PmosMod
+            Mnnand2 nand2 IN2 0 0 NmosMod
+            Mpnot OUT nand VDD VDD PmosMod
+            Mnnot OUT nand 0 0 NmosMod
+        .ends AND2
+
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
+
         Rn0_0_0x0_res s1 n0_0_0x0_baseout 0.001
         Rn0_0_1x0_res s2 n0_0_1x0_baseout 0.001
-        Mn0_0x0_pnand0 n0_0x0_nandout n0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_0x0_nnand0 n0_0x0_nandout n0_0_0x0_baseout n0_0x0_nand1 n0_0x0_nand1 NmosMod
-        Mn0_0x0_pnand1 n0_0x0_nandout n0_0_1x0_baseout VDD VDD PmosMod
-        Mn0_0x0_nnand1 n0_0x0_nand1 n0_0_1x0_baseout 0 0 NmosMod
-        Mn0_0x0_pnot n0_0x0_andout n0_0x0_nandout VDD VDD PmosMod
-        Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
         Rn0x0_connect n0_0x0_andout s3 0.001
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
@@ -77,7 +84,7 @@ public class LogicBehaviorTests
 
         // Check Spice# entities
         IEntity[] entities = [.. behavior.GetSpice(s3, "0").CircuitElements];
-        Assert.AreEqual(entities.Length, 12);
+        Assert.AreEqual(entities.Length, 7);
         Mosfet1Model nmosMod = entities.First(e => e.Name == "NmosMod") as Mosfet1Model ?? throw new();
         Assert.IsTrue(nmosMod.Parameters.TypeName == "nmos" && nmosMod.Parameters.Width == 100e-6 && nmosMod.Parameters.Length == 1e-6);
         Mosfet1Model pmosMod = entities.First(e => e.Name == "PmosMod") as Mosfet1Model ?? throw new();
@@ -88,24 +95,8 @@ public class LogicBehaviorTests
         Assert.IsTrue(resistor0.Nodes.SequenceEqual(["s1", "n0_0_0x0_baseout"]));
         Resistor resistor1 = entities.First(e => e.Name == "n0_0_1x0_res") as Resistor ?? throw new();
         Assert.IsTrue(resistor1.Nodes.SequenceEqual(["s2", "n0_0_1x0_baseout"]));
-        Mosfet1 pnand0 = entities.First(e => e.Name == "n0_0x0_pnand0") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnand0.Nodes.SequenceEqual(["n0_0x0_nandout", "n0_0_0x0_baseout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnand0.Model);
-        Mosfet1 nnand0 = entities.First(e => e.Name == "n0_0x0_nnand0") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnand0.Nodes.SequenceEqual(["n0_0x0_nandout", "n0_0_0x0_baseout", "n0_0x0_nand1", "n0_0x0_nand1"]));
-        Assert.AreEqual("NmosMod", nnand0.Model);
-        Mosfet1 pnand1 = entities.First(e => e.Name == "n0_0x0_pnand1") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnand1.Nodes.SequenceEqual(["n0_0x0_nandout", "n0_0_1x0_baseout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnand1.Model);
-        Mosfet1 nnand1 = entities.First(e => e.Name == "n0_0x0_nnand1") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnand1.Nodes.SequenceEqual(["n0_0x0_nand1", "n0_0_1x0_baseout", "0", "0"]));
-        Assert.AreEqual("NmosMod", nnand1.Model);
-        Mosfet1 pnot = entities.First(e => e.Name == "n0_0x0_pnot") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnot.Nodes.SequenceEqual(["n0_0x0_andout", "n0_0x0_nandout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnot.Model);
-        Mosfet1 nnot = entities.First(e => e.Name == "n0_0x0_nnot") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnot.Nodes.SequenceEqual(["n0_0x0_andout", "n0_0x0_nandout", "0", "0"]));
-        Assert.AreEqual("NmosMod", nnot.Model);
+        Subcircuit andSubcircuit = entities.First(e => e.Name == "n0_0x0_and") as Subcircuit ?? throw new();
+        Assert.IsTrue(andSubcircuit.Parameters.Definition is INamedSubcircuitDefinition namedDef && namedDef.Name == "AND2");
         Resistor resistorOut = entities.First(e => e.Name == "n0x0_connect") as Resistor ?? throw new();
         Assert.IsTrue(resistorOut.Nodes.SequenceEqual(["n0_0x0_andout", "s3"]));
 
@@ -162,33 +153,31 @@ public class LogicBehaviorTests
         string spice = behavior.GetSpice(v3, "0").AsString();
         string expectedSpice = 
         """
+        .subckt AND2 IN1 IN2 OUT
+            VVDD VDD 0 5
+            Mpnand1 nand IN1 VDD VDD PmosMod
+            Mnnand1 nand IN1 nand2 nand2 NmosMod
+            Mpnand2 nand IN2 VDD VDD PmosMod
+            Mnnand2 nand2 IN2 0 0 NmosMod
+            Mpnot OUT nand VDD VDD PmosMod
+            Mnnot OUT nand 0 0 NmosMod
+        .ends AND2
+
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
+
         Rn0_0_0x0_res v1_0 n0_0_0x0_baseout 0.001
         Rn0_0_0x1_res v1_1 n0_0_0x1_baseout 0.001
         Rn0_0_0x2_res v1_2 n0_0_0x2_baseout 0.001
         Rn0_0_1x0_res v2_0 n0_0_1x0_baseout 0.001
         Rn0_0_1x1_res v2_1 n0_0_1x1_baseout 0.001
         Rn0_0_1x2_res v2_2 n0_0_1x2_baseout 0.001
-        Mn0_0x0_pnand0 n0_0x0_nandout n0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_0x0_nnand0 n0_0x0_nandout n0_0_0x0_baseout n0_0x0_nand1 n0_0x0_nand1 NmosMod
-        Mn0_0x0_pnand1 n0_0x0_nandout n0_0_1x0_baseout VDD VDD PmosMod
-        Mn0_0x0_nnand1 n0_0x0_nand1 n0_0_1x0_baseout 0 0 NmosMod
-        Mn0_0x0_pnot n0_0x0_andout n0_0x0_nandout VDD VDD PmosMod
-        Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
-        Mn0_0x1_pnand0 n0_0x1_nandout n0_0_0x1_baseout VDD VDD PmosMod
-        Mn0_0x1_nnand0 n0_0x1_nandout n0_0_0x1_baseout n0_0x1_nand1 n0_0x1_nand1 NmosMod
-        Mn0_0x1_pnand1 n0_0x1_nandout n0_0_1x1_baseout VDD VDD PmosMod
-        Mn0_0x1_nnand1 n0_0x1_nand1 n0_0_1x1_baseout 0 0 NmosMod
-        Mn0_0x1_pnot n0_0x1_andout n0_0x1_nandout VDD VDD PmosMod
-        Mn0_0x1_nnot n0_0x1_andout n0_0x1_nandout 0 0 NmosMod
-        Mn0_0x2_pnand0 n0_0x2_nandout n0_0_0x2_baseout VDD VDD PmosMod
-        Mn0_0x2_nnand0 n0_0x2_nandout n0_0_0x2_baseout n0_0x2_nand1 n0_0x2_nand1 NmosMod
-        Mn0_0x2_pnand1 n0_0x2_nandout n0_0_1x2_baseout VDD VDD PmosMod
-        Mn0_0x2_nnand1 n0_0x2_nand1 n0_0_1x2_baseout 0 0 NmosMod
-        Mn0_0x2_pnot n0_0x2_andout n0_0x2_nandout VDD VDD PmosMod
-        Mn0_0x2_nnot n0_0x2_andout n0_0x2_nandout 0 0 NmosMod
+        
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+        Xn0_0x1_and n0_0_0x1_baseout n0_0_1x1_baseout n0_0x1_andout AND2
+        Xn0_0x2_and n0_0_0x2_baseout n0_0_1x2_baseout n0_0x2_andout AND2
+
         Rn0x0_connect n0_0x0_andout v3_0 0.001
         Rn0x1_connect n0_0x1_andout v3_1 0.001
         Rn0x2_connect n0_0x2_andout v3_2 0.001
