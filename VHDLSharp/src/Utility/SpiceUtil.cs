@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.SpiceCircuits;
@@ -12,9 +13,12 @@ internal static class SpiceUtil
 {
     private static Mosfet1Model? nmosModel = null;
     private static Mosfet1Model? pmosModel = null;
-    
-    private static readonly Dictionary<ISubcircuitDefinition, string> subcircuitNames = [];
 
+    // Mapping of #inputs to subcircuit definition
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> andSubcircuits = [];
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> orSubcircuits = [];
+    private static INamedSubcircuitDefinition? notSubcircuit = null;
+    
     internal static double VDD => 5.0;
 
     /// <summary>
@@ -73,10 +77,90 @@ internal static class SpiceUtil
 
     // TODO commonly-used subcircuits
 
-    // /// <summary>
-    // /// Dictionary mapping Spice# subcircuits to their names to be used in Spice
-    // /// </summary>
-    // internal static ReadOnlyDictionary<ISubcircuitDefinition, string> SubcircuitNames => new(subcircuitNames);
+    /// <summary>
+    /// Subcircuit for AND gate
+    /// </summary>
+    /// <param name="numInputs"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetAndSubcircuit(int numInputs)
+    {
+        if (andSubcircuits.TryGetValue(numInputs, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+
+        // Add a PMOS and NMOS for each input signal
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in parallel from VDD to nandSignal
+            circuit.Add(new Mosfet1($"pnand{i}", "nand", $"IN{i}", "VDD", "VDD", PmosModel.Name));
+            // NMOSs go in series from nandSignal to ground
+            string nDrain = i == 0 ? "nand" : $"nand{i}";
+            string nSource = i == numInputs - 1 ? "0" : $"nand{i+1}";
+            circuit.Add(new Mosfet1($"nnand{i}", nDrain, $"IN{i}", nSource, nSource, NmosModel.Name));
+        }
+
+        // Add PMOS and NMOS to form NOT gate going from nand signal name to output signal name
+        circuit.Add(new Mosfet1($"pnot", "OUT", "nand", "VDD", "VDD", PmosModel.Name));
+        circuit.Add(new Mosfet1($"nnot", "OUT", "nand", "0", "0", NmosModel.Name));
+
+        subcircuit = new NamedSubcircuitDefinition("AND", circuit, pins);
+        andSubcircuits[numInputs] = subcircuit;
+        return subcircuit;
+    }
+
+    /// <summary>
+    /// Subcircuit for OR gate
+    /// </summary>
+    /// <param name="numInputs"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetOrSubcircuit(int numInputs)
+    {
+        if (orSubcircuits.TryGetValue(numInputs, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+
+        // Add a PMOS and NMOS for each input signal
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in series from VDD to norSignal
+            string pDrain = i == 0 ? "nor" : $"nor{i}";
+            string pSource = i == numInputs - 1 ? "VDD" : $"nor{i+1}";
+            circuit.Add(new Mosfet1($"pnor{i}", pDrain, $"IN{i}", pSource, pSource, PmosModel.Name));
+            // NMOSs go in parallel from norSignal to ground
+            circuit.Add(new Mosfet1($"nnor{i}", "nor", $"IN{i}", "0", "0", NmosModel.Name));
+        }
+
+        // Add PMOS and NMOS to form NOT gate going from nor signal name to output signal name
+        circuit.Add(new Mosfet1($"pnot", "OUT", "nor", "VDD", "VDD", PmosModel.Name));
+        circuit.Add(new Mosfet1($"nnot", "OUT", "nor", "0", "0", NmosModel.Name));
+
+        subcircuit = new NamedSubcircuitDefinition("OR", circuit, pins);
+        orSubcircuits[numInputs] = subcircuit;
+        return subcircuit;
+    }
+
+    /// <summary>
+    /// Subcircuit for NOT gate
+    /// </summary>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetNotSubcircuit()
+    {
+        if (notSubcircuit is not null)
+            return notSubcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = ["IN", "OUT"];
+        
+        circuit.Add(new Mosfet1("p", "OUT", "IN", "VDD", "VDD", PmosModel.Name));
+        circuit.Add(new Mosfet1("n", "OUT", "IN", "0", "0", NmosModel.Name));
+
+        notSubcircuit = new NamedSubcircuitDefinition("NOT", circuit, pins);
+        return notSubcircuit;
+    }
 
     /// <summary>
     /// Method to generate Spice node name

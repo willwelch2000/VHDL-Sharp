@@ -55,7 +55,7 @@ internal partial class Util
         if (orModule is not null)
             return orModule;
 
-        orModule = new("AND");
+        orModule = new("AndMod");
         Port pIn1 = orModule.AddNewPort("IN1", PortDirection.Input);
         Port pIn2 = orModule.AddNewPort("IN2", PortDirection.Input);
         Port pOut = orModule.AddNewPort("OUT", PortDirection.Output);
@@ -69,7 +69,7 @@ internal partial class Util
         if (andModule is not null)
             return andModule;
 
-        andModule = new("OR");
+        andModule = new("OrMod");
         Port pIn1 = andModule.AddNewPort("IN1", PortDirection.Input);
         Port pIn2 = andModule.AddNewPort("IN2", PortDirection.Input);
         Port pOut = andModule.AddNewPort("OUT", PortDirection.Output);

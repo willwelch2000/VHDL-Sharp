@@ -107,7 +107,7 @@ public class InstantiationTests
         string spice = parentMod.Instantiations.GetSpice().AsString();
         string expectedSpice = 
         """
-        .subckt AND IN1 IN2 OUT
+        .subckt AndMod IN1 IN2 OUT
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -121,9 +121,9 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends AND
+        .ends AndMod
 
-        .subckt OR IN1 IN2 OUT
+        .subckt OrMod IN1 IN2 OUT
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -137,17 +137,17 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
             Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends OR
+        .ends OrMod
 
-        Xand1 in1 in2 out1 AND
-        Xand2 in2 in3 out2 AND
-        Xor1 out1 out2 out3 OR
+        Xand1 in1 in2 out1 AndMod
+        Xand2 in2 in3 out2 AndMod
+        Xor1 out1 out2 out3 OrMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
         """
-        .subckt AND IN1 IN2 OUT
+        .subckt AndMod IN1 IN2 OUT
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -159,9 +159,9 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends AND
+        .ends AndMod
 
-        .subckt OR IN1 IN2 OUT
+        .subckt OrMod IN1 IN2 OUT
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -173,14 +173,14 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_andout n0_0x0_nandout 0 0 NmosMod
             Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends OR
+        .ends OrMod
 
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
-        Xand1 in1 in2 out1 AND
-        Xand2 in2 in3 out2 AND
-        Xor1 out1 out2 out3 OR
+        Xand1 in1 in2 out1 AndMod
+        Xand2 in2 in3 out2 AndMod
+        Xor1 out1 out2 out3 OrMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
     }
@@ -217,7 +217,7 @@ public class InstantiationTests
         string spice = parentMod.Instantiations.GetSpice().AsString();
         string expectedSpice = 
         """
-        .subckt AND IN1 IN2 OUT
+        .subckt AndMod IN1 IN2 OUT
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -231,17 +231,17 @@ public class InstantiationTests
             Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
-        .ends AND
+        .ends AndMod
 
         .subckt middle IN OUT
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
-            XmiddleAnd IN IN OUT AND
+            XmiddleAnd IN IN OUT AndMod
             Rn0x0_floating OUT 0 1000000000
         .ends middle
 
-        Xand1 in1 in2 out1 AND
+        Xand1 in1 in2 out1 AndMod
         XmiddleInst in3 out2 middle
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
@@ -297,7 +297,7 @@ public class InstantiationTests
         string expectedSpice = 
         """
         .subckt middle1 IN OUT
-            .subckt AND IN1 IN2 OUT
+            .subckt AndMod IN1 IN2 OUT
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
                 Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -309,15 +309,15 @@ public class InstantiationTests
                 Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
                 Rn0x0_connect n0_0x0_orout OUT 0.001
                 Rn1x0_floating OUT 0 1000000000
-            .ends AND
+            .ends AndMod
             
             VVDD VDD 0 5
-            Xmiddle1And IN IN OUT AND
+            Xmiddle1And IN IN OUT AndMod
             Rn0x0_floating OUT 0 1000000000
         .ends middle1
 
         .subckt middle2 IN OUT
-            .subckt AND IN1 IN2 OUT
+            .subckt AndMod IN1 IN2 OUT
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
                 Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -329,10 +329,10 @@ public class InstantiationTests
                 Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
                 Rn0x0_connect n0_0x0_orout OUT 0.001
                 Rn1x0_floating OUT 0 1000000000
-            .ends AND
+            .ends AndMod
             
             VVDD VDD 0 5
-            Xmiddle2And IN IN OUT AND
+            Xmiddle2And IN IN OUT AndMod
             Rn0x0_floating OUT 0 1000000000
         .ends middle2
 
