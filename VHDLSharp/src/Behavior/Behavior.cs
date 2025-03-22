@@ -1,10 +1,10 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
-using SpiceSharp.Entities;
 using VHDLSharp.Validation;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Behaviors;
 
@@ -83,22 +83,9 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public ValidityManager ValidityManager => validityManager;
     
-    /// <summary>
-    /// Convert to spice
-    /// </summary>
-    /// <param name="outputSignal">Output signal for this behavior</param>
-    /// <param name="uniqueId">Unique string provided to this instantiation so that it can have a unique name</param>
-    /// <returns></returns>
-    public abstract string GetSpice(INamedSignal outputSignal, string uniqueId);
-
-    /// <summary>
-    /// Get behavior as list of entities for Spice#
-    /// </summary>
-    /// <param name="outputSignal">Output signal for this behavior</param>
-    /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
-    /// <returns></returns>
-    public abstract IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId);
-
+    /// <inheritdoc/>
+    public abstract SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId);
+    
     /// <summary>
     /// Call this method to raise the <see cref="Updated"/> event
     /// </summary>

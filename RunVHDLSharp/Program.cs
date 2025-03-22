@@ -7,7 +7,6 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Simulations;
 using SpiceSharp.Entities;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp;
 
@@ -15,7 +14,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        
+        AndLiteralTest();
     }
 
     public static void MainTest()
@@ -36,7 +35,7 @@ public static class Program
 
         Console.WriteLine(module1.GetSpice());
 
-        Circuit circuit = module1.GetSpiceSharpCircuit();
+        Circuit circuit = module1.GetSpice().AsCircuit();
         IEntity[] entities = [.. circuit];
     }
 
@@ -199,5 +198,39 @@ public static class Program
             Console.WriteLine($"Baseout1: {baseout1.Value}");
             Console.WriteLine($"Baseout2: {baseout2.Value}");
         }
+    }
+    
+    private static void AndLiteralTest()
+    {
+        Module m1 = new("m1");
+        Vector input = m1.GenerateVector("input", 3);
+        Vector output = m1.GenerateVector("output", 3);
+        Port inputPort = m1.AddNewPort(input, PortDirection.Input);
+        m1.AddNewPort(output, PortDirection.Output);
+        output.AssignBehavior(input.And(new Literal(5, 3)));
+
+        SimulationSetup setup = new(m1)
+        {
+            Length = 1e-3,
+            StepSize = 1e-5,
+        };
+        
+        SubcircuitReference subcircuit = new(m1, []);
+        setup.SignalsToMonitor.Add(new(subcircuit, input));
+        setup.SignalsToMonitor.Add(new(subcircuit, output));
+
+        PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
+        PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);
+        PulseStimulus stimulus0 = new(0.125e-3, 0.125e-3, 0.25e-3);
+
+        MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
+        setup.AssignStimulus(inputPort, stimulus);
+        SimulationResult[] results = [.. setup.Simulate()];
+
+        // Plot data
+        ScottPlot.Plot plot = new();
+        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, ScottPlot.Color.FromHex("#CCCCFF"));
+        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, ScottPlot.Colors.Red);
+        plot.SavePng("results.png", 400, 300);
     }
 }

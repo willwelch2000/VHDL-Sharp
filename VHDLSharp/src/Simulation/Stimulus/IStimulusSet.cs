@@ -1,7 +1,7 @@
-using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Simulations;
 
@@ -27,13 +27,5 @@ public interface IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string GetSpice(INamedSignal signal, string uniqueId); 
-
-    /// <summary>
-    /// Convert to Spice# entities that can be added to a simulation circuit given signal and unique id
-    /// </summary>
-    /// <param name="signal"></param>
-    /// <param name="uniqueId"></param>
-    /// <returns></returns>
-    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal signal, string uniqueId);
+    public SpiceCircuit GetSpice(INamedSignal signal, string uniqueId);
 }

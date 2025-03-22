@@ -59,7 +59,7 @@ public class SimulationResult
         // Calculate value--each export is a bit in the value
         int value = 0;
         for (int i = 0; i < exports.Length; i++)
-            if (exports[i].Value > Util.VDD/2)
+            if (exports[i].Value > SpiceUtil.VDD/2)
                 value += 1<<i;
 
         values.Add(value);

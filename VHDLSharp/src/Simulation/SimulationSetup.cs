@@ -1,11 +1,10 @@
-
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using SpiceSharp;
-using SpiceSharp.Entities;
 using SpiceSharp.Simulations;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
@@ -108,52 +107,32 @@ public class SimulationSetup : IValidityManagedEntity
     public bool IsComplete() => StimulusMapping.IsComplete();
 
     /// <summary>
-    /// Get Spice representation of the setup
-    /// </summary>
-    /// <returns></returns>
-    public string GetSpice()
-    {
-        if (!manager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to convert to Spice");
-        if (!IsComplete())
-            throw new IncompleteException("Simulation setup must be complete to convert to Spice");
-
-        string toReturn = Module.GetSpice();
-
-        // Connect stimuli to ports
-        int i = 0;
-        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            toReturn += $"{stimulus.GetSpice(port.Signal, i++.ToString())}\n";
-
-        return toReturn;
-    }
-
-    /// <summary>
     /// Get Spice# Circuit representation of setup
     /// </summary>
     /// <returns></returns>
-    public Circuit GetSpiceSharpCircuit()
+    public SpiceCircuit GetSpice()
     {
         if (!manager.IsValid())
             throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
 
-        Circuit circuit = Module.GetSpiceSharpCircuit();
+        SpiceCircuit circuit = Module.GetSpice();
 
         // Connect stimuli to ports
+        List<SpiceCircuit> additionalCircuits = [];
         int i = 0;
         foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            foreach (IEntity entity in stimulus.GetSpiceSharpEntities(port.Signal, i++.ToString()))
-                circuit.Add(entity);
+            additionalCircuits.Add(stimulus.GetSpice(port.Signal, i++.ToString()));
 
-        return circuit;
+        // Combine module circuit with additional entities
+        return SpiceCircuit.Combine([circuit, .. additionalCircuits]);
     }
 
     /// <inheritdoc/>
     public IEnumerable<SimulationResult> Simulate()
     {
-        Circuit circuit = GetSpiceSharpCircuit();
+        Circuit circuit = GetSpice().AsCircuit();
         
         var tran = new Transient("Tran 1", StepSize, Length);
 

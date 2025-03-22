@@ -5,10 +5,10 @@ using VHDLSharp.Utility;
 using VHDLSharp.Conditions;
 using VHDLSharp.Signals;
 using VHDLSharp.Dimensions;
-using SpiceSharp.Entities;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Validation;
 using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Behaviors;
 
@@ -85,13 +85,7 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
+    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         throw new NotImplementedException();
     }
