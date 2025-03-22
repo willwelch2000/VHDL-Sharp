@@ -69,23 +69,33 @@ public class ModuleTests
         string spice = m1.GetSpice().AsString();
         string expectedSpice = 
         """
+        .subckt NOT IN OUT
+            VVDD VDD 0 5
+            Mp OUT IN VDD VDD PmosMod
+            Mn OUT IN 0 0 NmosMod
+        .ends NOT
+
+        .subckt AND2 IN1 IN2 OUT
+            VVDD VDD 0 5
+            Mpnand1 nand IN1 VDD VDD PmosMod
+            Mnnand1 nand IN1 nand2 nand2 NmosMod
+            Mpnand2 nand IN2 VDD VDD PmosMod
+            Mnnand2 nand2 IN2 0 0 NmosMod
+            Mpnot OUT nand VDD VDD PmosMod
+            Mnnot OUT nand 0 0 NmosMod
+        .ends AND2
+
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
 
         Rn0_0_0x0_res s1 n0_0_0x0_baseout 0.001
-        Mn0_0x0_p n0_0x0_notout n0_0_0x0_baseout VDD VDD PmosMod
-        Mn0_0x0_n n0_0x0_notout n0_0_0x0_baseout 0 0 NmosMod
+        Xn0_0x0_or n0_0_0x0_baseout n0_0x0_notout NOT
         Rn0x0_connect n0_0x0_notout s3 0.001
         
         Rn1_0_0x0_res s3 n1_0_0x0_baseout 0.001
         Rn1_0_1x0_res s2 n1_0_1x0_baseout 0.001
-        Mn1_0x0_pnand0 n1_0x0_nandout n1_0_0x0_baseout VDD VDD PmosMod
-        Mn1_0x0_nnand0 n1_0x0_nandout n1_0_0x0_baseout n1_0x0_nand1 n1_0x0_nand1 NmosMod
-        Mn1_0x0_pnand1 n1_0x0_nandout n1_0_1x0_baseout VDD VDD PmosMod
-        Mn1_0x0_nnand1 n1_0x0_nand1 n1_0_1x0_baseout 0 0 NmosMod
-        Mn1_0x0_pnot n1_0x0_andout n1_0x0_nandout VDD VDD PmosMod
-        Mn1_0x0_nnot n1_0x0_andout n1_0x0_nandout 0 0 NmosMod
+        Xn1_0x0_and n1_0_0x0_baseout n1_0_1x0_baseout n1_0x0_andout AND2
         Rn1x0_connect n1_0x0_andout s4 0.001
 
         Rn2x0_floating s4 0 1000000000

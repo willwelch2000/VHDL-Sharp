@@ -108,7 +108,7 @@ public class InstantiationTests
         string expectedSpice = 
         """
         .subckt AndMod IN1 IN2 OUT
-            .subckt AND IN1 IN2 OUT
+            .subckt AND2 IN1 IN2 OUT
                 VVDD VDD 0 5
                 Mpnand1 nand IN1 VDD VDD PmosMod
                 Mnnand1 nand IN1 nand2 nand2 NmosMod
@@ -116,20 +116,20 @@ public class InstantiationTests
                 Mnnand2 nand2 IN2 0 0 NmosMod
                 Mpnot OUT nand VDD VDD PmosMod
                 Mnnot OUT nand 0 0 NmosMod
-            .ends AND
+            .ends AND2
 
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-            Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND
+            Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
             Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
         .ends AndMod
 
         .subckt OrMod IN1 IN2 OUT
-            .subckt OR IN1 IN2 OUT
+            .subckt OR2 IN1 IN2 OUT
                 VVDD VDD 0 5
                 Mpnor1 nor IN1 nor2 nor2 PmosMod
                 Mnnor1 nor IN1 0 0 NmosMod
@@ -137,14 +137,14 @@ public class InstantiationTests
                 Mnnor2 nor IN2 0 0 NmosMod
                 Mpnot OUT nor VDD VDD PmosMod
                 Mnnot OUT nor 0 0 NmosMod
-            .ends OR
+            .ends OR2
             
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-            Xn0_0x0_or n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_orout OR
+            Xn0_0x0_or n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_orout OR2
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
         .ends OrMod
@@ -158,7 +158,7 @@ public class InstantiationTests
         expectedSpice = 
         """
         .subckt AndMod IN1 IN2 OUT
-            .subckt AND IN1 IN2 OUT
+            .subckt AND2 IN1 IN2 OUT
                 VVDD VDD 0 5
                 Mpnand1 nand IN1 VDD VDD PmosMod
                 Mnnand1 nand IN1 nand2 nand2 NmosMod
@@ -166,18 +166,18 @@ public class InstantiationTests
                 Mnnand2 nand2 IN2 0 0 NmosMod
                 Mpnot OUT nand VDD VDD PmosMod
                 Mnnot OUT nand 0 0 NmosMod
-            .ends AND
+            .ends AND2
             
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-            Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND
+            Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
             Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
         .ends AndMod
 
         .subckt OrMod IN1 IN2 OUT
-            .subckt OR IN1 IN2 OUT
+            .subckt OR2 IN1 IN2 OUT
                 VVDD VDD 0 5
                 Mpnor1 nor IN1 nor2 nor2 PmosMod
                 Mnnor1 nor IN1 0 0 NmosMod
@@ -185,12 +185,12 @@ public class InstantiationTests
                 Mnnor2 nor IN2 0 0 NmosMod
                 Mpnot OUT nor VDD VDD PmosMod
                 Mnnot OUT nor 0 0 NmosMod
-            .ends OR
+            .ends OR2
             
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-            Xn0_0x0_or n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_orout OR
+            Xn0_0x0_or n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_orout OR2
             Rn0x0_connect n0_0x0_orout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
         .ends OrMod
@@ -238,18 +238,23 @@ public class InstantiationTests
         string expectedSpice = 
         """
         .subckt AndMod IN1 IN2 OUT
+            .subckt AND2 IN1 IN2 OUT
+                VVDD VDD 0 5
+                Mpnand1 nand IN1 VDD VDD PmosMod
+                Mnnand1 nand IN1 nand2 nand2 NmosMod
+                Mpnand2 nand IN2 VDD VDD PmosMod
+                Mnnand2 nand2 IN2 0 0 NmosMod
+                Mpnot OUT nand VDD VDD PmosMod
+                Mnnot OUT nand 0 0 NmosMod
+            .ends AND2
+
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-            Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
-            Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
-            Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
-            Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
-            Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
-            Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
-            Rn0x0_connect n0_0x0_orout OUT 0.001
+        	Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+            Rn0x0_connect n0_0x0_andout OUT 0.001
             Rn1x0_floating OUT 0 1000000000
         .ends AndMod
 
@@ -318,16 +323,21 @@ public class InstantiationTests
         """
         .subckt middle1 IN OUT
             .subckt AndMod IN1 IN2 OUT
+                .subckt AND2 IN1 IN2 OUT
+                    VVDD VDD 0 5
+                    Mpnand1 nand IN1 VDD VDD PmosMod
+                    Mnnand1 nand IN1 nand2 nand2 NmosMod
+                    Mpnand2 nand IN2 VDD VDD PmosMod
+                    Mnnand2 nand2 IN2 0 0 NmosMod
+                    Mpnot OUT nand VDD VDD PmosMod
+                    Mnnot OUT nand 0 0 NmosMod
+                .ends AND2
+
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
                 Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-                Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
-                Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
-                Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
-                Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
-                Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
-                Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
-                Rn0x0_connect n0_0x0_orout OUT 0.001
+        		Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+                Rn0x0_connect n0_0x0_andout OUT 0.001
                 Rn1x0_floating OUT 0 1000000000
             .ends AndMod
             
@@ -338,16 +348,21 @@ public class InstantiationTests
 
         .subckt middle2 IN OUT
             .subckt AndMod IN1 IN2 OUT
+                .subckt AND2 IN1 IN2 OUT
+                    VVDD VDD 0 5
+                    Mpnand1 nand IN1 VDD VDD PmosMod
+                    Mnnand1 nand IN1 nand2 nand2 NmosMod
+                    Mpnand2 nand IN2 VDD VDD PmosMod
+                    Mnnand2 nand2 IN2 0 0 NmosMod
+                    Mpnot OUT nand VDD VDD PmosMod
+                    Mnnot OUT nand 0 0 NmosMod
+                .ends AND2
+                
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
                 Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
-                Mn0_0x0_pnor0 n0_0x0_norout n0_0_0x0_baseout n0_0x0_nor1 n0_0x0_nor1 PmosMod
-                Mn0_0x0_nnor0 n0_0x0_norout n0_0_0x0_baseout 0 0 NmosMod
-                Mn0_0x0_pnor1 n0_0x0_nor1 n0_0_1x0_baseout VDD VDD PmosMod
-                Mn0_0x0_nnor1 n0_0x0_norout n0_0_1x0_baseout 0 0 NmosMod
-                Mn0_0x0_pnot n0_0x0_orout n0_0x0_norout VDD VDD PmosMod
-                Mn0_0x0_nnot n0_0x0_orout n0_0x0_norout 0 0 NmosMod
-                Rn0x0_connect n0_0x0_orout OUT 0.001
+        		Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+                Rn0x0_connect n0_0x0_andout OUT 0.001
                 Rn1x0_floating OUT 0 1000000000
             .ends AndMod
             
