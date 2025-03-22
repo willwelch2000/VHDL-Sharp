@@ -106,18 +106,9 @@ public class InstantiationTests
 
         string spice = parentMod.Instantiations.GetSpice().AsString();
         string expectedSpice = 
-        """
+        $"""
         .subckt AndMod IN1 IN2 OUT
-            .subckt AND2 IN1 IN2 OUT
-                VVDD VDD 0 5
-                Mpnand1 nand IN1 VDD VDD PmosMod
-                Mnnand1 nand IN1 nand2 nand2 NmosMod
-                Mpnand2 nand IN2 VDD VDD PmosMod
-                Mnnand2 nand2 IN2 0 0 NmosMod
-                Mpnot OUT nand VDD VDD PmosMod
-                Mnnot OUT nand 0 0 NmosMod
-            .ends AND2
-
+        {Util.GetAndSubcircuitSpice(2, false).AddIndentation(1)}
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -129,16 +120,7 @@ public class InstantiationTests
         .ends AndMod
 
         .subckt OrMod IN1 IN2 OUT
-            .subckt OR2 IN1 IN2 OUT
-                VVDD VDD 0 5
-                Mpnor1 nor IN1 nor2 nor2 PmosMod
-                Mnnor1 nor IN1 0 0 NmosMod
-                Mpnor2 nor2 IN2 VDD VDD PmosMod
-                Mnnor2 nor IN2 0 0 NmosMod
-                Mpnot OUT nor VDD VDD PmosMod
-                Mnnot OUT nor 0 0 NmosMod
-            .ends OR2
-            
+        {Util.GetOrSubcircuitSpice(2, false).AddIndentation(1)}
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -156,18 +138,9 @@ public class InstantiationTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
-        """
+        $"""
         .subckt AndMod IN1 IN2 OUT
-            .subckt AND2 IN1 IN2 OUT
-                VVDD VDD 0 5
-                Mpnand1 nand IN1 VDD VDD PmosMod
-                Mnnand1 nand IN1 nand2 nand2 NmosMod
-                Mpnand2 nand IN2 VDD VDD PmosMod
-                Mnnand2 nand2 IN2 0 0 NmosMod
-                Mpnot OUT nand VDD VDD PmosMod
-                Mnnot OUT nand 0 0 NmosMod
-            .ends AND2
-            
+        {Util.GetAndSubcircuitSpice(2, false).AddIndentation(1)}
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -177,16 +150,7 @@ public class InstantiationTests
         .ends AndMod
 
         .subckt OrMod IN1 IN2 OUT
-            .subckt OR2 IN1 IN2 OUT
-                VVDD VDD 0 5
-                Mpnor1 nor IN1 nor2 nor2 PmosMod
-                Mnnor1 nor IN1 0 0 NmosMod
-                Mpnor2 nor2 IN2 VDD VDD PmosMod
-                Mnnor2 nor IN2 0 0 NmosMod
-                Mpnot OUT nor VDD VDD PmosMod
-                Mnnot OUT nor 0 0 NmosMod
-            .ends OR2
-            
+        {Util.GetOrSubcircuitSpice(2, false).AddIndentation(1)}    
             VVDD VDD 0 5
             Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
             Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -236,18 +200,9 @@ public class InstantiationTests
 
         string spice = parentMod.Instantiations.GetSpice().AsString();
         string expectedSpice = 
-        """
+        $"""
         .subckt AndMod IN1 IN2 OUT
-            .subckt AND2 IN1 IN2 OUT
-                VVDD VDD 0 5
-                Mpnand1 nand IN1 VDD VDD PmosMod
-                Mnnand1 nand IN1 nand2 nand2 NmosMod
-                Mpnand2 nand IN2 VDD VDD PmosMod
-                Mnnand2 nand2 IN2 0 0 NmosMod
-                Mpnot OUT nand VDD VDD PmosMod
-                Mnnot OUT nand 0 0 NmosMod
-            .ends AND2
-
+        {Util.GetAndSubcircuitSpice(2, false).AddIndentation(1)}
             .MODEL NmosMod nmos W=0.0001 L=1E-06
             .MODEL PmosMod pmos W=0.0001 L=1E-06
             VVDD VDD 0 5
@@ -320,19 +275,10 @@ public class InstantiationTests
         // Since AND isn't used at the top level, it is declared in both middle subcircuits
         string spice = moduleSubcircuit.AsString();
         string expectedSpice = 
-        """
+        $"""
         .subckt middle1 IN OUT
             .subckt AndMod IN1 IN2 OUT
-                .subckt AND2 IN1 IN2 OUT
-                    VVDD VDD 0 5
-                    Mpnand1 nand IN1 VDD VDD PmosMod
-                    Mnnand1 nand IN1 nand2 nand2 NmosMod
-                    Mpnand2 nand IN2 VDD VDD PmosMod
-                    Mnnand2 nand2 IN2 0 0 NmosMod
-                    Mpnot OUT nand VDD VDD PmosMod
-                    Mnnot OUT nand 0 0 NmosMod
-                .ends AND2
-
+        {Util.GetAndSubcircuitSpice(2, false).AddIndentation(2)}
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001
                 Rn0_0_1x0_res IN2 n0_0_1x0_baseout 0.001
@@ -348,15 +294,7 @@ public class InstantiationTests
 
         .subckt middle2 IN OUT
             .subckt AndMod IN1 IN2 OUT
-                .subckt AND2 IN1 IN2 OUT
-                    VVDD VDD 0 5
-                    Mpnand1 nand IN1 VDD VDD PmosMod
-                    Mnnand1 nand IN1 nand2 nand2 NmosMod
-                    Mpnand2 nand IN2 VDD VDD PmosMod
-                    Mnnand2 nand2 IN2 0 0 NmosMod
-                    Mpnot OUT nand VDD VDD PmosMod
-                    Mnnot OUT nand 0 0 NmosMod
-                .ends AND2
+        {Util.GetAndSubcircuitSpice(2, false).AddIndentation(2)}
                 
                 VVDD VDD 0 5
                 Rn0_0_0x0_res IN1 n0_0_0x0_baseout 0.001

@@ -75,8 +75,6 @@ internal static class SpiceUtil
         }
     }
 
-    // TODO commonly-used subcircuits
-
     /// <summary>
     /// Subcircuit for AND gate
     /// </summary>

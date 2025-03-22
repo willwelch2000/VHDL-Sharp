@@ -55,17 +55,8 @@ public class LogicBehaviorTests
         // Check Spice
         string spice = behavior.GetSpice(s3, "0").AsString();
         string expectedSpice = 
-        """
-        .subckt AND2 IN1 IN2 OUT
-            VVDD VDD 0 5
-            Mpnand1 nand IN1 VDD VDD PmosMod
-            Mnnand1 nand IN1 nand2 nand2 NmosMod
-            Mpnand2 nand IN2 VDD VDD PmosMod
-            Mnnand2 nand2 IN2 0 0 NmosMod
-            Mpnot OUT nand VDD VDD PmosMod
-            Mnnot OUT nand 0 0 NmosMod
-        .ends AND2
-
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
@@ -152,17 +143,8 @@ public class LogicBehaviorTests
 
         string spice = behavior.GetSpice(v3, "0").AsString();
         string expectedSpice = 
-        """
-        .subckt AND2 IN1 IN2 OUT
-            VVDD VDD 0 5
-            Mpnand1 nand IN1 VDD VDD PmosMod
-            Mnnand1 nand IN1 nand2 nand2 NmosMod
-            Mpnand2 nand IN2 VDD VDD PmosMod
-            Mnnand2 nand2 IN2 0 0 NmosMod
-            Mpnot OUT nand VDD VDD PmosMod
-            Mnnot OUT nand 0 0 NmosMod
-        .ends AND2
-
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5

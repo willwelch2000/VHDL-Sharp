@@ -54,39 +54,10 @@ public class CaseBehaviorTests
         // Check Spice
         string spice = behavior.GetSpice(v1, "0").AsString();
         string expectedSpice = 
-        """
-        .subckt NOT IN OUT
-            VVDD VDD 0 5
-            Mp OUT IN VDD VDD PmosMod
-            Mn OUT IN 0 0 NmosMod
-        .ends NOT
-
-        .subckt AND3 IN1 IN2 IN3 OUT
-            VVDD VDD 0 5
-            Mpnand1 nand IN1 VDD VDD PmosMod
-            Mnnand1 nand IN1 nand2 nand2 NmosMod
-            Mpnand2 nand IN2 VDD VDD PmosMod
-            Mnnand2 nand2 IN2 nand3 nand3 NmosMod
-            Mpnand3 nand IN3 VDD VDD PmosMod
-            Mnnand3 nand3 IN3 0 0 NmosMod
-            Mpnot OUT nand VDD VDD PmosMod
-            Mnnot OUT nand 0 0 NmosMod
-        .ends AND3
-
-        .subckt OR4 IN1 IN2 IN3 IN4 OUT
-            VVDD VDD 0 5
-            Mpnor1 nor IN1 nor2 nor2 PmosMod
-            Mnnor1 nor IN1 0 0 NmosMod
-            Mpnor2 nor2 IN2 nor3 nor3 PmosMod
-            Mnnor2 nor IN2 0 0 NmosMod
-            Mpnor3 nor3 IN3 nor4 nor4 PmosMod
-            Mnnor3 nor IN3 0 0 NmosMod
-            Mpnor4 nor4 IN4 VDD VDD PmosMod
-            Mnnor4 nor IN4 0 0 NmosMod
-            Mpnot OUT nor VDD VDD PmosMod
-            Mnnot OUT nor 0 0 NmosMod
-        .ends OR4
-
+        $"""
+        {Util.GetNotSubcircuitSpice(false)}
+        {Util.GetAndSubcircuitSpice(3, false)}
+        {Util.GetOrSubcircuitSpice(4, false)}
         .MODEL NmosMod nmos W=0.0001 L=1E-06
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5

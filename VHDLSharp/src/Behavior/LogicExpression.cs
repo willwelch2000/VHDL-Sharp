@@ -124,10 +124,6 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public LogicExpression Not() => new(new Not<ISignal>(InnerExpression));
 
-    // TODO group the Spice functionality into a set of functions or something
-    // Maybe you could have a function that takes a Spice# object and produces Spice
-    // Or maybe all gates should be declared as subcircuits and referenced that way
-    // Or classes for resistor, mosfet that know how to make Spice# and Spice
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
