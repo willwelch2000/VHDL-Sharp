@@ -5,6 +5,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -201,29 +202,16 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override string GetSpice(INamedSignal outputSignal, string uniqueId)
+    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
         if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to Spice");
+            throw new InvalidException("Case behavior must be valid to convert to Spice circuit");
         if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to Spice");
+            throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
 
-        return string.Join("\n", ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId)));
-    }
-
-    /// <inheritdoc/>
-    public override IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to Spice# entities");
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to Spice# entities");
-
-        return ToLogicBehaviors(outputSignal, uniqueId).SelectMany(behaviorObj => behaviorObj.behavior.GetSpiceSharpEntities(behaviorObj.outputSignal, behaviorObj.uniqueId));
+        return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)
@@ -237,7 +225,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             LogicExpression expression = caseExpressions[i] ?? DefaultExpression ?? throw new("Impossible");
 
             // Generate intermediate signal matching dimension of output
-            string intermediateName = Util.GetSpiceName(uniqueId, 0, $"case{i}");
+            string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"case{i}");
             INamedSignal signal;
             if (expression.Dimension.NonNullValue == 1)
                 signal = new Signal(intermediateName, outputSignal.ParentModule);

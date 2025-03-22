@@ -1,6 +1,7 @@
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Simulations;
 
@@ -21,7 +22,7 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    public string GetSpice(INamedSignal signal, string uniqueId)
+    public SpiceCircuit GetSpice(INamedSignal signal, string uniqueId)
     {
         if (signal.Dimension.NonNullValue == 1)
             return GetSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
@@ -35,22 +36,5 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="signal"></param>
     /// <param name="uniqueId"></param>
     /// <returns></returns>
-    protected abstract string GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId); 
-
-    /// <inheritdoc/>
-    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal signal, string uniqueId)
-    {
-        if (signal.Dimension.NonNullValue == 1)
-            return GetSpiceSharpEntitiesGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
-            
-        throw new Exception("Input signal must have dimension of 1");
-    }
-
-    /// <summary>
-    /// Convert to Spice# entities given single-node signal and unique id
-    /// </summary>
-    /// <param name="signal"></param>
-    /// <param name="uniqueId"></param>
-    /// <returns></returns>
-    protected abstract IEnumerable<IEntity> GetSpiceSharpEntitiesGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId);
+    protected abstract SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId); 
 }

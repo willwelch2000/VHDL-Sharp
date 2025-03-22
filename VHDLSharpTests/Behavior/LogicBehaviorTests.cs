@@ -5,6 +5,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharpTests;
 
@@ -52,17 +53,18 @@ public class LogicBehaviorTests
         LogicBehavior behavior = new(s1.And(s2));
 
         // Check Spice
-        string spice = behavior.GetSpice(s3, "0");
+        string spice = behavior.GetSpice(s3, "0").AsString();
         string expectedSpice = 
-        """
-        Rn0_0x0_res s1 n0_0x0_baseout 1m
-        Rn0_1x0_res s2 n0_1x0_baseout 1m
-        Mn0x0_pnand0 n0x0_nandout n0_0x0_baseout VDD VDD PmosMod W=100u L=1u
-        Mn0x0_nnand0 n0x0_nandout n0_0x0_baseout n0x0_nand1 n0x0_nand1 NmosMod W=100u L=1u
-        Mn0x0_pnand1 n0x0_nandout n0_1x0_baseout VDD VDD PmosMod W=100u L=1u
-        Mn0x0_nnand1 n0x0_nand1 n0_1x0_baseout 0 0 NmosMod W=100u L=1u
-        Mn0x0_pnot s3 n0x0_nandout VDD VDD PmosMod W=100u L=1u
-        Mn0x0_nnot s3 n0x0_nandout 0 0 NmosMod W=100u L=1u
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+
+        Rn0_0_0x0_res s1 n0_0_0x0_baseout 0.001
+        Rn0_0_1x0_res s2 n0_0_1x0_baseout 0.001
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+        Rn0x0_connect n0_0x0_andout s3 0.001
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
@@ -72,32 +74,22 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
 
         // Check Spice# entities
-        IEntity[] entities = [.. behavior.GetSpiceSharpEntities(s3, "0")];
-        Assert.AreEqual(entities.Length, 9);
-        Resistor resistor0 = entities.First(e => e.Name == "Rn0_0x0_res") as Resistor ?? throw new();
-        Assert.IsTrue(resistor0.Nodes.SequenceEqual(["s1", "n0_0x0_baseout"]));
-        Resistor resistor1 = entities.First(e => e.Name == "Rn0_1x0_res") as Resistor ?? throw new();
-        Assert.IsTrue(resistor1.Nodes.SequenceEqual(["s2", "n0_1x0_baseout"]));
-        Mosfet1 pnand0 = entities.First(e => e.Name == "Mn0x0_pnand0") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnand0.Nodes.SequenceEqual(["n0x0_nandout", "n0_0x0_baseout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnand0.Model);
-        Mosfet1 nnand0 = entities.First(e => e.Name == "Mn0x0_nnand0") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnand0.Nodes.SequenceEqual(["n0x0_nandout", "n0_0x0_baseout", "n0x0_nand1", "n0x0_nand1"]));
-        Assert.AreEqual("NmosMod", nnand0.Model);
-        Mosfet1 pnand1 = entities.First(e => e.Name == "Mn0x0_pnand1") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnand1.Nodes.SequenceEqual(["n0x0_nandout", "n0_1x0_baseout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnand1.Model);
-        Mosfet1 nnand1 = entities.First(e => e.Name == "Mn0x0_nnand1") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnand1.Nodes.SequenceEqual(["n0x0_nand1", "n0_1x0_baseout", "0", "0"]));
-        Assert.AreEqual("NmosMod", nnand1.Model);
-        Mosfet1 pnot = entities.First(e => e.Name == "Mn0x0_pnot") as Mosfet1 ?? throw new();
-        Assert.IsTrue(pnot.Nodes.SequenceEqual(["n0x0_andout", "n0x0_nandout", "VDD", "VDD"]));
-        Assert.AreEqual("PmosMod", pnot.Model);
-        Mosfet1 nnot = entities.First(e => e.Name == "Mn0x0_nnot") as Mosfet1 ?? throw new();
-        Assert.IsTrue(nnot.Nodes.SequenceEqual(["n0x0_andout", "n0x0_nandout", "0", "0"]));
-        Assert.AreEqual("NmosMod", nnot.Model);
-        Resistor resistorOut = entities.First(e => e.Name == "Rn0x0_connect") as Resistor ?? throw new();
-        Assert.IsTrue(resistorOut.Nodes.SequenceEqual(["n0x0_andout", "s3"]));
+        IEntity[] entities = [.. behavior.GetSpice(s3, "0").CircuitElements];
+        Assert.AreEqual(entities.Length, 7);
+        Mosfet1Model nmosMod = entities.First(e => e.Name == "NmosMod") as Mosfet1Model ?? throw new();
+        Assert.IsTrue(nmosMod.Parameters.TypeName == "nmos" && nmosMod.Parameters.Width == 100e-6 && nmosMod.Parameters.Length == 1e-6);
+        Mosfet1Model pmosMod = entities.First(e => e.Name == "PmosMod") as Mosfet1Model ?? throw new();
+        Assert.IsTrue(pmosMod.Parameters.TypeName == "pmos" && pmosMod.Parameters.Width == 100e-6 && pmosMod.Parameters.Length == 1e-6);
+        VoltageSource vddSource = entities.First(e => e.Name == "VDD") as VoltageSource ?? throw new();
+        Assert.IsTrue(vddSource.Nodes.SequenceEqual(["VDD", "0"]) && vddSource.Parameters.DcValue == 5);
+        Resistor resistor0 = entities.First(e => e.Name == "n0_0_0x0_res") as Resistor ?? throw new();
+        Assert.IsTrue(resistor0.Nodes.SequenceEqual(["s1", "n0_0_0x0_baseout"]));
+        Resistor resistor1 = entities.First(e => e.Name == "n0_0_1x0_res") as Resistor ?? throw new();
+        Assert.IsTrue(resistor1.Nodes.SequenceEqual(["s2", "n0_0_1x0_baseout"]));
+        Subcircuit andSubcircuit = entities.First(e => e.Name == "n0_0x0_and") as Subcircuit ?? throw new();
+        Assert.IsTrue(andSubcircuit.Parameters.Definition is INamedSubcircuitDefinition namedDef && namedDef.Name == "AND2");
+        Resistor resistorOut = entities.First(e => e.Name == "n0x0_connect") as Resistor ?? throw new();
+        Assert.IsTrue(resistorOut.Nodes.SequenceEqual(["n0_0x0_andout", "s3"]));
 
         // Check named signals
         INamedSignal[] behaviorSignals = [.. behavior.NamedInputSignals];
@@ -124,7 +116,6 @@ public class LogicBehaviorTests
         Assert.IsFalse(behavior.IsCompatible(v4));
         Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpice(v4, "0"));
         Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetVhdlStatement(v4));
-        Assert.ThrowsException<IncompatibleSignalException>(() => behavior.GetSpiceSharpEntities(v4, "0"));
     }
 
     [TestMethod]
@@ -149,7 +140,69 @@ public class LogicBehaviorTests
         string vhdl = behavior.GetVhdlStatement(v3);
         string expectedVhdl = "v3 <= (v1 and v2);";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+
+        string spice = behavior.GetSpice(v3, "0").AsString();
+        string expectedSpice = 
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+
+        Rn0_0_0x0_res v1_0 n0_0_0x0_baseout 0.001
+        Rn0_0_0x1_res v1_1 n0_0_0x1_baseout 0.001
+        Rn0_0_0x2_res v1_2 n0_0_0x2_baseout 0.001
+        Rn0_0_1x0_res v2_0 n0_0_1x0_baseout 0.001
+        Rn0_0_1x1_res v2_1 n0_0_1x1_baseout 0.001
+        Rn0_0_1x2_res v2_2 n0_0_1x2_baseout 0.001
+        
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+        Xn0_0x1_and n0_0_0x1_baseout n0_0_1x1_baseout n0_0x1_andout AND2
+        Xn0_0x2_and n0_0_0x2_baseout n0_0_1x2_baseout n0_0x2_andout AND2
+
+        Rn0x0_connect n0_0x0_andout v3_0 0.001
+        Rn0x1_connect n0_0x1_andout v3_1 0.001
+        Rn0x2_connect n0_0x2_andout v3_2 0.001
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
     }
 
-    // TODO expression with literal
+    [TestMethod]
+    public void LiteralTest()
+    {
+        Module m1 = new("m1");
+        Vector input = m1.GenerateVector("input", 3);
+        Vector output = m1.GenerateVector("output", 3);
+        output.AssignBehavior(input.And(new Literal(5, 3)));
+
+        string vhdl = output.Behavior!.GetVhdlStatement(output);
+        string expectedVhdl = "output <= (input and \"101\");";
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+
+        string spice = output.Behavior!.GetSpice(output, "0").AsString();
+        string expectedSpice = 
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+        
+        Rn0_0_0x0_res input_0 n0_0_0x0_baseout 0.001
+        Rn0_0_0x1_res input_1 n0_0_0x1_baseout 0.001
+        Rn0_0_0x2_res input_2 n0_0_0x2_baseout 0.001
+        
+        Rn0_0_1x0_res VDD n0_0_1x0_baseout 0.001
+        Rn0_0_1x1_res 0 n0_0_1x1_baseout 0.001
+        Rn0_0_1x2_res VDD n0_0_1x2_baseout 0.001
+        
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+        Xn0_0x1_and n0_0_0x1_baseout n0_0_1x1_baseout n0_0x1_andout AND2
+        Xn0_0x2_and n0_0_0x2_baseout n0_0_1x2_baseout n0_0x2_andout AND2
+
+        Rn0x0_connect n0_0x0_andout output_0 0.001
+        Rn0x1_connect n0_0x1_andout output_1 0.001
+        Rn0x2_connect n0_0x2_andout output_2 0.001
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
+    }
 }

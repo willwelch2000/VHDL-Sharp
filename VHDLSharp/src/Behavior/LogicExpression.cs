@@ -1,10 +1,10 @@
-using System.Text.RegularExpressions;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Behaviors;
@@ -61,46 +61,14 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <param name="outputSignal">Output signal for this expression</param>
     /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
     /// <returns></returns>
-    public string GetSpice(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
-
-        SignalSpiceObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceObjectOptions, new()
-        {
-            UniqueId = uniqueId,
-        });
-
-        ISingleNodeNamedSignal[] singleNodeSignals = [.. outputSignal.ToSingleNodeSignals];
-        if (output.Dimension != singleNodeSignals.Length)
-            throw new Exception("Expression dimension didn't match output signal dimension");
-
-        // Convert final output signals from output into correct output signals
-        string value = output.SpiceString;
-        for (int i = 0; i < output.Dimension; i++)
-        {
-            string newSignalName = singleNodeSignals[i].GetSpiceName();
-            string oldSignalName = output.OutputSignalNames[i];
-
-            value = Regex.Replace(value, $@"\b{oldSignalName}\b", newSignalName);
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Get expression as list of entities for Spice#
-    /// </summary>
-    /// <param name="outputSignal">Output signal for this expression</param>
-    /// <param name="uniqueId">Unique string provided to this expression so that it can have a unique name</param>
-    public IEnumerable<IEntity> GetSpiceSharpEntities(INamedSignal outputSignal, string uniqueId)
+    public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
         SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
         {
-            UniqueId = uniqueId,
+            UniqueId = $"{uniqueId}_0",
         });
 
         List<IEntity> entities = [.. output.SpiceSharpEntities];
@@ -116,10 +84,10 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             string oldSignalName = output.OutputSignalNames[i];
             
             // Connect oldSignalName to newSignalName via 1m resistor
-            entities.Add(new Resistor("R" + Util.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
+            entities.Add(new Resistor(SpiceUtil.GetSpiceName(uniqueId, i, "connect"), oldSignalName, newSignalName, 1e-3));
         }
 
-        return entities;
+        return new SpiceCircuit(entities).WithCommonEntities();
     }
 
     /// <summary>
@@ -156,21 +124,6 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public LogicExpression Not() => new(new Not<ISignal>(InnerExpression));
 
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput>? signalSpiceObjectOptions;
-
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceObjectInput, SignalSpiceObjectOutput> SignalSpiceObjectOptions 
-    {
-        get
-        {
-            signalSpiceObjectOptions ??= ISignal.SignalSpiceObjectOptions;
-            return signalSpiceObjectOptions;
-        }
-    }
-
-    // TODO group the Spice functionality into a set of functions or something
-    // Maybe you could have a function that takes a Spice# object and produces Spice
-    // Or maybe all gates should be declared as subcircuits and referenced that way
-    // Or classes for resistor, mosfet that know how to make Spice# and Spice
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions

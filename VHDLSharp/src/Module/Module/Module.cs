@@ -8,6 +8,7 @@ using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
@@ -224,7 +225,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <param name="module">Module to be instantiated in this</param>
     /// <param name="name">Name of instantiation</param>
     /// <returns></returns>
-    public IInstantiation AddNewInstantiation(Module module, string name) => Instantiations.Add(module, name);
+    public Instantiation AddNewInstantiation(IModule module, string name) => Instantiations.Add(module, name);
 
     /// <summary>
     /// True if module is ready to be used
@@ -233,11 +234,12 @@ public class Module : IModule, IValidityManagedEntity
     public bool IsComplete()
     {
         // If any output signal hasn't been assigned
+        INamedSignal[] instantiationOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)];
         foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
         {
-            if (SignalBehaviors.ContainsKey(port.Signal)) // Assigned as itself
+            if (SignalBehaviors.ContainsKey(port.Signal) || instantiationOutputSignals.Contains(port.Signal)) // Assigned as itself
                 continue;
-            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey)) // Assigned as all children
+            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey) || port.Signal.ToSingleNodeSignals.All(instantiationOutputSignals.Contains)) // Assigned as all children
                 continue;
             return false;
         }
@@ -340,15 +342,10 @@ public class Module : IModule, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public string GetSpice() => GetSpice(false);
+    public SpiceSubcircuit GetSpice() => GetSpice(new HashSet<IModuleLinkedSubcircuitDefinition>());
 
-    /// <summary>
-    /// Convert module to Spice circuit
-    /// </summary>
-    /// <param name="subcircuit">Whether it should be wrapped in a subcircuit or top-level</param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public string GetSpice(bool subcircuit)
+    /// <inheritdoc/>
+    public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
@@ -356,32 +353,23 @@ public class Module : IModule, IValidityManagedEntity
         if (!IsComplete())
             throw new IncompleteException("Module not yet complete");
 
-        StringBuilder sb = new();
-        
-        // Start subcircuit
-        if (subcircuit)
-            sb.AppendLine($".subckt {Name} {string.Join(' ', PortsToSpice())}\n");
+        string[] pins = [.. PortsToSpice()];
 
-        int indentation = subcircuit ? 1 : 0;
+        // Initialize collection of additional entities to add
+        EntityCollection additionalEntities = [];
 
-        // Add subcircuit declarations
+        // List of circuits that will be combined
+        List<SpiceCircuit> circuits = [];
+
+        // Add instantiations
         ignoreValidity = true; // Subcircuits already checked
-        foreach (string subcircuitDeclaration in Instantiations.GetSpiceSubcircuitDeclarations())
-            sb.AppendLine(subcircuitDeclaration.AddIndentation(indentation));
+        circuits.Add(Instantiations.GetSpice(existingModuleLinkedSubcircuits));
         ignoreValidity = false;
-
-        // Add VDD node and PMOS/NMOS models
-        sb.AppendLine($"V_VDD VDD 0 {Util.VDD}".AddIndentation(indentation));
-        sb.AppendLine($".MODEL {Util.NmosModelName} NMOS".AddIndentation(indentation));
-        sb.AppendLine($".MODEL {Util.PmosModelName} PMOS".AddIndentation(indentation));
-
-        // Add all instantiations
-        sb.Append(Instantiations.GetSpiceInstantiationStatements().AddIndentation(indentation));
 
         // Add behaviors
         int i = 0;
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
-            sb.AppendLine(behavior.GetSpice(signal, i++.ToString()).AddIndentation(indentation));
+            circuits.Add(behavior.GetSpice(signal, i++.ToString()));
         
         // Add large resistors from output/bidirectional ports to ground
         // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
@@ -389,14 +377,11 @@ public class Module : IModule, IValidityManagedEntity
         {
             int j = 0;
             foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                sb.AppendLine($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")} {singleNodeSignal.GetSpiceName()} 0 1e9");
+                additionalEntities.Add(new Resistor(SpiceUtil.GetSpiceName(i++.ToString(), j++, "floating"), singleNodeSignal.GetSpiceName(), "0", 1e9));
         }
 
-        // End subcircuit
-        if (subcircuit)
-            sb.AppendLine($".ends {Name}");
-
-        return sb.ToString();
+        circuits.Add(new(additionalEntities));
+        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
     }
 
     /// <summary>
@@ -404,62 +389,6 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     /// <returns></returns>
     private IEnumerable<string> PortsToSpice() => Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName());
-
-    /// <summary>
-    /// Convert module to Spice# <see cref="SubcircuitDefinition"/> object
-    /// </summary>
-    /// <returns></returns>
-    public SubcircuitDefinition GetSpiceSharpSubcircuit()
-    {
-        if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
-
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
-
-        EntityCollection entities = [];
-        string[] pins = [.. Ports.SelectMany(p => p.Signal.ToSingleNodeSignals).Select(s => s.GetSpiceName())];
-
-        // Add VDD node and PMOS/NMOS models
-        entities.Add(new VoltageSource("V_VDD", "VDD", "0", Util.VDD));
-        Mosfet1Model nmosModel = new(Util.NmosModelName);
-        nmosModel.Parameters.SetNmos(true);
-        Mosfet1Model pmosModel = new(Util.PmosModelName);
-        pmosModel.Parameters.SetPmos(true);
-        entities.Add(nmosModel);
-        entities.Add(pmosModel);
-
-        // Add instantiations
-        ignoreValidity = true; // Subcircuits already checked
-        foreach (IEntity entity in Instantiations.GetSpiceSharpEntities())
-            entities.Add(entity);
-        ignoreValidity = false;
-
-        // Add behaviors
-        int i = 0;
-        foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
-        {
-            foreach (IEntity entity in behavior.GetSpiceSharpEntities(signal, i++.ToString()))
-                entities.Add(entity);
-        }
-        
-        // Add large resistors from output/bidirectional ports to ground
-        // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
-        foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
-        {
-            int j = 0;
-            foreach (ISingleNodeNamedSignal singleNodeSignal in signal.ToSingleNodeSignals)
-                entities.Add(new Resistor($"R{Util.GetSpiceName(i++.ToString(), j++, "floating")}", singleNodeSignal.GetSpiceName(), "0", 1e9));
-        }
-
-        return new(entities, pins);
-    }
-
-    /// <summary>
-    /// Convert module to Spice# <see cref="Circuit"/> object
-    /// </summary>
-    /// <returns></returns>
-    public Circuit GetSpiceSharpCircuit() => [.. GetSpiceSharpSubcircuit().Entities];
 
     /// <summary>
     /// Test if the module contains a signal

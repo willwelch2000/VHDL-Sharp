@@ -9,6 +9,9 @@ namespace VHDLSharpTests;
 [TestClass]
 public class SimulationTests
 {
+    // Time buffer around transition points where we don't check
+    private const double timeBuffer = 2e-6;
+
     [TestMethod]
     public void AndExpressionSimulationTest()
     {
@@ -155,6 +158,56 @@ public class SimulationTests
                 Assert.AreEqual(3, values[i]);
             else if (timeSteps[i] > 0.0031)
                 Assert.AreEqual(1, values[i]);
+        }
+    }
+
+    [TestMethod]
+    public void AndLiteralTest()
+    {
+        Module m1 = new("m1");
+        Vector input = m1.GenerateVector("input", 3);
+        Vector output = m1.GenerateVector("output", 3);
+        Port inputPort = m1.AddNewPort(input, PortDirection.Input);
+        m1.AddNewPort(output, PortDirection.Output);
+        output.AssignBehavior(input.And(new Literal(5, 3)));
+
+        SimulationSetup setup = new(m1)
+        {
+            Length = 1e-3,
+            StepSize = 1e-5,
+        };
+        
+        SubcircuitReference subcircuit = new(m1, []);
+        setup.SignalsToMonitor.Add(new(subcircuit, input));
+        setup.SignalsToMonitor.Add(new(subcircuit, output));
+
+        PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
+        PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);
+        PulseStimulus stimulus0 = new(0.125e-3, 0.125e-3, 0.25e-3);
+
+        MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
+        setup.AssignStimulus(inputPort, stimulus);
+        SimulationResult[] results = [.. setup.Simulate()];
+
+        SimulationResult outputResult = results[1];
+        for (int i = 0; i < outputResult.TimeSteps.Length; i++)
+        {
+            double time = outputResult.TimeSteps[i];
+            int? expectedResult = time switch
+            {
+                < 0.125e-3-timeBuffer => 0,
+                > 0.125e-3+timeBuffer and < 0.250e-3-timeBuffer => 1,
+                > 0.250e-3+timeBuffer and < 0.375e-3-timeBuffer => 0,
+                > 0.375e-3+timeBuffer and < 0.500e-3-timeBuffer => 1,
+                > 0.500e-3+timeBuffer and < 0.625e-3-timeBuffer => 4,
+                > 0.625e-3+timeBuffer and < 0.750e-3-timeBuffer => 5,
+                > 0.750e-3+timeBuffer and < 0.875e-3-timeBuffer => 4,
+                > 0.875e-3+timeBuffer and < 1.000e-3-timeBuffer => 5,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, outputResult.Values[i]);
         }
     }
 }
