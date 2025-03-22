@@ -50,8 +50,6 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
         if (!ValidityManager.IsValid())
             throw new InvalidException("Case behavior must be valid to convert to VHDL");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to VHDL");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
@@ -68,14 +66,12 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
             sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
         }
 
         // Default
         if (defaultExpression is not null)
         {
             sb.AppendLine($"\t\twhen others =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.GetVhdl()};");
             sb.AppendLine($"\t\t\t{outputSignal} <= {defaultExpression.GetVhdl()};");
         }
 
