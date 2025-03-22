@@ -5,7 +5,6 @@ using VHDLSharp.Utility;
 using VHDLSharp.Conditions;
 using VHDLSharp.Signals;
 using VHDLSharp.Dimensions;
-using SpiceSharp.Entities;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Validation;
 using System.Diagnostics.CodeAnalysis;

@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using SpiceSharp;
-using SpiceSharp.Components;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;

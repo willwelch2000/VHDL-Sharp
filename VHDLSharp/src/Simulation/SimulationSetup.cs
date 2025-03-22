@@ -1,8 +1,6 @@
-
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using SpiceSharp;
-using SpiceSharp.Entities;
 using SpiceSharp.Simulations;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;

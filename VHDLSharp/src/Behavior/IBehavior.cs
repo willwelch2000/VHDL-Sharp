@@ -1,7 +1,6 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
-using SpiceSharp.Entities;
 using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Behaviors;

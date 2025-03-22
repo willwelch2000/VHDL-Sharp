@@ -2,7 +2,6 @@
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;

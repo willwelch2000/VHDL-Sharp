@@ -1,4 +1,3 @@
-using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;

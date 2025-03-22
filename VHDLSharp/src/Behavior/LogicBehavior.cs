@@ -1,5 +1,3 @@
-
-using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;

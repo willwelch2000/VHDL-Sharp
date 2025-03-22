@@ -1,7 +1,6 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
-using SpiceSharp.Entities;
 using VHDLSharp.Validation;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;

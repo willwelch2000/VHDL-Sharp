@@ -1,5 +1,4 @@
 using SpiceSharp.Components;
-using SpiceSharp.Entities;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;

@@ -1,4 +1,3 @@
-using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;

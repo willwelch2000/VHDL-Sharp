@@ -1,4 +1,3 @@
-
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
