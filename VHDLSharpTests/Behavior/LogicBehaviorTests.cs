@@ -167,5 +167,42 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
     }
 
-    // TODO expression with literal
+    [TestMethod]
+    public void LiteralTest()
+    {
+        Module m1 = new("m1");
+        Vector input = m1.GenerateVector("input", 3);
+        Vector output = m1.GenerateVector("output", 3);
+        output.AssignBehavior(input.And(new Literal(5, 3)));
+
+        string vhdl = output.Behavior!.GetVhdlStatement(output);
+        string expectedVhdl = "output <= (input and \"101\");";
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+
+        string spice = output.Behavior!.GetSpice(output, "0").AsString();
+        string expectedSpice = 
+        $"""
+        {Util.GetAndSubcircuitSpice(2, false)}
+        .MODEL NmosMod nmos W=0.0001 L=1E-06
+        .MODEL PmosMod pmos W=0.0001 L=1E-06
+        VVDD VDD 0 5
+        
+        Rn0_0_0x0_res input_0 n0_0_0x0_baseout 0.001
+        Rn0_0_0x1_res input_1 n0_0_0x1_baseout 0.001
+        Rn0_0_0x2_res input_2 n0_0_0x2_baseout 0.001
+        
+        Rn0_0_1x0_res VDD n0_0_1x0_baseout 0.001
+        Rn0_0_1x1_res 0 n0_0_1x1_baseout 0.001
+        Rn0_0_1x2_res VDD n0_0_1x2_baseout 0.001
+        
+        Xn0_0x0_and n0_0_0x0_baseout n0_0_1x0_baseout n0_0x0_andout AND2
+        Xn0_0x1_and n0_0_0x1_baseout n0_0_1x1_baseout n0_0x1_andout AND2
+        Xn0_0x2_and n0_0_0x2_baseout n0_0_1x2_baseout n0_0x2_andout AND2
+
+        Rn0x0_connect n0_0x0_andout output_0 0.001
+        Rn0x1_connect n0_0x1_andout output_1 0.001
+        Rn0x2_connect n0_0x2_andout output_2 0.001
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
+    }
 }
