@@ -1,4 +1,5 @@
 using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -72,5 +73,27 @@ public class StimulusTests
         Assert.AreEqual(5, points[2].Value);
         Assert.AreEqual(2.000001, points[3].Time);
         Assert.AreEqual(0, points[3].Value);
+    }
+
+    [TestMethod]
+    public void MultiDimensionalConstantStimulusTest()
+    {
+        Module m1 = new();
+        Vector v1 = m1.GenerateVector("v1", 3);
+        MultiDimensionalConstantStimulus stimulus = new(6, 3);
+        Assert.AreEqual(3, stimulus.Dimension.NonNullValue);
+        Assert.AreEqual(6, stimulus.Value);
+        SpiceCircuit circuit = stimulus.GetSpice(v1, "0");
+        // Should all be voltage sources
+        VoltageSource[] sources = [.. circuit.CircuitElements.Select(e => e as VoltageSource ?? throw new())];
+        Assert.AreEqual("v1_0", sources[0].Nodes[0]);
+        Assert.AreEqual("0", sources[0].Nodes[1]);
+        Assert.AreEqual(0, sources[0].Parameters.DcValue);
+        Assert.AreEqual("v1_1", sources[1].Nodes[0]);
+        Assert.AreEqual("0", sources[1].Nodes[1]);
+        Assert.AreEqual(5, sources[1].Parameters.DcValue);
+        Assert.AreEqual("v1_2", sources[2].Nodes[0]);
+        Assert.AreEqual("0", sources[2].Nodes[1]);
+        Assert.AreEqual(5, sources[2].Parameters.DcValue);
     }
 }
