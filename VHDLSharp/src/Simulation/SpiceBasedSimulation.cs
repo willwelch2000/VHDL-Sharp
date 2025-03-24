@@ -10,74 +10,12 @@ using VHDLSharp.Validation;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Class representing a simulation setup
+/// Class representing a Spice-based simulation of a <see cref="IModule"/>, using Spice#
 /// </summary>
-public class SpiceBasedSimulation : ISimulation, IValidityManagedEntity
+/// <param name="module">Module that is simulated</param>
+public class SpiceBasedSimulation(IModule module) : Simulation(module)
 {
-    private readonly ValidityManager manager;
-
-    private readonly ObservableCollection<object> childEntities;
-
-    private EventHandler? updated;
-
-    private double length = 1e-3;
-
     private double stepSize = 1e-6;
-
-    /// <summary>
-    /// Create simulation setup given module to simulate
-    /// </summary>
-    /// <param name="module">Module that is simulated</param>
-    public SpiceBasedSimulation(IModule module)
-    {
-        StimulusMapping = new(module);
-        Module = module;
-        childEntities = [StimulusMapping, module];
-        manager = new ValidityManager<object>(this, childEntities);
-        SignalsToMonitor = [];
-        SignalsToMonitor.CollectionChanged += SignalsListUpdated;
-    }
-
-    ValidityManager IValidityManagedEntity.ValidityManager => manager;
-
-    /// <summary>
-    /// Event called when a property of this setup is changed that could affect other objects
-    /// </summary>
-    public event EventHandler? Updated
-    {
-        add
-        {
-            updated -= value; // remove if already present
-            updated += value;
-        }
-        remove => updated -= value;
-    }
-
-    /// <inheritdoc/>
-    public StimulusMapping StimulusMapping { get; }
-
-    /// <inheritdoc/>
-    public IModule Module { get; }
-
-    /// <summary>
-    /// List of signals to receive output for
-    /// </summary>
-    public ObservableCollection<SignalReference> SignalsToMonitor { get; }
-
-    ICollection<SignalReference> ISimulation.SignalsToMonitor => SignalsToMonitor;
-
-    /// <summary>
-    /// How long the simulation should be
-    /// </summary>
-    public double Length
-    {
-        get => length;
-        set
-        {
-            updated?.Invoke(this, EventArgs.Empty);
-            length = value;
-        }
-    }
 
     /// <summary>
     /// Time between steps
@@ -93,24 +31,12 @@ public class SpiceBasedSimulation : ISimulation, IValidityManagedEntity
     }
 
     /// <summary>
-    /// Assign a stimulus set to a port
-    /// </summary>
-    /// <param name="port"></param>
-    /// <param name="stimulus"></param>
-    public void AssignStimulus(IPort port, IStimulusSet stimulus) => StimulusMapping[port] = stimulus;
-
-    /// <summary>
-    /// True if ready to convert to Spice or simulate
-    /// </summary>
-    public bool IsComplete() => StimulusMapping.IsComplete();
-
-    /// <summary>
     /// Get Spice# Circuit representation of setup
     /// </summary>
     /// <returns></returns>
     public SpiceCircuit GetSpice()
     {
-        if (!manager.IsValid())
+        if (!ValidityManager.IsValid())
             throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
         if (!IsComplete())
             throw new IncompleteException("Simulation setup must be complete to convert to circuit");
@@ -128,7 +54,7 @@ public class SpiceBasedSimulation : ISimulation, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationResult> Simulate()
+    public override IEnumerable<SimulationResult> Simulate()
     {
         Circuit circuit = GetSpice().AsCircuit();
         
@@ -145,19 +71,5 @@ public class SpiceBasedSimulation : ISimulation, IValidityManagedEntity
                 result.AddCurrentTimeStepValue();
 
         return results;
-    }
-
-    private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        // Check that reference has correct top-level module
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
-            foreach (object newItem in e.NewItems)
-            {
-                if (newItem is SignalReference signalReference && signalReference.TopLevelModule != Module)
-                    throw new Exception($"Added signal reference must use module {Module} as top-level module");
-                childEntities.Add(newItem);
-            }
-
-        updated?.Invoke(this, e);
     }
 }
