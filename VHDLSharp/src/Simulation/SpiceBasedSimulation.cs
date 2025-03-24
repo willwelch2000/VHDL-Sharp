@@ -12,7 +12,7 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Class representing a simulation setup
 /// </summary>
-public class SimulationSetup : IValidityManagedEntity
+public class SpiceBasedSimulation : ISimulation, IValidityManagedEntity
 {
     private readonly ValidityManager manager;
 
@@ -28,7 +28,7 @@ public class SimulationSetup : IValidityManagedEntity
     /// Create simulation setup given module to simulate
     /// </summary>
     /// <param name="module">Module that is simulated</param>
-    public SimulationSetup(IModule module)
+    public SpiceBasedSimulation(IModule module)
     {
         StimulusMapping = new(module);
         Module = module;
@@ -53,20 +53,18 @@ public class SimulationSetup : IValidityManagedEntity
         remove => updated -= value;
     }
 
-    /// <summary>
-    /// Mapping of module's ports to stimuli
-    /// </summary>
+    /// <inheritdoc/>
     public StimulusMapping StimulusMapping { get; }
 
-    /// <summary>
-    /// Module that has stimuli applied
-    /// </summary>
+    /// <inheritdoc/>
     public IModule Module { get; }
 
     /// <summary>
     /// List of signals to receive output for
     /// </summary>
     public ObservableCollection<SignalReference> SignalsToMonitor { get; }
+
+    ICollection<SignalReference> ISimulation.SignalsToMonitor => SignalsToMonitor;
 
     /// <summary>
     /// How long the simulation should be
