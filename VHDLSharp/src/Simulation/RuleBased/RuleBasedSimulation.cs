@@ -9,7 +9,7 @@ namespace VHDLSharp.Simulations;
 public class RuleBasedSimulation(IModule module) : Simulation(module)
 {
     /// <inheritdoc/>
-    public override IEnumerable<SimulationResult> Simulate()
+    public override IEnumerable<ISimulationResult> Simulate()
     {
         throw new NotImplementedException();
     }

@@ -54,20 +54,20 @@ public class SpiceBasedSimulation(IModule module) : Simulation(module)
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<SimulationResult> Simulate()
+    public override IEnumerable<ISimulationResult> Simulate()
     {
         Circuit circuit = GetSpice().AsCircuit();
         
         var tran = new Transient("Tran 1", StepSize, Length);
 
-        // Create all SimulationResult objects
-        List<SimulationResult> results = [];
+        // Create all SpiceSimulationResult objects
+        List<SpiceSimulationResult> results = [];
         foreach (SignalReference signalReference in SignalsToMonitor)
-            results.Add(new SimulationResult(signalReference, tran));
+            results.Add(new SpiceSimulationResult(signalReference, tran));
 
-        // At each timestep, have the SimulationResult objects add the current x-y value
+        // At each timestep, have the SpiceSimulationResult objects add the current x-y value
         foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
-            foreach (SimulationResult result in results)
+            foreach (SpiceSimulationResult result in results)
                 result.AddCurrentTimeStepValue();
 
         return results;

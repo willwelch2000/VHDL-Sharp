@@ -4,9 +4,10 @@ using VHDLSharp.Utility;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Class used as one of many results of a simulation
+/// Class used as one of many results of a Spice simulation
+/// TODO convert to interface, this will be SpiceSimulationResult
 /// </summary>
-public class SimulationResult
+public class SpiceSimulationResult : ISimulationResult
 {
     private readonly List<double> timeSteps = [];
 
@@ -21,32 +22,21 @@ public class SimulationResult
     /// </summary>
     /// <param name="signalReference">Signal being monitored</param>
     /// <param name="simulation">Simulation producing results</param>
-    internal SimulationResult(SignalReference signalReference, Transient simulation)
+    internal SpiceSimulationResult(SignalReference signalReference, Transient simulation)
     {
         SignalReference = signalReference;
         this.simulation = simulation;
         exports = [.. signalReference.GetSpiceSharpReferences().Select(r => new RealVoltageExport(simulation, r))];
     }
 
-    /// <summary>
-    /// Reference to signal that is monitored
-    /// </summary>
+    /// <inheritdoc/>
     public SignalReference SignalReference { get; }
 
-    /// <summary>
-    /// X values of result--time steps
-    /// </summary>
+    /// <inheritdoc/>
     public double[] TimeSteps => [.. timeSteps];
 
-    /// <summary>
-    /// Digital values of signal
-    /// </summary>
+    /// <inheritdoc/>
     public int[] Values => [.. values];
-
-    /// <summary>
-    /// Time steps paired with digital values
-    /// </summary>
-    public IEnumerable<(double, int)> TimeStepsAndValues => TimeSteps.Zip(Values);
 
     /// <summary>
     /// Call this method after each simulation step to add the values from the voltage export objects

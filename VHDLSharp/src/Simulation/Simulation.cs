@@ -94,7 +94,7 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity
     public bool IsComplete() => StimulusMapping.IsComplete();
 
     /// <inheritdoc/>
-    public abstract IEnumerable<SimulationResult> Simulate();
+    public abstract IEnumerable<ISimulationResult> Simulate();
 
     private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {

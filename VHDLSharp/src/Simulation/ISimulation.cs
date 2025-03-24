@@ -23,8 +23,8 @@ public interface ISimulation
     public ICollection<SignalReference> SignalsToMonitor { get; }
 
     /// <summary>
-    /// Get Spice# Circuit representation of setup
+    /// Perform the simulation
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<SimulationResult> Simulate();
+    public IEnumerable<ISimulationResult> Simulate();
 }
