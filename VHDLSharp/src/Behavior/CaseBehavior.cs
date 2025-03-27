@@ -35,7 +35,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is INamedSignal) ?? []).Select(o => (INamedSignal)o).Append(Selector).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<INamedSignal>()).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
@@ -128,7 +128,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             return true;
 
         // Combine non-null dimensions of individual expressions
-        IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c?.Dimension is not null).Select(c => c?.Dimension)!;
+        IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Select(c => c?.Dimension).OfType<DefiniteDimension>();
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(dimensions))
             exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");

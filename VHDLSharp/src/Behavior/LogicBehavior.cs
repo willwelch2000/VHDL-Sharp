@@ -22,7 +22,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is INamedSignal).Select(o => (INamedSignal)o).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.OfType<INamedSignal>().Distinct();
 
     /// <summary>
     /// Works by getting dimension from first internal signal--they should all have the same dimension

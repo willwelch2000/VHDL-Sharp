@@ -352,7 +352,7 @@ public class InstantiationTests
         parentMod.Instantiations.Add(i2);
         parentMod.Instantiations.Add(i3);
 
-        IEnumerable<Subcircuit> spiceInstantiations = parentMod.Instantiations.GetSpice().AsCircuit().Where(e => e is Subcircuit).Select(e => (Subcircuit)e);
+        IEnumerable<Subcircuit> spiceInstantiations = parentMod.Instantiations.GetSpice().AsCircuit().OfType<Subcircuit>();
         Assert.AreEqual(2, spiceInstantiations.Select(i => i.Parameters.Definition).Distinct().Count());
     }
 }

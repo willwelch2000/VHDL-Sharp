@@ -25,7 +25,7 @@ internal static class Util
 
     internal static bool CanCombine<T>(this IEnumerable<ILogicallyCombinable<T>?> expressions) where T : ILogicallyCombinable<T>
     {
-        ILogicallyCombinable<T>[] array = expressions.Where(e => e is not null).ToArray()!;
+        ILogicallyCombinable<T>[] array = [.. expressions.OfType<ILogicallyCombinable<T>>()];
         if (array.Length < 2)
             return true;
 
