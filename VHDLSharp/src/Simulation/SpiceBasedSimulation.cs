@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using SpiceSharp;
 using SpiceSharp.Simulations;
 using VHDLSharp.Exceptions;

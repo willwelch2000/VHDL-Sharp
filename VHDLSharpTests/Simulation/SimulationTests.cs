@@ -27,7 +27,7 @@ public class SimulationTests
         module1.AddNewPort(s3, PortDirection.Output);
         module1.SignalBehaviors[s3] = new LogicBehavior(s1.And(s2));
         
-        SimulationSetup setup = new(module1)
+        SpiceBasedSimulation setup = new(module1)
         {
             Length = 1e-3,
             StepSize = 1e-4,
@@ -42,7 +42,7 @@ public class SimulationTests
         s1Stimulus.Points[0.51e-3] = true;
         setup.AssignStimulus(p1, s1Stimulus);
         setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
-        SimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult[] results = [.. setup.Simulate()];
 
         // Assert that all results of s3 match s1 AND s2
         // Assumes that time values are the same for all result sets
@@ -71,7 +71,7 @@ public class SimulationTests
         module1.SignalBehaviors[s2] = new ValueBehavior(1);
         module1.SignalBehaviors[s3] = new ValueBehavior(10);
         
-        SimulationSetup setup = new(module1)
+        SpiceBasedSimulation setup = new(module1)
         {
             Length = 1e-3,
             StepSize = 1e-4,
@@ -86,7 +86,7 @@ public class SimulationTests
         setup.SignalsToMonitor.Add(new(subcircuit, s3));
         
         setup.AssignStimulus(p1, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
-        SimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult[] results = [.. setup.Simulate()];
 
         // s2 results
         int[] s2Results = results[0].Values;
@@ -132,7 +132,7 @@ public class SimulationTests
         behavior.SetDefault(new Literal(1, 3));
         module1.SignalBehaviors[output] = behavior;
         
-        SimulationSetup setup = new(module1)
+        SpiceBasedSimulation setup = new(module1)
         {
             Length = 4e-3,
             StepSize = 1e-4,
@@ -144,8 +144,8 @@ public class SimulationTests
         setup.AssignStimulus(pSelector, new MultiDimensionalStimulus(selectorStimuli));
         SubcircuitReference subcircuit = new(module1, []);
         setup.SignalsToMonitor.Add(new(subcircuit, output));
-        SimulationResult[] results = [.. setup.Simulate()];
-        SimulationResult outputResults = results[0];
+        ISimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult outputResults = results[0];
         double[] timeSteps = outputResults.TimeSteps;
         int[] values = outputResults.Values;
         for (int i = 0; i < outputResults.TimeSteps.Length; i++)
@@ -171,7 +171,7 @@ public class SimulationTests
         m1.AddNewPort(output, PortDirection.Output);
         output.AssignBehavior(input.And(new Literal(5, 3)));
 
-        SimulationSetup setup = new(m1)
+        SpiceBasedSimulation setup = new(m1)
         {
             Length = 1e-3,
             StepSize = 1e-5,
@@ -187,9 +187,9 @@ public class SimulationTests
 
         MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
         setup.AssignStimulus(inputPort, stimulus);
-        SimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult[] results = [.. setup.Simulate()];
 
-        SimulationResult outputResult = results[1];
+        ISimulationResult outputResult = results[1];
         for (int i = 0; i < outputResult.TimeSteps.Length; i++)
         {
             double time = outputResult.TimeSteps[i];
