@@ -87,6 +87,11 @@ public class RuleBasedSimulationState
     }
 
     /// <summary>
+    /// Get all single-node signals that have been assigned values
+    /// </summary>
+    public IEnumerable<SignalReference> AllSingleNodeSignals => [.. singleNodeSignalValues.Keys];
+
+    /// <summary>
     /// Add a single-node signal value as a boolean
     /// </summary>
     /// <param name="signal"></param>
