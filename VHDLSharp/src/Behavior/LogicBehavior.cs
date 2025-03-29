@@ -2,6 +2,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
@@ -31,11 +32,8 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
-            
         // Don't call IsCompatible here since it does it in LogicExpression
         try
         {
@@ -48,12 +46,22 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     }
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to VHDL");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
+    }
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
+    {
+        // Don't call IsCompatible here since it does it in LogicExpression
+        try
+        {
+            return LogicExpression.GetSimulationRule(outputSignal);
+        }
+        catch (IncompatibleSignalException)
+        {
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+        }
     }
 }

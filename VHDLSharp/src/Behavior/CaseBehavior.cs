@@ -4,6 +4,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -44,12 +45,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to VHDL");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
@@ -201,16 +198,17 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to Spice circuit");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
-
         return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
+    }
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
+    {
+        throw new NotImplementedException();
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)

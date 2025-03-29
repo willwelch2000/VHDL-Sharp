@@ -4,6 +4,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
@@ -88,6 +89,19 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         }
 
         return new SpiceCircuit(entities).WithCommonEntities();
+    }
+
+    /// <summary>
+    /// Get simulation rule given a specific signal
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    /// <returns></returns>
+    public SimulationRule GetSimulationRule(SignalReference outputSignal)
+    {
+        if (!IsCompatible(outputSignal.Signal))
+            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
+
+        throw new NotImplementedException();
     }
 
     /// <summary>
