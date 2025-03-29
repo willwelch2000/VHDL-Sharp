@@ -29,6 +29,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         manager = new ValidityManager<SubcircuitReference>(this, [subcircuitReference]);
         // Call updated to check after construction
         updated?.Invoke(this, EventArgs.Empty);
+        if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
+            throw exception;
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
@@ -96,6 +98,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     /// </summary>
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Signal reference is invalid");
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
