@@ -7,7 +7,6 @@ using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -208,7 +207,9 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     /// <inheritdoc/>
     protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
     {
-        throw new NotImplementedException();
+        if (!IsComplete())
+            throw new IncompleteException("Case behavior must be complete to get simulation rule");
+        return new(outputSignal, (state) => GetOutputValue(state, outputSignal.Subcircuit));
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)
@@ -267,5 +268,27 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             LogicBehavior behavior = new(new LogicExpression(new Or<ISignal>(selectedExpressions)));
             yield return (outputSignalSingleNodes[dim], $"{uniqueId}_{idCounter++}", behavior);
         }
+    }
+
+    /// <summary>
+    /// Get output value given simulation state and subcircuit context
+    /// </summary>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="context">Subcircuit in which this expression exists</param>
+    /// <returns></returns>
+    private int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        int lastIndex = state.CurrentTimeStepIndex - 1;
+        if (lastIndex < 0)
+            return 0;
+
+        // Get selector value as int
+        SignalReference selectorReference = context.GetChildSignalReference(Selector);
+        int lastSelectorValue = state.GetSignalValues(selectorReference)[lastIndex];
+
+        // If case expression is filled in for that, return that value
+        // Otherwise, use default expression
+        LogicExpression expression = caseExpressions[lastSelectorValue] ?? DefaultExpression!;
+        return expression.GetOutputValue(state, context);
     }
 }

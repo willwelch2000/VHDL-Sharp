@@ -92,17 +92,21 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     }
 
     /// <summary>
-    /// Get simulation rule given a specific signal
+    /// Get output value given simulation state and subcircuit context
     /// </summary>
-    /// <param name="outputSignal"></param>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="context">Subcircuit in which this expression exists</param>
     /// <returns></returns>
-    public SimulationRule GetSimulationRule(SignalReference outputSignal)
+    public int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
     {
-        if (!IsCompatible(outputSignal.Signal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this expression");
-
         throw new NotImplementedException();
     }
+
+    /// <summary>
+    /// Check if a given output signal is compatible with this
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    public bool IsCompatible(INamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
 
     /// <summary>
     /// Generate an And with this expression and another <see cref="ILogicallyCombinable{T}"/>
@@ -138,6 +142,16 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public LogicExpression Not() => new(new Not<ISignal>(InnerExpression));
 
+    /// <summary>
+    /// Convert a <see cref="ILogicallyCombinable{ISignal}"/> to a <see cref="LogicExpression"/>
+    /// If the given argument is already of the correct type, it just returns that
+    /// Otherwise, it creates a new <see cref="LogicExpression"/> that links to it
+    /// </summary>
+    /// <param name="expression">Input expression</param>
+    /// <returns></returns>
+    public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
+        => expression is LogicExpression logicExpression ? logicExpression : new(expression);
+
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
@@ -159,20 +173,4 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             return signalVhdlObjectOptions!;
         }
     }
-
-    /// <summary>
-    /// Convert a <see cref="ILogicallyCombinable{ISignal}"/> to a <see cref="LogicExpression"/>
-    /// If the given argument is already of the correct type, it just returns that
-    /// Otherwise, it creates a new <see cref="LogicExpression"/> that links to it
-    /// </summary>
-    /// <param name="expression">Input expression</param>
-    /// <returns></returns>
-    public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
-        => expression is LogicExpression logicExpression ? logicExpression : new(expression);
-
-    /// <summary>
-    /// Check if a given output signal is compatible with this
-    /// </summary>
-    /// <param name="outputSignal"></param>
-    public bool IsCompatible(INamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
 }

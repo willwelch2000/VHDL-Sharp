@@ -32,36 +32,14 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
-    {
-        // Don't call IsCompatible here since it does it in LogicExpression
-        try
-        {
-            return LogicExpression.GetSpice(outputSignal, uniqueId);
-        }
-        catch (IncompatibleSignalException)
-        {
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        }
-    }
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId) => 
+        LogicExpression.GetSpice(outputSignal, uniqueId);
 
     /// <inheritdoc/>
-    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
-    {
-        return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
-    }
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal) =>
+        $"{outputSignal} <= {LogicExpression.GetVhdl()};";
 
     /// <inheritdoc/>
-    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
-    {
-        // Don't call IsCompatible here since it does it in LogicExpression
-        try
-        {
-            return LogicExpression.GetSimulationRule(outputSignal);
-        }
-        catch (IncompatibleSignalException)
-        {
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        }
-    }
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal) =>
+        new(outputSignal, (state) => LogicExpression.GetOutputValue(state, outputSignal.Subcircuit));
 }

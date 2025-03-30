@@ -29,6 +29,11 @@ public class RuleBasedSimulationState
     }
 
     /// <summary>
+    /// Current index of time step in the list
+    /// </summary>
+    public int CurrentTimeStepIndex => allTimeSteps.Count - 1;
+
+    /// <summary>
     /// List of all timesteps, including the current one
     /// </summary>
     public List<double> AllTimeSteps => [.. allTimeSteps];
