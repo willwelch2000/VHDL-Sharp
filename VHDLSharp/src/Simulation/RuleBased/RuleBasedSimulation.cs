@@ -15,8 +15,11 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     public ITimeStepGenerator TimeStepGenerator { get; set; } = timeStepGenerator;
 
     /// <inheritdoc/>
-    public override IEnumerable<ISimulationResult> Simulate()
+    protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
+        // Get all rules
+        SimulationRule[] rules = [.. Module.GetSimulationRules()];
+
         throw new NotImplementedException();
     }
 

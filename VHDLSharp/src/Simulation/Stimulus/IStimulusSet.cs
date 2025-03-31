@@ -28,4 +28,11 @@ public interface IStimulusSet
     /// <param name="uniqueId"></param>
     /// <returns></returns>
     public SpiceCircuit GetSpice(INamedSignal signal, string uniqueId);
+
+    /// <summary>
+    /// Get simulation rule or a given output signal
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    public SimulationRule GetSimulationRule(INamedSignal signal);
 }

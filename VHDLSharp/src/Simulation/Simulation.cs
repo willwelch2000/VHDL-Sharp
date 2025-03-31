@@ -94,7 +94,20 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity
     public bool IsComplete() => StimulusMapping.IsComplete();
 
     /// <inheritdoc/>
-    public abstract IEnumerable<ISimulationResult> Simulate();
+    public IEnumerable<ISimulationResult> Simulate()
+    {
+        if (!manager.IsValid())
+            throw new Exception("Simulation setup must be valid to simulate");
+        if (!IsComplete())
+            throw new Exception("Simulation setup must be complete to simulate");
+        return SimulateWithoutCheck();
+    }
+
+    /// <summary>
+    /// Simulate module assuming validity and completion checks are already done
+    /// </summary>
+    /// <returns></returns>
+    protected abstract IEnumerable<ISimulationResult> SimulateWithoutCheck();
 
     private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {

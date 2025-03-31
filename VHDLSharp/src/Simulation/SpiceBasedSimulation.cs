@@ -52,7 +52,7 @@ public class SpiceBasedSimulation(IModule module) : Simulation(module)
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<ISimulationResult> Simulate()
+    protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
         Circuit circuit = GetSpice().AsCircuit();
         
