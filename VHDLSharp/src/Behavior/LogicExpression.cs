@@ -99,7 +99,24 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
     {
-        throw new NotImplementedException();
+        int lastIndex = state.CurrentTimeStepIndex - 1;
+        if (lastIndex < 0)
+            return 0;
+
+        return InnerExpression switch
+        {
+            LogicExpression logicExpression => logicExpression.GetOutputValue(state, context),
+            ISignal signal => signal switch
+            {
+                INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex],
+                ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
+                _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
+            },
+            And<ISignal> andExp => andExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a & b),
+            Or<ISignal> orExp => orExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a | b),
+            Not<ISignal> {FirstBaseObject: not null} notExp => 1 << notExp.FirstBaseObject!.Dimension.NonNullValue - 1 - new LogicExpression(notExp.Input).GetOutputValue(state, context),
+            _ => throw new Exception("Expression should be made of signals and AND/OR/NOT combinations")
+        };
     }
 
     /// <summary>

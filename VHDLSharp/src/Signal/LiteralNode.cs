@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// A bit in a literal
 /// </summary>
-public class LiteralNode : ISingleNodeSignal
+public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue
 {
     /// <summary>
     /// Generate new <see cref="LiteralNode"/> given parent <see cref="Literal"/> and node index
@@ -37,6 +37,8 @@ public class LiteralNode : ISingleNodeSignal
     /// Value of bit in literal
     /// </summary>
     public bool Value => (Literal.Value & 1<<Node) > 0;
+
+    int ISignalWithKnownValue.Value => Value ? 1 : 0;
 
     /// <inheritdoc/>
     public DefiniteDimension Dimension => new(1);
