@@ -56,7 +56,8 @@ public class RuleBasedSimulationState
     /// <exception cref="Exception"></exception>
     public List<bool> GetSingleNodeSignalValues(SignalReference signal) => signal.Signal switch
     {
-        ISingleNodeNamedSignal => [.. singleNodeSignalValues[signal]],
+        ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(signal, out List<bool>? vals) ? [.. vals] : 
+            CurrentTimeStepIndex == 0 ? singleNodeSignalValues[signal] = [] : throw new Exception("New signals can't be added after first timestep complete"),
         _ => throw new Exception("Signal reference must be to a single-node signal")
     };
 
@@ -71,13 +72,13 @@ public class RuleBasedSimulationState
         try
         {
             if (signal.Signal is ISingleNodeNamedSignal)
-                return [.. singleNodeSignalValues[signal].Select(val => val ? 1 : 0)];
+                return [.. GetSingleNodeSignalValues(signal).Select(val => val ? 1 : 0)];
 
             SubcircuitReference subcircuit = signal.Subcircuit;
             SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
             List<int> values = [];
             for (int i = 0; i < singleNodeSignalValues[singleNodeSignals[0]].Count; i++)
-                values.Add(singleNodeSignals.Select(s => singleNodeSignalValues[s][i] ? 1 : 0).Sum());
+                values.Add(singleNodeSignals.Select(s => GetSingleNodeSignalValues(s)[i] ? 1 : 0).Sum());
 
             return values;
         }
