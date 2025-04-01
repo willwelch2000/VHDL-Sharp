@@ -55,4 +55,18 @@ public class PulseStimulus : Stimulus
         VoltageSource source = new(SpiceUtil.GetSpiceName(uniqueId, 0, "pulse"), signal.GetSpiceName(), "0", pulse);
         return new([source]);
     }
+
+    /// <inheritdoc/>
+    protected override bool GetValue(double currentTime)
+    {
+        if (currentTime < DelayTime)
+            return false;
+
+        // Shift time based on delay time and period, to compare to width
+        double shiftedTime = (currentTime - DelayTime) % Period;
+        if (shiftedTime < 0)
+            shiftedTime += Period;
+
+        return shiftedTime < PulseWidth;
+    }
 }

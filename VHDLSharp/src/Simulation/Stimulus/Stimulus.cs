@@ -26,7 +26,30 @@ public abstract class Stimulus : IStimulusSet
         if (signal.Dimension.NonNullValue == 1)
             return GetSpiceGivenSingleNodeSignal(signal.ToSingleNodeSignals.First(), uniqueId);
             
-        throw new Exception("Input signal must have dimension of 1");
+        throw new Exception("Attached signal must have dimension of 1");
+    }
+
+    /// <inheritdoc/>
+    IEnumerable<SimulationRule> IStimulusSet.GetSimulationRules(SignalReference signal)
+    {
+        if (signal.Signal.Dimension.NonNullValue == 1)
+            return [GetSimulationRule(signal)];
+            
+        throw new Exception("Attached signal must have dimension of 1");
+    }
+    
+    /// <summary>
+    /// Get singular simulation rule for a given output signal reference
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public SimulationRule GetSimulationRule(SignalReference signal)
+    {
+        if (signal.Signal.Dimension.NonNullValue == 1)
+            return new(signal, (state) => GetValue(state.CurrentTimeStep) ? 1 : 0);
+            
+        throw new Exception("Attached signal must have dimension of 1");
     }
 
     /// <summary>
@@ -36,4 +59,11 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="uniqueId"></param>
     /// <returns></returns>
     protected abstract SpiceCircuit GetSpiceGivenSingleNodeSignal(ISingleNodeNamedSignal signal, string uniqueId); 
+
+    /// <summary>
+    /// Get value of stimulus at a given time
+    /// </summary>
+    /// <param name="currentTime"></param>
+    /// <returns></returns>
+    protected abstract bool GetValue(double currentTime);
 }

@@ -36,4 +36,7 @@ public class ConstantStimulus : Stimulus
         // DC voltage source at signal with VDD or 0
         return new([new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "const"), signal.GetSpiceName(), "0", Value ? SpiceUtil.VDD : 0)]);
     }
+
+    /// <inheritdoc/>
+    protected override bool GetValue(double currentTime) => Value;
 }

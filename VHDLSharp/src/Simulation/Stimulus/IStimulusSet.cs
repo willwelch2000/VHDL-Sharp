@@ -30,9 +30,9 @@ public interface IStimulusSet
     public SpiceCircuit GetSpice(INamedSignal signal, string uniqueId);
 
     /// <summary>
-    /// Get simulation rule or a given output signal
+    /// Get simulation rules for a given output signal reference
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public SimulationRule GetSimulationRule(INamedSignal signal);
+    public IEnumerable<SimulationRule> GetSimulationRules(SignalReference signal);
 }

@@ -50,4 +50,16 @@ public class MultiDimensionalStimulus : IStimulusSet
 
         return SpiceCircuit.Combine(circuits);
     }
+
+    /// <inheritdoc/>
+    public virtual IEnumerable<SimulationRule> GetSimulationRules(SignalReference signal)
+    {
+        if (!signal.Signal.Dimension.Compatible(Dimension))
+            throw new Exception("Signal must be compatible with stimulus dimension");
+            
+        // Pair each stimulus with corresponding signal
+        SubcircuitReference subcircuit = signal.Subcircuit;
+        foreach ((int i, SignalReference singleNodeSignal) in signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference).Index())
+            yield return Stimuli[i].GetSimulationRule(singleNodeSignal);
+    }
 }

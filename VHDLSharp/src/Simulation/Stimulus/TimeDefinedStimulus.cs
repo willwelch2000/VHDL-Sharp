@@ -46,4 +46,21 @@ public class TimeDefinedStimulus : Stimulus
         pwl.SetPoints([.. vector]);
         return new SpiceCircuit([new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, 0, "pwl"), signal.GetSpiceName(), "0", pwl)]);
     }
+
+    /// <inheritdoc/>
+    protected override bool GetValue(double currentTime)
+    {
+        // Get points as (time, val) ordered by time
+        List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
+
+        bool currentValue = false;
+        foreach ((double time, bool val) in orderedPoints)
+        {
+            if (currentTime >= time)
+                currentValue = val;
+            else
+                break;
+        }
+        return currentValue;
+    }
 }
