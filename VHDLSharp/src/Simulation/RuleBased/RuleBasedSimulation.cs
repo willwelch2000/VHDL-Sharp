@@ -14,11 +14,22 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     /// </summary>
     public ITimeStepGenerator TimeStepGenerator { get; set; } = timeStepGenerator;
 
+    /// <summary>
+    /// Get all simulation rules for the setup
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules()
+    {
+        SubcircuitReference topLevelSubcircuit = new(Module, []);
+        return Module.GetSimulationRules()
+        .Concat(StimulusMapping.SelectMany(kvp => kvp.Value.GetSimulationRules(new(topLevelSubcircuit, kvp.Key.Signal))));
+    }
+
     /// <inheritdoc/>
     protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
         // Get all rules
-        SimulationRule[] rules = [.. Module.GetSimulationRules()];
+        SimulationRule[] rules = [.. GetSimulationRules()];
 
         throw new NotImplementedException();
     }
