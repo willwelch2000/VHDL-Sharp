@@ -1,5 +1,4 @@
 using SpiceSharp.Components;
-using SpiceSharp.Entities;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
@@ -39,4 +38,7 @@ public class ConstantStimulus : Stimulus
 
     /// <inheritdoc/>
     protected override bool GetValue(double currentTime) => Value;
+
+    /// <inheritdoc/>
+    protected override IEnumerable<double> GetIndependentEventTimes(double simulationLength) => [];
 }

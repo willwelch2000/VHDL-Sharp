@@ -47,7 +47,10 @@ public abstract class Stimulus : IStimulusSet
     public SimulationRule GetSimulationRule(SignalReference signal)
     {
         if (signal.Signal.Dimension.NonNullValue == 1)
-            return new(signal, (state) => GetValue(state.CurrentTimeStep) ? 1 : 0);
+            return new(signal, (state) => GetValue(state.CurrentTimeStep) ? 1 : 0)
+            {
+                IndependentEventTimeGenerator = GetIndependentEventTimes
+            };
             
         throw new Exception("Attached signal must have dimension of 1");
     }
@@ -66,4 +69,11 @@ public abstract class Stimulus : IStimulusSet
     /// <param name="currentTime"></param>
     /// <returns></returns>
     protected abstract bool GetValue(double currentTime);
+
+    /// <summary>
+    /// Get times at which the stimulus spontaneously changes given length of simulation
+    /// </summary>
+    /// <param name="simulationLength">Length of simulation</param>
+    /// <returns>List of times at which the stimulus changes spontaneously</returns>
+    protected abstract IEnumerable<double> GetIndependentEventTimes(double simulationLength);
 }

@@ -32,7 +32,7 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
     /// given the simulation length.
     /// By default, this produces an empty list
     /// </summary>
-    public TimeGenerator IndependentEventTimeGenerator { get; } = length => [];
+    public TimeGenerator IndependentEventTimeGenerator { get; init; } = length => [];
 
     /// <summary>
     /// Method for getting value of output signal given the current simulation state

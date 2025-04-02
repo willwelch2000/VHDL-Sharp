@@ -69,4 +69,19 @@ public class PulseStimulus : Stimulus
 
         return shiftedTime < PulseWidth;
     }
+
+    /// <inheritdoc/>
+    protected override IEnumerable<double> GetIndependentEventTimes(double simulationLength)
+    {
+        double time1 = DelayTime;
+        double time2 = time1 + PulseWidth;
+        while (time1 <= simulationLength)
+        {
+            yield return time1;
+            if (time2 <= simulationLength)
+                yield return time2;
+            time1 += Period;
+            time2 += Period;
+        }
+    }
 }

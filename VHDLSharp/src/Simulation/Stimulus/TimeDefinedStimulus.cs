@@ -63,4 +63,8 @@ public class TimeDefinedStimulus : Stimulus
         }
         return currentValue;
     }
+
+    /// <inheritdoc/>
+    protected override IEnumerable<double> GetIndependentEventTimes(double simulationLength) =>
+        Points.Keys.Order().Where(t => t <= simulationLength);
 }
