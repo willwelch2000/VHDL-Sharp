@@ -106,8 +106,10 @@ public class RuleBasedSimulationState
     {
         if (singleNodeSignalValues.TryGetValue(signal, out List<bool>? values))
             values.Add(value);
-        else
+        else if (CurrentTimeStepIndex == 0)
             singleNodeSignalValues[signal] = [value];
+        else
+            throw new Exception("New signals can't be added after first timestep complete");
     }
 
     /// <summary>
