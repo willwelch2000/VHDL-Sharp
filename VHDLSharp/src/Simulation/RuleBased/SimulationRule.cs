@@ -39,4 +39,14 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
     /// </summary>
     /// <returns></returns>
     public ValueCalculation OutputValueCalculation { get; } = outputValueCalculation;
+
+    /// <summary>
+    /// Tests if rules have any overlapping output signals
+    /// </summary>
+    /// <param name="rules"></param>
+    /// <returns></returns>
+    internal static bool RulesOverlap(IEnumerable<SimulationRule> rules)
+    {
+        throw new NotImplementedException();
+    }
 }

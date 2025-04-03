@@ -5,7 +5,6 @@ namespace VHDLSharp.Simulations;
 
 /// <summary>
 /// Class used as one of many results of a Spice simulation
-/// TODO convert to interface, this will be SpiceSimulationResult
 /// </summary>
 public class SpiceSimulationResult : ISimulationResult
 {

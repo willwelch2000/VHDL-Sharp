@@ -45,18 +45,33 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     /// <inheritdoc/>
     protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
-        // Get all rules
         SimulationRule[] rules = [.. GetSimulationRules()];
-
         RuleBasedSimulationState state = new();
+        double[] independentEventTimes = [.. rules.SelectMany(r => r.IndependentEventTimeGenerator(Length))];
+        if (SimulationRule.RulesOverlap(rules))
+            throw new Exception("Rules have overlapping output signals");
 
+        Queue<double> nextTimeSteps = [];
         while (state.CurrentTimeStep <= Length)
         {
+            // Apply rules
+            foreach (SimulationRule rule in rules)
+                state.AddSignalValue(rule.OutputSignal, rule.OutputValueCalculation(state));
             
+            // Go to next time step
+            if (nextTimeSteps.Count == 0)
+                nextTimeSteps = new(timeStepGenerator.NextTimeSteps(state, independentEventTimes, Length));
+            state.CurrentTimeStep = nextTimeSteps.Dequeue();
         }
 
-        throw new NotImplementedException();
+        // Get results
+        foreach (SignalReference signal in SignalsToMonitor)
+        {
+            yield return new RuleBasedSimulationResult(signal)
+            {
+                TimeSteps = [.. state.AllTimeSteps],
+                Values = [.. state.GetSignalValues(signal)],
+            };
+        }
     }
-
-    // TODO make sure that every signal is covered exactly once
 }
