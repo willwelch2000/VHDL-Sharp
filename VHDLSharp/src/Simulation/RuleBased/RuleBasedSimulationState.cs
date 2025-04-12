@@ -7,6 +7,9 @@ namespace VHDLSharp.Simulations;
 /// </summary>
 public class RuleBasedSimulationState
 {
+    /// <summary>
+    /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps
+    /// </summary>
     private readonly Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
 
     private readonly List<double> allTimeSteps = [0];
@@ -54,12 +57,17 @@ public class RuleBasedSimulationState
     /// <param name="signal"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public List<bool> GetSingleNodeSignalValues(SignalReference signal) => signal.Signal switch
+    public List<bool> GetSingleNodeSignalValues(SignalReference signal)
     {
-        ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(signal, out List<bool>? vals) ? [.. vals] : 
-            CurrentTimeStepIndex == 0 ? singleNodeSignalValues[signal] = [] : throw new Exception("New signals can't be added after first timestep complete"),
-        _ => throw new Exception("Signal reference must be to a single-node signal")
-    };
+        // Ascend to higher module, if necessary
+        SignalReference ascended = signal.Ascend();
+        return ascended.Signal switch
+        {
+            ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(ascended, out List<bool>? vals) ? [.. vals] : 
+                CurrentTimeStepIndex == 0 ? singleNodeSignalValues[ascended] = [] : throw new Exception("New signals can't be added after first timestep complete"),
+            _ => throw new Exception("Signal reference must be to a single-node signal")
+        };
+    }
 
     /// <summary>
     /// Get values for a signal
@@ -104,10 +112,15 @@ public class RuleBasedSimulationState
     /// <param name="value"></param>
     internal void AddSignalValue(SignalReference signal, bool value)
     {
-        if (singleNodeSignalValues.TryGetValue(signal, out List<bool>? values))
+        if (signal.Signal is not ISingleNodeNamedSignal)
+            throw new Exception("Must be a single-node signal to add a bool value");
+
+        // Ascend to higher module, if necessary
+        SignalReference ascended = signal.Ascend();
+        if (singleNodeSignalValues.TryGetValue(ascended, out List<bool>? values))
             values.Add(value);
         else if (CurrentTimeStepIndex == 0)
-            singleNodeSignalValues[signal] = [value];
+            singleNodeSignalValues[ascended] = [value];
         else
             throw new Exception("New signals can't be added after first timestep complete");
     }

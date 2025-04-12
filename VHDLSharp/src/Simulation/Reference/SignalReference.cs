@@ -104,6 +104,45 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
+    /// <summary>
+    /// If this signal reference is another name for a higher-level signal (connected via module port),
+    /// get that signal reference instead
+    /// </summary>
+    /// <returns></returns>
+    public SignalReference Ascend()
+    {
+        // No higher-level module
+        if (Path.Count == 0)
+            return this;
+            
+        IInstantiation lastInstantiation = Path.Last();
+        SubcircuitReference ascendedSubcircuit = new(TopLevelModule, Path.SkipLast(1));
+
+        foreach (IPort port in Subcircuit.FinalModule.Ports)
+            // This is port directly
+            if (port.Signal == Signal)
+            {
+                SignalReference singleAscend = new(ascendedSubcircuit, lastInstantiation.PortMapping[port]);
+                return singleAscend.Ascend();
+            }
+        
+        if (Signal is ISingleNodeNamedSignal singleNodeNamedSignal)
+            foreach (IPort port in Subcircuit.FinalModule.Ports)
+            {
+                // This is child signal of port
+                // Matches this with the equivalent index in the signal that's connected at the higher level
+                int index = port.Signal.ToSingleNodeSignals.ToList().IndexOf(singleNodeNamedSignal);
+                if (index >= 0)
+                {
+                    SignalReference singleAscend = new(ascendedSubcircuit, lastInstantiation.PortMapping[port].ToSingleNodeSignals.ElementAt(index));
+                    return singleAscend.Ascend();
+                }
+            }
+
+        // This isn't port
+        return this;
+    }
+
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;

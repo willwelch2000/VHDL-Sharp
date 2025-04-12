@@ -131,7 +131,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public bool TryGetChildSignalReference(string name, out SignalReference? reference)
     {
         // Try to find signal
-        ISingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
+        INamedSignal? signal = FinalModule.NamedSignals.FirstOrDefault(s => s.Name == name);
         if (signal is not null)
         {
             reference = new SignalReference(this, signal);

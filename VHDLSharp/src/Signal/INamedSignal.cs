@@ -31,6 +31,7 @@ public interface INamedSignal : ISignal
     /// <summary>
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1. 
     /// If it is dimension 1, then return itself
+    /// TODO should this be made into a list because it is assumed to be ordered consistently?
     /// </summary>
     public new IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 

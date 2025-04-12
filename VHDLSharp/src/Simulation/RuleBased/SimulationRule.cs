@@ -1,3 +1,5 @@
+using VHDLSharp.Signals;
+
 namespace VHDLSharp.Simulations;
 
 /// <summary>
@@ -47,6 +49,16 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
     /// <returns></returns>
     internal static bool RulesOverlap(IEnumerable<SimulationRule> rules)
     {
-        throw new NotImplementedException();
+        HashSet<SignalReference> singleNodeAscendedOutputs = [];
+        foreach (SimulationRule rule in rules)
+        {
+            // Try to add the output signal's (ascended) child signals, return false if duplicates
+            SignalReference outputSignal = rule.OutputSignal;
+            IEnumerable<SignalReference> singleNodeOutputSignals = outputSignal.Signal.ToSingleNodeSignals.Select(outputSignal.Subcircuit.GetChildSignalReference);
+            foreach (SignalReference singleNodeOutputSignal in singleNodeOutputSignals)
+                if (!singleNodeAscendedOutputs.Add(singleNodeOutputSignal.Ascend()))
+                    return false;
+        }
+        return true;
     }
 }
