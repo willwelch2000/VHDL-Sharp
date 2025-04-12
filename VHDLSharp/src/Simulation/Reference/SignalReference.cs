@@ -143,12 +143,22 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         return this;
     }
 
+    /// <summary>
+    /// Get this reference as all of its single-node signal references
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SignalReference> GetSingleNodeReferences()
+    {
+        foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
+            yield return Subcircuit.GetChildSignalReference(singleNodeSignal);
+    }
+
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
         // Problem if last module doesn't contain signal
         IModule lastModule = Subcircuit.FinalModule;
-        if (!lastModule.ContainsSignal(Signal))
+        if (Signal.ParentModule != lastModule)
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
     }

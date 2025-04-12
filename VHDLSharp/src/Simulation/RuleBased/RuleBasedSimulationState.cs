@@ -10,9 +10,9 @@ public class RuleBasedSimulationState
     /// <summary>
     /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps
     /// </summary>
-    private readonly Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
+    private Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
 
-    private readonly List<double> allTimeSteps = [0];
+    private List<double> allTimeSteps = [0];
 
     private double currentTimeStep = 0;
 
@@ -86,7 +86,7 @@ public class RuleBasedSimulationState
             SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
             List<int> values = [];
             for (int i = 0; i < singleNodeSignalValues[singleNodeSignals[0]].Count; i++)
-                values.Add(singleNodeSignals.Select(s => GetSingleNodeSignalValues(s)[i] ? 1 : 0).Sum());
+                values.Add(singleNodeSignals.Select((s, j) => GetSingleNodeSignalValues(s)[i] ? 1<<j : 0).Sum());
 
             return values;
         }
@@ -133,7 +133,30 @@ public class RuleBasedSimulationState
     internal void AddSignalValue(SignalReference signal, int value)
     {
         SubcircuitReference subcircuit = signal.Subcircuit;
-        foreach ((int i, SignalReference singleNodeSignal) in signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference).Index())
+        foreach ((int i, SignalReference singleNodeSignal) in signal.GetSingleNodeReferences().Index())
             AddSignalValue(singleNodeSignal, (value & 1<<i) > 0);
+    }
+
+    /// <summary>
+    /// Get a state initialized given values and timesteps
+    /// </summary>
+    /// <param name="signalValues"></param>
+    /// <param name="allTimeSteps"></param>
+    /// <param name="currentTimeStep"></param>
+    /// <returns></returns>
+    public static RuleBasedSimulationState GivenStartingPoint(Dictionary<SignalReference, List<int>> signalValues, List<double> allTimeSteps, double currentTimeStep)
+    {
+        Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
+        foreach ((SignalReference signal, List<int> values) in signalValues)
+            foreach ((int i, SignalReference singleNodeRef) in signal.GetSingleNodeReferences().Index())
+                singleNodeSignalValues[singleNodeRef] = [.. values.Select(v => (v & 1<<i) > 0)];
+
+        RuleBasedSimulationState state = new()
+        {
+            singleNodeSignalValues = singleNodeSignalValues,
+            allTimeSteps = allTimeSteps,
+            currentTimeStep = currentTimeStep,
+        };
+        return state;
     }
 }
