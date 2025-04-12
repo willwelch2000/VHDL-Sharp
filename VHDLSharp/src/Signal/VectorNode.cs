@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Modules;
 
 namespace VHDLSharp.Signals;
@@ -45,4 +46,19 @@ public class VectorNode : SingleNodeNamedSignal
 
     /// <inheritdoc/>
     public override string GetVhdlDeclaration() => $"signal {Vector.Name}_{Node}\t: {VhdlType}";
+
+    /// <inheritdoc/>
+    public override bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal)
+    {
+        // Directly a port
+        if (base.IsPartOfPortMapping(mapping, out equivalentSignal))
+            return true;
+
+        // Parent is a port
+        IPort? port = mapping.Keys.FirstOrDefault(p => p.Signal == ParentSignal);
+        if (port is null)
+            return false;
+        equivalentSignal = mapping[port].ToSingleNodeSignals.ElementAt(Node);
+        return true;
+    }
 }

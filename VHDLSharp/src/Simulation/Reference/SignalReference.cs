@@ -118,27 +118,14 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         IInstantiation lastInstantiation = Path.Last();
         SubcircuitReference ascendedSubcircuit = new(TopLevelModule, Path.SkipLast(1));
 
-        foreach (IPort port in Subcircuit.FinalModule.Ports)
-            // This is port directly
-            if (port.Signal == Signal)
-            {
-                SignalReference singleAscend = new(ascendedSubcircuit, lastInstantiation.PortMapping[port]);
-                return singleAscend.Ascend();
-            }
+        // Test if this signal is part of the port mapping of the last instance
+        // If so, go to that connection and continue to ascend from there
+        if (Signal.IsPartOfPortMapping(lastInstantiation.PortMapping, out INamedSignal? connection))
+        {
+            SignalReference singleAscend = new(ascendedSubcircuit, connection);
+            return singleAscend.Ascend();
+        }
         
-        if (Signal is ISingleNodeNamedSignal singleNodeNamedSignal)
-            foreach (IPort port in Subcircuit.FinalModule.Ports)
-            {
-                // This is child signal of port
-                // Matches this with the equivalent index in the signal that's connected at the higher level
-                int index = port.Signal.ToSingleNodeSignals.ToList().IndexOf(singleNodeNamedSignal);
-                if (index >= 0)
-                {
-                    SignalReference singleAscend = new(ascendedSubcircuit, lastInstantiation.PortMapping[port].ToSingleNodeSignals.ElementAt(index));
-                    return singleAscend.Ascend();
-                }
-            }
-
         // This isn't port
         return this;
     }
