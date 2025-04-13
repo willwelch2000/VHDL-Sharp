@@ -212,9 +212,9 @@ public class CaseBehaviorTests
         // Check simulation rule and its output values
         SubcircuitReference subcircuitRef = new(module1, []);
         SignalReference v1Ref = new(subcircuitRef, v1);
-        SimulationRule simulationRule = behavior.GetSimulationRule(v1Ref);
-        Assert.AreEqual(v1Ref, simulationRule.OutputSignal);
-        Assert.AreEqual(0, simulationRule.IndependentEventTimeGenerator(1).Count());
+        SimulationRule simRule = behavior.GetSimulationRule(v1Ref);
+        Assert.AreEqual(v1Ref, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
         SignalReference selectorRef = new(subcircuitRef, selector);
         for (int i = 0; i < 4; i++)
         {
@@ -222,7 +222,7 @@ public class CaseBehaviorTests
             {
                 {selectorRef, [i]}
             }, [0, 1], 1);
-            int value = simulationRule.OutputValueCalculation(state);
+            int value = simRule.OutputValueCalculation(state);
             int expectedValue = i switch
             {
                 0 => 7,
