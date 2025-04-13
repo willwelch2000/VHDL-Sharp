@@ -2,6 +2,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharpTests;
 
@@ -37,6 +38,24 @@ public class ValueBehaviorTests
         string vhdl = behavior.GetVhdlStatement(s1);
         string expectedVhdl = "s1 <= \"1\";";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+        
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(module1, []);
+        SignalReference s1Ref = new(subcircuitRef, s1);
+        SignalReference v2Ref = new(subcircuitRef, v2);
+        SimulationRule simRule = behavior.GetSimulationRule(v2Ref);
+        Assert.AreEqual(v2Ref, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        for (int s1Val = 0; s1Val < 2; s1Val++)
+        {
+            RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()
+            {
+                {s1Ref, [s1Val]},
+            }, [0, 1], 1);
+            int value = simRule.OutputValueCalculation(state);
+            int expectedValue = 1;
+            Assert.AreEqual(expectedValue, value);
+        }
     }
 
     [TestMethod]
@@ -82,5 +101,16 @@ public class ValueBehaviorTests
         string vhdl = behavior1.GetVhdlStatement(v2);
         string expectedVhdl = "v2 <= \"1010\";";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
+        
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(module1, []);
+        SignalReference v2Ref = new(subcircuitRef, v2);
+        SimulationRule simRule = behavior1.GetSimulationRule(v2Ref);
+        Assert.AreEqual(v2Ref, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint([], [0, 1], 1);
+        int value = simRule.OutputValueCalculation(state);
+        int expectedValue = 10;
+        Assert.AreEqual(expectedValue, value);
     }
 }
