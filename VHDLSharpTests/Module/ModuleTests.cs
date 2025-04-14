@@ -1,6 +1,7 @@
 using VHDLSharp.Behaviors;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
@@ -92,6 +93,13 @@ public class ModuleTests
         string spiceSubcircuit = m1.GetSpice().AsSubcircuitString();
         string expectedSpiceSubcircuit = ".subckt m1 s1 s2 s4\n" + expectedSpice + "\n.ends m1";
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpiceSubcircuit, spiceSubcircuit));
+        
+        // Check rules
+        SimulationRule[] rules = [.. m1.GetSimulationRules()];
+        SubcircuitReference m1Ref = new(m1, []);
+        Assert.AreEqual(2, rules.Length);
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s3)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s4)));
     }
 
     [TestMethod]
