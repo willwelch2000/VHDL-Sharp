@@ -28,15 +28,6 @@ public abstract class Stimulus : IStimulusSet
             
         throw new Exception("Attached signal must have dimension of 1");
     }
-
-    /// <inheritdoc/>
-    IEnumerable<SimulationRule> IStimulusSet.GetSimulationRules(SignalReference signal)
-    {
-        if (signal.Signal.Dimension.NonNullValue == 1)
-            return [GetSimulationRule(signal)];
-            
-        throw new Exception("Attached signal must have dimension of 1");
-    }
     
     /// <summary>
     /// Get singular simulation rule for a given output signal reference

@@ -39,7 +39,7 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
 
         SubcircuitReference topLevelSubcircuit = new(Module, []);
         return Module.GetSimulationRules()
-        .Concat(StimulusMapping.SelectMany(kvp => kvp.Value.GetSimulationRules(new(topLevelSubcircuit, kvp.Key.Signal))));
+        .Concat(StimulusMapping.Select(kvp => kvp.Value.GetSimulationRule(new(topLevelSubcircuit, kvp.Key.Signal))));
     }
 
     /// <inheritdoc/>

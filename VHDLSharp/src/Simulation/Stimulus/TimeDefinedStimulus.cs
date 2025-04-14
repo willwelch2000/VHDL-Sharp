@@ -53,7 +53,7 @@ public class TimeDefinedStimulus : Stimulus
         // Get points as (time, val) ordered by time
         List<(double time, bool val)> orderedPoints = [.. Points.Select<KeyValuePair<double, bool>, (double time, bool val)>(p => (p.Key, p.Value)).OrderBy(p => p.time)];
 
-        bool currentValue = false;
+        bool currentValue = orderedPoints.Select(pair => pair.val).FirstOrDefault(false);
         foreach ((double time, bool val) in orderedPoints)
         {
             if (currentTime >= time)
@@ -66,5 +66,6 @@ public class TimeDefinedStimulus : Stimulus
 
     /// <inheritdoc/>
     protected override IEnumerable<double> GetIndependentEventTimes(double simulationLength) =>
-        Points.Keys.Order().Where(t => t <= simulationLength);
+        // Skip first one, since the stimulus is set to that from the beginning so it doesn't change there
+        Points.Keys.Skip(1).Order().Where(t => t <= simulationLength);
 }
