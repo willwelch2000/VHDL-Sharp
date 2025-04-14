@@ -4,6 +4,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharpTests;
@@ -74,6 +75,20 @@ public class InstantiationTests
         Xi1 s1 v1_0 v1_1 instanceMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check simulation rule and its output values
+        SimulationRule simRule = parentMod.GetSimulationRules().First();
+        SubcircuitReference parentModRef = new(parentMod, []);
+        SubcircuitReference instanceRef = parentModRef.GetChildSubcircuitReference(instantiation);
+        SignalReference v1Ref = new(parentModRef, v1);
+        SignalReference p2Ref = instanceRef.GetChildSignalReference(p2.Signal);
+        Assert.AreEqual(v1Ref.Ascend(), simRule.OutputSignal.Ascend());
+        Assert.AreEqual(p2Ref.Ascend(), simRule.OutputSignal.Ascend());
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint([], [0, 1], 1);
+        int value = simRule.OutputValueCalculation(state);
+        int expectedValue = 3;
+        Assert.AreEqual(expectedValue, value);
     }
 
     [TestMethod]
@@ -167,6 +182,14 @@ public class InstantiationTests
         Xor1 out1 out2 out3 OrMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check rules
+        SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
+        SubcircuitReference parentModRef = new(parentMod, []);
+        Assert.AreEqual(3, rules.Length);
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out3)));
     }
 
     [TestMethod]
@@ -225,6 +248,13 @@ public class InstantiationTests
         XmiddleInst in3 out2 middle
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+        
+        // Check rules
+        SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
+        SubcircuitReference parentModRef = new(parentMod, []);
+        Assert.AreEqual(2, rules.Length);
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
     }
 
     [TestMethod]

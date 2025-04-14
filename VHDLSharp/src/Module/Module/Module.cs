@@ -404,7 +404,7 @@ public class Module : IModule, IValidityManagedEntity
             yield return behavior.GetSimulationRule(subcircuit.GetChildSignalReference(signal));
 
         // Instantiations
-        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.ParentModule.GetSimulationRules(subcircuit)))
+        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
             yield return rule;
     }
 
