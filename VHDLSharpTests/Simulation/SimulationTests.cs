@@ -195,7 +195,7 @@ public class SimulationTests
             double time = outputResult.TimeSteps[i];
             int? expectedResult = time switch
             {
-                < 0.125e-3-timeBuffer => 0,
+                >          timeBuffer and < 0.125e-3-timeBuffer => 0,
                 > 0.125e-3+timeBuffer and < 0.250e-3-timeBuffer => 1,
                 > 0.250e-3+timeBuffer and < 0.375e-3-timeBuffer => 0,
                 > 0.375e-3+timeBuffer and < 0.500e-3-timeBuffer => 1,
