@@ -47,7 +47,7 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     {
         SimulationRule[] rules = [.. GetSimulationRules()];
         RuleBasedSimulationState state = new();
-        double[] independentEventTimes = [.. rules.SelectMany(r => r.IndependentEventTimeGenerator(Length))];
+        double[] independentEventTimes = [.. rules.SelectMany(r => r.IndependentEventTimeGenerator(Length)).Order()];
         if (SimulationRule.RulesOverlap(rules))
             throw new Exception("Rules have overlapping output signals");
 

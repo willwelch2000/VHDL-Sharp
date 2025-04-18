@@ -52,13 +52,13 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
         HashSet<SignalReference> singleNodeAscendedOutputs = [];
         foreach (SimulationRule rule in rules)
         {
-            // Try to add the output signal's (ascended) child signals, return false if duplicates
+            // Try to add the output signal's (ascended) child signals, return true if duplicates exist
             SignalReference outputSignal = rule.OutputSignal;
             IEnumerable<SignalReference> singleNodeOutputSignals = outputSignal.Signal.ToSingleNodeSignals.Select(outputSignal.Subcircuit.GetChildSignalReference);
             foreach (SignalReference singleNodeOutputSignal in singleNodeOutputSignals)
                 if (!singleNodeAscendedOutputs.Add(singleNodeOutputSignal.Ascend()))
-                    return false;
+                    return true;
         }
-        return true;
+        return false;
     }
 }

@@ -10,7 +10,7 @@ public interface ITimeStepGenerator
     /// If multiple are given, they will be done in series before requesting more. 
     /// </summary>
     /// <param name="state">State of the current simulation</param>
-    /// <param name="independentEventTimes">Times at which rules initiate a change</param>
+    /// <param name="independentEventTimes">Times at which rules initiate a change. Assumes these are ordered</param>
     /// <param name="simulationLength">Total length of the simulation</param>
     /// <returns></returns>
     public IEnumerable<double> NextTimeSteps(RuleBasedSimulationState state, double[] independentEventTimes, double simulationLength);
