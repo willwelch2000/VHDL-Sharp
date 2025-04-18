@@ -10,6 +10,11 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
     /// </summary>
     public double MinTimeStep { get; set; } = 1e-6;
 
+    /// <summary>
+    /// Maximum time step that will be used. Null means no limit
+    /// </summary>
+    public double? MaxTimeStep { get; set; } = null;
+
     /// <inheritdoc/>
     public IEnumerable<double> NextTimeSteps(RuleBasedSimulationState state, double[] independentEventTimes, double simulationLength)
     {
@@ -17,16 +22,31 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
         if (state.AllSingleNodeSignals
             .Select(state.GetSingleNodeSignalValues)
             .Any(vals => vals.Count < 2 || vals.TakeLast(2).Distinct().Count() > 1))
-            yield return state.CurrentTimeStep + MinTimeStep;
-        else
         {
-            // Otherwise, go to next independent event time
-            double nextIndependentTimeStep = independentEventTimes.FirstOrDefault(time => time > state.CurrentTimeStep, simulationLength);
-            if (nextIndependentTimeStep - MinTimeStep > state.CurrentTimeStep)
-                yield return nextIndependentTimeStep - MinTimeStep;
-            yield return nextIndependentTimeStep;
-            if(nextIndependentTimeStep + MinTimeStep > simulationLength)
-                yield return nextIndependentTimeStep + MinTimeStep;
+            yield return state.CurrentTimeStep + MinTimeStep;
+            yield break;
         }
+        // Otherwise, go to next independent event time
+        double nextIndependentTimeStep = independentEventTimes.FirstOrDefault(time => time > state.CurrentTimeStep, simulationLength);
+
+        // If moving max step would be before the next independent time step - min step, move that max time step
+        double nextIndependentMinusMinStep = nextIndependentTimeStep - MinTimeStep;
+        double nextIndependentPlusMinStep = nextIndependentTimeStep + MinTimeStep;
+        if (MaxTimeStep is not null)
+        {
+            double nextStepWithMax = state.CurrentTimeStep + MaxTimeStep.Value;
+            if (nextStepWithMax < nextIndependentMinusMinStep)
+            {
+                yield return nextStepWithMax;
+                yield break;
+            }
+        }
+
+        // Otherwise, return points around the next independent time step
+        if (nextIndependentMinusMinStep > state.CurrentTimeStep)
+            yield return nextIndependentMinusMinStep;
+        yield return nextIndependentTimeStep;
+        if(nextIndependentPlusMinStep > simulationLength)
+            yield return nextIndependentPlusMinStep;
     }
 }
