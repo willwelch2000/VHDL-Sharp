@@ -1,5 +1,3 @@
-using VHDLSharp.Signals;
-
 namespace VHDLSharp.Simulations;
 
 /// <summary>

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;

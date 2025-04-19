@@ -1,7 +1,6 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;
-using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Simulations;
 

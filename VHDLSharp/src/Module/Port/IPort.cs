@@ -1,5 +1,4 @@
 using VHDLSharp.Signals;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Modules;
 
