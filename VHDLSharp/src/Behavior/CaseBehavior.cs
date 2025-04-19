@@ -4,9 +4,9 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -35,7 +35,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.Where(c => c is not null).SelectMany(c => c?.BaseObjects.Where(o => o is INamedSignal) ?? []).Select(o => (INamedSignal)o).Append(Selector).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<INamedSignal>()).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
@@ -44,12 +44,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     public override Dimension Dimension => caseExpressions.Append(DefaultExpression).FirstOrDefault(c => c is not null)?.Dimension ?? new Dimension();
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to VHDL");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to VHDL");
 
@@ -128,7 +124,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             return true;
 
         // Combine non-null dimensions of individual expressions
-        IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Where(c => c?.Dimension is not null).Select(c => c?.Dimension)!;
+        IEnumerable<DefiniteDimension> dimensions = caseExpressions.Append(DefaultExpression).Select(c => c?.Dimension).OfType<DefiniteDimension>();
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(dimensions))
             exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");
@@ -201,16 +197,19 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal must be compatible with this behavior");
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Case behavior must be valid to convert to Spice circuit");
         if (!IsComplete())
             throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
-
         return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
+    }
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
+    {
+        if (!IsComplete())
+            throw new IncompleteException("Case behavior must be complete to get simulation rule");
+        return new(outputSignal, (state) => GetOutputValue(state, outputSignal.Subcircuit));
     }
 
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)
@@ -269,5 +268,27 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             LogicBehavior behavior = new(new LogicExpression(new Or<ISignal>(selectedExpressions)));
             yield return (outputSignalSingleNodes[dim], $"{uniqueId}_{idCounter++}", behavior);
         }
+    }
+
+    /// <summary>
+    /// Get output value given simulation state and subcircuit context
+    /// </summary>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="context">Subcircuit in which this expression exists</param>
+    /// <returns></returns>
+    private int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        int lastIndex = state.CurrentTimeStepIndex - 1;
+        if (lastIndex < 0)
+            return 0;
+
+        // Get selector value as int
+        SignalReference selectorReference = context.GetChildSignalReference(Selector);
+        int lastSelectorValue = state.GetSignalValues(selectorReference)[lastIndex];
+
+        // If case expression is filled in for that, return that value
+        // Otherwise, use default expression
+        LogicExpression expression = caseExpressions[lastSelectorValue] ?? DefaultExpression!;
+        return expression.GetOutputValue(state, context);
     }
 }

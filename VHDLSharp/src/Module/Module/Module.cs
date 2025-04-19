@@ -7,6 +7,7 @@ using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -381,6 +382,30 @@ public class Module : IModule, IValidityManagedEntity
 
         circuits.Add(new(additionalEntities));
         return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules() => GetSimulationRules(new(this, []));
+
+    /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit)
+    {
+        if (!ConsiderValid)
+            throw new InvalidException("Module is invalid");
+        if (!IsComplete())
+            throw new IncompleteException("Module not yet complete");
+        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid())
+            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule");
+        if (subcircuit.FinalModule != this)
+            throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
+
+        // Behaviors
+        foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
+            yield return behavior.GetSimulationRule(subcircuit.GetChildSignalReference(signal));
+
+        // Instantiations
+        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
+            yield return rule;
     }
 
     /// <summary>

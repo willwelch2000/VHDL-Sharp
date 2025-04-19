@@ -1,5 +1,6 @@
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
 
@@ -9,6 +10,7 @@ public class VectorNodeTests
     [TestMethod]
     public void BasicTest()
     {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
         Module module1 = new("m1");
         Vector v1 = module1.GenerateVector("v1", 4);
         VectorNode node0 = v1.ToSingleNodeSignals.First();
@@ -27,6 +29,15 @@ public class VectorNodeTests
         Assert.AreEqual("v1_0", node0.GetSpiceName());
         Assert.AreEqual("v1[0]", node0.ToLogicString());
         Assert.AreEqual("signal v1_0\t: std_logic", node0.GetVhdlDeclaration());
+
+        Module module2 = new("m2");
+        Vector v2 = module2.GenerateVector("v2", 4);
+        VectorNode v2Node = v2[2];
+        PortMapping mapping = new(module2, module1);
+        Assert.IsFalse(v2Node.IsPartOfPortMapping(mapping, out _));
+        mapping[new Port(v2, PortDirection.Input)] = v1;
+        Assert.IsTrue(v2Node.IsPartOfPortMapping(mapping, out INamedSignal? equivalentSignal));
+        Assert.AreEqual(equivalentSignal, v1[2]);
     }
 
     [TestMethod]

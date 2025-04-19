@@ -2,6 +2,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
 
@@ -11,6 +12,7 @@ public class SignalTests
     [TestMethod]
     public void BasicTest()
     {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
         Module module1 = new("m1");
         Signal s1 = module1.GenerateSignal("s1");
 
@@ -32,6 +34,14 @@ public class SignalTests
 
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => s1[1]);
         Assert.AreEqual(s1, s1[0]);
+
+        Module module2 = new("m2");
+        Signal s2 = module2.GenerateSignal("s2");
+        PortMapping mapping = new(module2, module1);
+        Assert.IsFalse(s2.IsPartOfPortMapping(mapping, out _));
+        mapping[new Port(s2, PortDirection.Input)] = s1;
+        Assert.IsTrue(s2.IsPartOfPortMapping(mapping, out INamedSignal? equivalentSignal));
+        Assert.AreEqual(equivalentSignal, s1);
     }
 
     [TestMethod]

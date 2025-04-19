@@ -1,10 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using SpiceSharp;
-using SpiceSharp.Simulations;
-using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
-using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Simulations;
@@ -12,23 +8,24 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Class representing a simulation setup
 /// </summary>
-public class SimulationSetup : IValidityManagedEntity
+public abstract class Simulation : ISimulation, IValidityManagedEntity
 {
     private readonly ValidityManager manager;
 
     private readonly ObservableCollection<object> childEntities;
 
-    private EventHandler? updated;
+    /// <summary>
+    /// Event to be called when the object is updated
+    /// </summary>
+    protected EventHandler? updated;
 
     private double length = 1e-3;
-
-    private double stepSize = 1e-6;
 
     /// <summary>
     /// Create simulation setup given module to simulate
     /// </summary>
     /// <param name="module">Module that is simulated</param>
-    public SimulationSetup(IModule module)
+    public Simulation(IModule module)
     {
         StimulusMapping = new(module);
         Module = module;
@@ -39,6 +36,11 @@ public class SimulationSetup : IValidityManagedEntity
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
+
+    /// <summary>
+    /// Validity manager for this simulation
+    /// </summary>
+    protected ValidityManager ValidityManager => manager;
 
     /// <summary>
     /// Event called when a property of this setup is changed that could affect other objects
@@ -53,20 +55,18 @@ public class SimulationSetup : IValidityManagedEntity
         remove => updated -= value;
     }
 
-    /// <summary>
-    /// Mapping of module's ports to stimuli
-    /// </summary>
+    /// <inheritdoc/>
     public StimulusMapping StimulusMapping { get; }
 
-    /// <summary>
-    /// Module that has stimuli applied
-    /// </summary>
+    /// <inheritdoc/>
     public IModule Module { get; }
 
     /// <summary>
     /// List of signals to receive output for
     /// </summary>
     public ObservableCollection<SignalReference> SignalsToMonitor { get; }
+
+    ICollection<SignalReference> ISimulation.SignalsToMonitor => SignalsToMonitor;
 
     /// <summary>
     /// How long the simulation should be
@@ -82,19 +82,6 @@ public class SimulationSetup : IValidityManagedEntity
     }
 
     /// <summary>
-    /// Time between steps
-    /// </summary>
-    public double StepSize
-    {
-        get => stepSize;
-        set
-        {
-            updated?.Invoke(this, EventArgs.Empty);
-            stepSize = value;
-        }
-    }
-
-    /// <summary>
     /// Assign a stimulus set to a port
     /// </summary>
     /// <param name="port"></param>
@@ -106,48 +93,21 @@ public class SimulationSetup : IValidityManagedEntity
     /// </summary>
     public bool IsComplete() => StimulusMapping.IsComplete();
 
-    /// <summary>
-    /// Get Spice# Circuit representation of setup
-    /// </summary>
-    /// <returns></returns>
-    public SpiceCircuit GetSpice()
+    /// <inheritdoc/>
+    public IEnumerable<ISimulationResult> Simulate()
     {
         if (!manager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
+            throw new Exception("Simulation setup must be valid to simulate");
         if (!IsComplete())
-            throw new IncompleteException("Simulation setup must be complete to convert to circuit");
-
-        SpiceCircuit circuit = Module.GetSpice();
-
-        // Connect stimuli to ports
-        List<SpiceCircuit> additionalCircuits = [];
-        int i = 0;
-        foreach ((IPort port, IStimulusSet stimulus) in StimulusMapping)
-            additionalCircuits.Add(stimulus.GetSpice(port.Signal, i++.ToString()));
-
-        // Combine module circuit with additional entities
-        return SpiceCircuit.Combine([circuit, .. additionalCircuits]);
+            throw new Exception("Simulation setup must be complete to simulate");
+        return SimulateWithoutCheck();
     }
 
-    /// <inheritdoc/>
-    public IEnumerable<SimulationResult> Simulate()
-    {
-        Circuit circuit = GetSpice().AsCircuit();
-        
-        var tran = new Transient("Tran 1", StepSize, Length);
-
-        // Create all SimulationResult objects
-        List<SimulationResult> results = [];
-        foreach (SignalReference signalReference in SignalsToMonitor)
-            results.Add(new SimulationResult(signalReference, tran));
-
-        // At each timestep, have the SimulationResult objects add the current x-y value
-        foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
-            foreach (SimulationResult result in results)
-                result.AddCurrentTimeStepValue();
-
-        return results;
-    }
+    /// <summary>
+    /// Simulate module assuming validity and completion checks are already done
+    /// </summary>
+    /// <returns></returns>
+    protected abstract IEnumerable<ISimulationResult> SimulateWithoutCheck();
 
     private void SignalsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {

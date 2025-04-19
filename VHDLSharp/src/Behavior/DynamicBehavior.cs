@@ -9,6 +9,7 @@ using VHDLSharp.Exceptions;
 using VHDLSharp.Validation;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Behaviors;
 
@@ -34,18 +35,14 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).Where(s => s is INamedSignal).Select(s => (INamedSignal)s))).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).OfType<INamedSignal>())).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Dynamic behavior must be valid to convert to VHDL");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
         
@@ -85,7 +82,13 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
     {
         throw new NotImplementedException();
     }

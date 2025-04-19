@@ -280,7 +280,7 @@ public class ValidityManager<T> : ValidityManager where T : notnull
     private readonly ObservableCollection<T> childrenEntitiesAsT;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IValidityManagedEntity> ChildrenEntities => childrenEntitiesAsT.Where(c => c is IValidityManagedEntity).Select(c => (IValidityManagedEntity)c);
+    protected override IEnumerable<IValidityManagedEntity> ChildrenEntities => childrenEntitiesAsT.OfType<IValidityManagedEntity>();
 
     /// <summary>
     /// Constructor given main entity, children, and entities to observe.
