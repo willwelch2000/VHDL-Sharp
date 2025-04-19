@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Modules;
 
 namespace VHDLSharp.Signals;
@@ -31,6 +32,7 @@ public interface INamedSignal : ISignal
     /// <summary>
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1. 
     /// If it is dimension 1, then return itself
+    /// TODO should this be made into a list because it is assumed to be ordered consistently?
     /// </summary>
     public new IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 
@@ -50,4 +52,13 @@ public interface INamedSignal : ISignal
     public new INamedSignal? ParentSignal { get; }
 
     ISignal? ISignal.ParentSignal => ParentSignal;
+
+    /// <summary>
+    /// Tests if this signal is part of a port in a port mapping, since it can't be directly keyed. 
+    /// For example, if this is a vector node in a vector that is a port. 
+    /// </summary>
+    /// <param name="mapping">Port mapping to look in</param>
+    /// <param name="equivalentSignal">The equivalent signal that this is mapped to</param>
+    /// <returns></returns>
+    public bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal);
 }

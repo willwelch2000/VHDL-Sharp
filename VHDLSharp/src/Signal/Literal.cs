@@ -8,7 +8,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Literal value that can be used in expressions
 /// </summary>
-public class Literal : ISignal
+public class Literal : ISignalWithKnownValue
 {
     private readonly LiteralNode[] bits;
 

@@ -28,6 +28,8 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         manager = new ValidityManager<object>(this, [topLevelModule, .. path]);
         // Call updated to check after construction
         updated?.Invoke(this, EventArgs.Empty);
+        if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
+            throw exception;
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
@@ -118,7 +120,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public SignalReference GetChildSignalReference(ISingleNodeNamedSignal signal) => new(this, signal);
+    public SignalReference GetChildSignalReference(INamedSignal signal) => new(this, signal);
 
     /// <summary>
     /// Try to get child signal reference given signal name
@@ -129,7 +131,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public bool TryGetChildSignalReference(string name, out SignalReference? reference)
     {
         // Try to find signal
-        ISingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
+        INamedSignal? signal = FinalModule.NamedSignals.FirstOrDefault(s => s.Name == name);
         if (signal is not null)
         {
             reference = new SignalReference(this, signal);

@@ -5,6 +5,8 @@ using VHDLSharp.Validation;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Simulations;
+using VHDLSharp.Exceptions;
 
 namespace VHDLSharp.Behaviors;
 
@@ -34,11 +36,6 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// Get all of the named input signals used in this behavior
     /// </summary>
     public abstract IEnumerable<INamedSignal> NamedInputSignals { get; }
-
-    /// <summary>
-    /// Get VHDL representation given the assigned output signal
-    /// </summary>
-    public abstract string GetVhdlStatement(INamedSignal outputSignal);
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object
@@ -82,9 +79,61 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager => validityManager;
+
+    /// <inheritdoc/>
+    public string GetVhdlStatement(INamedSignal outputSignal)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Behavior must be valid to convert to VHDL");
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+        return GetVhdlStatementWithoutCheck(outputSignal);
+    }
     
     /// <inheritdoc/>
-    public abstract SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId);
+    public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Behavior must be valid to convert to Spice circuit");
+        if (!IsCompatible(outputSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+        return GetSpiceWithoutCheck(outputSignal, uniqueId);
+    }
+    
+    /// <inheritdoc/>
+    public SimulationRule GetSimulationRule(SignalReference outputSignal)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
+            throw new InvalidException("Output signal must be valid to use to get simulation rule");
+        if (!IsCompatible(outputSignal.Signal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
+        return GetSimulationRuleWithoutCheck(outputSignal);
+    }
+
+    /// <summary>
+    /// Get VHDL representation given the assigned output signal without checking validity. 
+    /// The validity check is managed by the base class
+    /// </summary>
+    protected abstract string GetVhdlStatementWithoutCheck(INamedSignal outputSignal);
+    
+    /// <summary>
+    /// Get Spice circuit object without checking validity. 
+    /// The validity check is managed by the base class
+    /// </summary>
+    /// <param name="outputSignal">Output signal for this behavior</param>
+    /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
+    /// <returns></returns>
+    protected abstract SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId);
+    
+    /// <summary>
+    /// Get simulation rule for a specific signal without checking validity. 
+    /// The validity check is managed by the base class
+    /// </summary>
+    /// <param name="outputSignal">Specific output signal for this behavior</param>
+    /// <returns></returns>
+    protected abstract SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal);
     
     /// <summary>
     /// Call this method to raise the <see cref="Updated"/> event

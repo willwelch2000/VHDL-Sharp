@@ -50,4 +50,28 @@ public class MultiDimensionalStimulus : IStimulusSet
 
         return SpiceCircuit.Combine(circuits);
     }
+
+    /// <inheritdoc/>
+    public virtual SimulationRule GetSimulationRule(SignalReference signal)
+    {
+        if (!signal.Signal.Dimension.Compatible(Dimension))
+            throw new Exception("Signal must be compatible with stimulus dimension");
+
+        // Pair each stimulus with corresponding signal
+        List<SimulationRule> rules = [];
+        SubcircuitReference subcircuit = signal.Subcircuit;
+        foreach ((int i, SignalReference singleNodeSignal) in signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference).Index())
+            rules.Add(Stimuli[i].GetSimulationRule(singleNodeSignal));
+
+        return new(signal, state => GetValue(rules, state))
+        {
+            IndependentEventTimeGenerator = simulationLength => GetIndependentEventTimes(rules, simulationLength),
+        };
+    }
+
+    private static int GetValue(List<SimulationRule> rules, RuleBasedSimulationState state) =>
+        rules.Select((r, i) => (1<<i) * r.OutputValueCalculation(state)).Sum();
+
+    private static IEnumerable<double> GetIndependentEventTimes(List<SimulationRule> rules, double simulationLength) =>
+        rules.SelectMany(r => r.IndependentEventTimeGenerator(simulationLength));
 }

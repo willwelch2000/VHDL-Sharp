@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
@@ -81,6 +82,19 @@ public interface IModule
     /// <param name="existingModuleLinkedSubcircuits">Set of all module-linked subcircuit definitions that already exist, so that this can point to one of those if applicable instead of making a new one</param>
     /// <returns></returns>
     public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
+
+    /// <summary>
+    /// Get simulation rules, using this module as the top level
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules();
+
+    /// <summary>
+    /// Get simulation rules, given a subcircuit reference that has this as the bottom level
+    /// </summary>
+    /// <param name="subcircuit"></param>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit);
 
     /// <summary>
     /// Test if the module contains a signal

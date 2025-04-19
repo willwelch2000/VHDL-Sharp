@@ -29,6 +29,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         manager = new ValidityManager<SubcircuitReference>(this, [subcircuitReference]);
         // Call updated to check after construction
         updated?.Invoke(this, EventArgs.Empty);
+        if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
+            throw exception;
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
@@ -96,8 +98,46 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     /// </summary>
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
+        if (!manager.IsValid())
+            throw new InvalidException("Signal reference is invalid");
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
+    }
+
+    /// <summary>
+    /// If this signal reference is another name for a higher-level signal (connected via module port),
+    /// get that signal reference instead
+    /// </summary>
+    /// <returns></returns>
+    public SignalReference Ascend()
+    {
+        // No higher-level module
+        if (Path.Count == 0)
+            return this;
+            
+        IInstantiation lastInstantiation = Path.Last();
+        SubcircuitReference ascendedSubcircuit = new(TopLevelModule, Path.SkipLast(1));
+
+        // Test if this signal is part of the port mapping of the last instance
+        // If so, go to that connection and continue to ascend from there
+        if (Signal.IsPartOfPortMapping(lastInstantiation.PortMapping, out INamedSignal? connection))
+        {
+            SignalReference singleAscend = new(ascendedSubcircuit, connection);
+            return singleAscend.Ascend();
+        }
+        
+        // This isn't port
+        return this;
+    }
+
+    /// <summary>
+    /// Get this reference as all of its single-node signal references
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SignalReference> GetSingleNodeReferences()
+    {
+        foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
+            yield return Subcircuit.GetChildSignalReference(singleNodeSignal);
     }
 
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
@@ -105,7 +145,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         exception = null;
         // Problem if last module doesn't contain signal
         IModule lastModule = Subcircuit.FinalModule;
-        if (!lastModule.ContainsSignal(Signal))
+        if (Signal.ParentModule != lastModule)
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
     }

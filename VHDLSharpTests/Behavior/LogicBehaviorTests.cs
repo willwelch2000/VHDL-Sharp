@@ -4,6 +4,7 @@ using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharpTests;
@@ -99,6 +100,28 @@ public class LogicBehaviorTests
         // Check simple stuff
         Assert.AreEqual(1, behavior.Dimension.Value);
         Assert.AreEqual(module1, behavior.ParentModule);
+
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(module1, []);
+        SignalReference s1Ref = new(subcircuitRef, s1);
+        SignalReference s2Ref = new(subcircuitRef, s2);
+        SignalReference s3Ref = new(subcircuitRef, s3);
+        SimulationRule simRule = behavior.GetSimulationRule(s3Ref);
+        Assert.AreEqual(s3Ref, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        for (int i = 0; i < 4; i++)
+        {
+            int s1Val = (i & 1) > 0 ? 1 : 0;
+            int s2Val = (i & 2) > 0 ? 1 : 0;
+            RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()
+            {
+                {s1Ref, [s1Val]},
+                {s2Ref, [s2Val]},
+            }, [0, 1], 1);
+            int value = simRule.OutputValueCalculation(state);
+            int expectedValue = s1Val & s2Val;
+            Assert.AreEqual(expectedValue, value);
+        }
     }
 
     [TestMethod]
@@ -164,6 +187,27 @@ public class LogicBehaviorTests
         Rn0x2_connect n0_0x2_andout v3_2 0.001
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
+
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(module1, []);
+        SignalReference v1Ref = new(subcircuitRef, v1);
+        SignalReference v2Ref = new(subcircuitRef, v2);
+        SignalReference v3Ref = new(subcircuitRef, v3);
+        SimulationRule simRule = behavior.GetSimulationRule(v3Ref);
+        Assert.AreEqual(v3Ref, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        for (int v1Val = 0; v1Val < 8; v1Val++)
+            for (int v2Val = 0; v2Val < 8; v2Val++)
+            {
+                RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()
+                {
+                    {v1Ref, [v1Val]},
+                    {v2Ref, [v2Val]},
+                }, [0, 1], 1);
+                int value = simRule.OutputValueCalculation(state);
+                int expectedValue = v1Val & v2Val;
+                Assert.AreEqual(expectedValue, value);
+            }
     }
 
     [TestMethod]
@@ -203,5 +247,23 @@ public class LogicBehaviorTests
         Rn0x2_connect n0_0x2_andout output_2 0.001
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
+
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(m1, []);
+        SignalReference inputRef = new(subcircuitRef, input);
+        SignalReference outputRef = new(subcircuitRef, output);
+        SimulationRule simRule = output.Behavior!.GetSimulationRule(outputRef);
+        Assert.AreEqual(outputRef, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        for (int inputVal = 0; inputVal < 8; inputVal++)
+        {
+            RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()
+            {
+                {inputRef, [inputVal]},
+            }, [0, 1], 1);
+            int value = simRule.OutputValueCalculation(state);
+            int expectedValue = inputVal & 5;
+            Assert.AreEqual(expectedValue, value);
+        }
     }
 }

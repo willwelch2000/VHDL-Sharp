@@ -1,11 +1,10 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
-using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -46,23 +45,14 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     public override Dimension Dimension { get; }
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Value behavior must be valid to convert to VHDL");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return$"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
     }
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Value behavior must be valid to convert to Spice# entities");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-
         int i = 0;
         // Loop through single-node signals and apply corresponding bit of Value
         List<IEntity> entities = [];
@@ -70,4 +60,8 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
             entities.Add(new VoltageSource(SpiceUtil.GetSpiceName(uniqueId, i, "value"), singleNodeSignal.GetSpiceName(), "0", (Value & 1<<i++) > 0 ? SpiceUtil.VDD : 0));
         return new SpiceCircuit(entities); // No common entities needed
     }
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal) =>
+        new(outputSignal, (state) => Value);
 }

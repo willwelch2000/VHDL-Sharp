@@ -4,6 +4,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 
@@ -91,6 +92,40 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     }
 
     /// <summary>
+    /// Get output value given simulation state and subcircuit context
+    /// </summary>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="context">Subcircuit in which this expression exists</param>
+    /// <returns></returns>
+    public int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        int lastIndex = state.CurrentTimeStepIndex - 1;
+        if (lastIndex < 0)
+            return 0;
+
+        return InnerExpression switch
+        {
+            LogicExpression logicExpression => logicExpression.GetOutputValue(state, context),
+            ISignal signal => signal switch
+            {
+                INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex],
+                ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
+                _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
+            },
+            And<ISignal> andExp => andExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a & b),
+            Or<ISignal> orExp => orExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a | b),
+            Not<ISignal> {FirstBaseObject: not null} notExp => 1 << notExp.FirstBaseObject!.Dimension.NonNullValue - 1 - new LogicExpression(notExp.Input).GetOutputValue(state, context),
+            _ => throw new Exception("Expression should be made of signals and AND/OR/NOT combinations")
+        };
+    }
+
+    /// <summary>
+    /// Check if a given output signal is compatible with this
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    public bool IsCompatible(INamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
+
+    /// <summary>
     /// Generate an And with this expression and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
     /// <param name="other"></param>
@@ -124,6 +159,16 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public LogicExpression Not() => new(new Not<ISignal>(InnerExpression));
 
+    /// <summary>
+    /// Convert a <see cref="ILogicallyCombinable{ISignal}"/> to a <see cref="LogicExpression"/>
+    /// If the given argument is already of the correct type, it just returns that
+    /// Otherwise, it creates a new <see cref="LogicExpression"/> that links to it
+    /// </summary>
+    /// <param name="expression">Input expression</param>
+    /// <returns></returns>
+    public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
+        => expression is LogicExpression logicExpression ? logicExpression : new(expression);
+
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
@@ -145,20 +190,4 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             return signalVhdlObjectOptions!;
         }
     }
-
-    /// <summary>
-    /// Convert a <see cref="ILogicallyCombinable{ISignal}"/> to a <see cref="LogicExpression"/>
-    /// If the given argument is already of the correct type, it just returns that
-    /// Otherwise, it creates a new <see cref="LogicExpression"/> that links to it
-    /// </summary>
-    /// <param name="expression">Input expression</param>
-    /// <returns></returns>
-    public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
-        => expression is LogicExpression logicExpression ? logicExpression : new(expression);
-
-    /// <summary>
-    /// Check if a given output signal is compatible with this
-    /// </summary>
-    /// <param name="outputSignal"></param>
-    public bool IsCompatible(INamedSignal outputSignal) => InnerExpression.CanCombine(outputSignal);
 }

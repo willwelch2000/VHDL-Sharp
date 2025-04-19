@@ -54,7 +54,7 @@ public static class Program
         module1.SignalBehaviors[s3] = new LogicBehavior(new And<ISignal>(s1, s2));
         // module1.SignalBehaviors[s3] = new LogicBehavior(new Not<ISignal>(s1));
 
-        SimulationSetup setup = new(module1)
+        SpiceBasedSimulation setup = new(module1)
         {
             Length = 1e-3,
             StepSize = 1e-4,
@@ -73,7 +73,7 @@ public static class Program
         setup.AssignStimulus(p1, s1Stimulus);
         setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
         Console.WriteLine(setup.GetSpice());
-        SimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult[] results = [.. setup.Simulate()];
 
         // Plot data
         ScottPlot.Plot plot = new();
@@ -100,7 +100,7 @@ public static class Program
         behavior.SetDefault(new Literal(1, 3));
         module1.SignalBehaviors[output] = behavior;
         
-        SimulationSetup setup = new(module1)
+        SpiceBasedSimulation setup = new(module1)
         {
             Length = 4e-3,
             StepSize = 1e-4,
@@ -113,9 +113,9 @@ public static class Program
         SubcircuitReference subcircuit = new(module1, []);
         setup.SignalsToMonitor.Add(new(subcircuit, output));
         setup.SignalsToMonitor.Add(new(subcircuit, selector));
-        SimulationResult[] results = [.. setup.Simulate()];
-        SimulationResult outputResults = results[0];
-        SimulationResult selectorResults = results[1];
+        ISimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult outputResults = results[0];
+        ISimulationResult selectorResults = results[1];
         ScottPlot.Plot plot = new();
         // plot.Add.Scatter(selectorResults.TimeSteps, selectorResults.Values, ScottPlot.Colors.Blue);
         plot.Add.Scatter(outputResults.TimeSteps, outputResults.Values, ScottPlot.Colors.Red);
@@ -209,7 +209,7 @@ public static class Program
         m1.AddNewPort(output, PortDirection.Output);
         output.AssignBehavior(input.And(new Literal(5, 3)));
 
-        SimulationSetup setup = new(m1)
+        SpiceBasedSimulation setup = new(m1)
         {
             Length = 1e-3,
             StepSize = 1e-5,
@@ -225,7 +225,7 @@ public static class Program
 
         MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
         setup.AssignStimulus(inputPort, stimulus);
-        SimulationResult[] results = [.. setup.Simulate()];
+        ISimulationResult[] results = [.. setup.Simulate()];
 
         // Plot data
         ScottPlot.Plot plot = new();

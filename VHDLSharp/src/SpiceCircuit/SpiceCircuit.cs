@@ -82,30 +82,6 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         return sb.ToString().TrimEnd(); // Skip last new line
     }
 
-    // // Modifies circuit context's subcircuit definitions
-    // private SpiceSubcircuit GetSubcircuitAndAdd(ISubcircuitDefinition subcircuitDef, CircuitContext circuitContext)
-    // {
-    //     // Don't have to check pre-existing context--it shouldn't have made it here if it's been declared already
-
-    //     // Check dictionary for subcircuit names
-    //     if (SubcircuitLinks.TryGetValue(subcircuitDef, out SpiceSubcircuit? subcircuit))
-    //     {
-    //         circuitContext.SubcircuitDefinitions.Add(subcircuitDef, subcircuit);
-    //         return subcircuit;
-    //     }
-
-    //     // Otherwise, generate a name that is in none of the dictionaries and add it to the context
-    //     int i = 0;
-    //     string name;
-    //     do
-    //     {
-    //         name = $"subcircuit{i++}";
-    //         subcircuit = new(name, subcircuitDef.Pins, subcircuitDef.Entities);
-    //     }
-    //     while (!SubcircuitLinks.Select(kvp => kvp.Value.Name).Contains(name) && !circuitContext.SubcircuitDefinitions.TryAdd(subcircuitDef, subcircuit));
-    //     return subcircuit;
-    // }
-
     /// <summary>
     /// Convert to Spice subcircuit object given name and pins
     /// </summary>
@@ -134,7 +110,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         Queue<ISubcircuitDefinition> definitions = [];
 
         // Subcircuits directly used
-        foreach (Subcircuit instance in CircuitElements.Where(e => e is Subcircuit).Cast<Subcircuit>())
+        foreach (Subcircuit instance in CircuitElements.OfType<Subcircuit>())
             if (alreadyFound.Add(instance.Parameters.Definition))
                 definitions.Enqueue(instance.Parameters.Definition);
 
@@ -144,7 +120,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         // Recurse
         while (definitions.TryDequeue(out ISubcircuitDefinition? subcircuitDef))
         {
-            foreach (Subcircuit instance in subcircuitDef.Entities.Where(e => e is Subcircuit).Cast<Subcircuit>())
+            foreach (Subcircuit instance in subcircuitDef.Entities.OfType<Subcircuit>())
                 if (alreadyFound.Add(instance.Parameters.Definition))
                     definitions.Enqueue(instance.Parameters.Definition);
         }

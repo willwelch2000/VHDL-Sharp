@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
@@ -167,5 +168,13 @@ public abstract class NamedSignal : INamedSignal
     public void RemoveBehavior()
     {
         ParentModule.SignalBehaviors.Remove(this);
+    }
+
+    /// <inheritdoc/>
+    public virtual bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal)
+    {
+        IPort? port = mapping.Keys.FirstOrDefault(p => p.Signal == this);
+        equivalentSignal = port is null ? null : mapping[port];
+        return equivalentSignal is not null;
     }
 }

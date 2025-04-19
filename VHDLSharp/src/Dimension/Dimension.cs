@@ -109,16 +109,12 @@ public class Dimension(int? value, int? minimum, int? maximum) : IEquatable<Dime
             return new(dimension.Value ?? 0);
 
         // Minimum
-        IEnumerable<int?> minimums = dimensions.Select(d => d.Minimum).Where(m => m is not null);
-        int? minimum = null;
-        if (minimums.Any())
-            minimum = minimums.Max();
+        IEnumerable<int> minimums = dimensions.Select(d => d.Minimum).OfType<int>();
+        int? minimum = minimums.Any() ? minimums.Max() : null;
 
         // Maximum
-        IEnumerable<int?> maximums = dimensions.Select(d => d.Maximum).Where(m => m is not null);
-        int? maximum = null;
-        if (maximums.Any())
-            maximum = maximums.Max();
+        IEnumerable<int> maximums = dimensions.Select(d => d.Maximum).OfType<int>();
+        int? maximum = maximums.Any() ? maximums.Min() : null;
 
         return new(minimum, maximum);
     }

@@ -1,9 +1,8 @@
 using VHDLSharp.Dimensions;
-using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
-using VHDLSharp.Validation;
 
 namespace VHDLSharp.Behaviors;
 
@@ -22,7 +21,7 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     /// <summary>
     /// The named input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.Where(o => o is INamedSignal).Select(o => (INamedSignal)o).Distinct();
+    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.OfType<INamedSignal>().Distinct();
 
     /// <summary>
     /// Works by getting dimension from first internal signal--they should all have the same dimension
@@ -31,29 +30,14 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     public override Dimension Dimension => LogicExpression.Dimension;
 
     /// <inheritdoc/>
-    public override SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
-    {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
-            
-        // Don't call IsCompatible here since it does it in LogicExpression
-        try
-        {
-            return LogicExpression.GetSpice(outputSignal, uniqueId);
-        }
-        catch (IncompatibleSignalException)
-        {
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        }
-    }
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId) => 
+        LogicExpression.GetSpice(outputSignal, uniqueId);
 
     /// <inheritdoc/>
-    public override string GetVhdlStatement(INamedSignal outputSignal)
-    {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to VHDL");
-        if (!IsCompatible(outputSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        return $"{outputSignal} <= {LogicExpression.GetVhdl()};";
-    }
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal) =>
+        $"{outputSignal} <= {LogicExpression.GetVhdl()};";
+
+    /// <inheritdoc/>
+    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal) =>
+        new(outputSignal, (state) => LogicExpression.GetOutputValue(state, outputSignal.Subcircuit));
 }
