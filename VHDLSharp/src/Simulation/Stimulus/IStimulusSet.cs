@@ -2,6 +2,7 @@ using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;
+using VHDLSharp.SpiceCircuits;
 
 namespace VHDLSharp.Simulations;
 

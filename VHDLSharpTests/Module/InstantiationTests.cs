@@ -1,6 +1,7 @@
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
