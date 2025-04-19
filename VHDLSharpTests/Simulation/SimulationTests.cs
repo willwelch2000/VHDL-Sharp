@@ -27,32 +27,42 @@ public class SimulationTests
         module1.AddNewPort(s3, PortDirection.Output);
         module1.SignalBehaviors[s3] = new LogicBehavior(s1.And(s2));
         
-        SpiceBasedSimulation setup = new(module1)
+        Simulation[] setups = [new SpiceBasedSimulation(module1)
         {
             Length = 1e-3,
             StepSize = 1e-4,
-        };
-        SubcircuitReference subcircuit = new(module1, []);
-        setup.SignalsToMonitor.Add(new(subcircuit, s1));
-        setup.SignalsToMonitor.Add(new(subcircuit, s2));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3));
-        
-        TimeDefinedStimulus s1Stimulus = new();
-        s1Stimulus.Points[0.1e-3] = false;
-        s1Stimulus.Points[0.51e-3] = true;
-        setup.AssignStimulus(p1, s1Stimulus);
-        setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
-        ISimulationResult[] results = [.. setup.Simulate()];
+        }, new RuleBasedSimulation(module1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-4}) {Length = 1e-3}];
+        foreach (Simulation setup in setups)
+        {
+            SubcircuitReference subcircuit = new(module1, []);
+            setup.SignalsToMonitor.Add(new(subcircuit, s1));
+            setup.SignalsToMonitor.Add(new(subcircuit, s2));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3));
+            
+            TimeDefinedStimulus s1Stimulus = new();
+            s1Stimulus.Points[0.1e-3] = false;
+            s1Stimulus.Points[0.51e-3] = true;
+            setup.AssignStimulus(p1, s1Stimulus);
+            setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
+            ISimulationResult[] results = [.. setup.Simulate()];
 
-        // Assert that all results of s3 match s1 AND s2
-        // Assumes that time values are the same for all result sets
-        if (!(results[0].TimeSteps.SequenceEqual(results[1].TimeSteps) && results[0].TimeSteps.SequenceEqual(results[2].TimeSteps)))
-            return;
-        int[] s1Values = results[0].Values;
-        int[] s2Values = results[1].Values;
-        int[] s3Values = results[2].Values;
-        for (int i = 0; i < s1Values.Length; i++)
-            Assert.AreEqual(s1Values[i] * s2Values[i], s3Values[i]); // ANDing = multiplication
+            // Assert that all results of s3 match s1 AND s2
+            // Assumes that time values are the same for all result sets
+            if (!(results[0].TimeSteps.SequenceEqual(results[1].TimeSteps) && results[0].TimeSteps.SequenceEqual(results[2].TimeSteps)))
+                throw new Exception("Expected timesteps to be the same for all results");
+            int[] s1Values = results[0].Values;
+            int[] s2Values = results[1].Values;
+            int[] s3Values = results[2].Values;
+            double[] timeSteps = results[0].TimeSteps;
+            double[] transitionPoints = [0, 0.25e-3, 0.5e-3, 0.75e-3, 1e-3];
+            for (int i = 0; i < s1Values.Length; i++)
+            {
+                // Skip points around time buffer
+                if (transitionPoints.Select(p => Math.Abs(timeSteps[i] - p)).Min() < timeBuffer)
+                    continue;
+                Assert.AreEqual(s1Values[i] * s2Values[i], s3Values[i]); // ANDing = multiplication
+            }
+        }
     }
 
     [TestMethod]
@@ -71,46 +81,49 @@ public class SimulationTests
         module1.SignalBehaviors[s2] = new ValueBehavior(1);
         module1.SignalBehaviors[s3] = new ValueBehavior(10);
         
-        SpiceBasedSimulation setup = new(module1)
+        Simulation[] setups = [new SpiceBasedSimulation(module1)
         {
             Length = 1e-3,
             StepSize = 1e-4,
-        };
-        SubcircuitReference subcircuit = new(module1, []);
-        SingleNodeNamedSignal[] s3SingleNodes = [.. s3.ToSingleNodeSignals];
-        setup.SignalsToMonitor.Add(new(subcircuit, s2));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[0]));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[1]));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[2]));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[3]));
-        setup.SignalsToMonitor.Add(new(subcircuit, s3));
-        
-        setup.AssignStimulus(p1, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
-        ISimulationResult[] results = [.. setup.Simulate()];
-
-        // s2 results
-        int[] s2Results = results[0].Values;
-
-        // Results for each bit of s3
-        int[] s3_0 = results[1].Values;
-        int[] s3_1 = results[2].Values;
-        int[] s3_2 = results[3].Values;
-        int[] s3_3 = results[4].Values;
-
-        // Results for s3 overall
-        int[] s3Results = results[5].Values;
-
-        for (int i = 0; i < s2Results.Length; i++)
+        }, new RuleBasedSimulation(module1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-4}) {Length = 1e-3}];
+        foreach (Simulation setup in setups)
         {
-            // Test s2
-            Assert.AreEqual(1, s2Results[i]);
-            // Test s3 bits
-            Assert.AreEqual(0, s3_0[i]);
-            Assert.AreEqual(1, s3_1[i]);
-            Assert.AreEqual(0, s3_2[i]);
-            Assert.AreEqual(1, s3_3[i]);
-            // Test s3 overall
-            Assert.AreEqual(10, s3Results[i]);
+            SubcircuitReference subcircuit = new(module1, []);
+            SingleNodeNamedSignal[] s3SingleNodes = [.. s3.ToSingleNodeSignals];
+            setup.SignalsToMonitor.Add(new(subcircuit, s2));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[0]));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[1]));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[2]));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[3]));
+            setup.SignalsToMonitor.Add(new(subcircuit, s3));
+            
+            setup.AssignStimulus(p1, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
+            ISimulationResult[] results = [.. setup.Simulate()];
+
+            // s2 results
+            int[] s2Results = results[0].Values;
+
+            // Results for each bit of s3
+            int[] s3_0 = results[1].Values;
+            int[] s3_1 = results[2].Values;
+            int[] s3_2 = results[3].Values;
+            int[] s3_3 = results[4].Values;
+
+            // Results for s3 overall
+            int[] s3Results = results[5].Values;
+
+            for (int i = 0; i < s2Results.Length; i++)
+            {
+                // Test s2
+                Assert.AreEqual(1, s2Results[i]);
+                // Test s3 bits
+                Assert.AreEqual(0, s3_0[i]);
+                Assert.AreEqual(1, s3_1[i]);
+                Assert.AreEqual(0, s3_2[i]);
+                Assert.AreEqual(1, s3_3[i]);
+                // Test s3 overall
+                Assert.AreEqual(10, s3Results[i]);
+            }
         }
     }
 
@@ -132,32 +145,38 @@ public class SimulationTests
         behavior.SetDefault(new Literal(1, 3));
         module1.SignalBehaviors[output] = behavior;
         
-        SpiceBasedSimulation setup = new(module1)
+        Simulation[] setups = [new SpiceBasedSimulation(module1)
         {
             Length = 4e-3,
             StepSize = 1e-4,
-        };
-        Stimulus[] selectorStimuli = [
-            new PulseStimulus(1e-3, 1e-3, 2e-3),
-            new PulseStimulus(2e-3, 2e-3, 4e-3),
-        ];
-        setup.AssignStimulus(pSelector, new MultiDimensionalStimulus(selectorStimuli));
-        SubcircuitReference subcircuit = new(module1, []);
-        setup.SignalsToMonitor.Add(new(subcircuit, output));
-        ISimulationResult[] results = [.. setup.Simulate()];
-        ISimulationResult outputResults = results[0];
-        double[] timeSteps = outputResults.TimeSteps;
-        int[] values = outputResults.Values;
-        for (int i = 0; i < outputResults.TimeSteps.Length; i++)
+        }, new RuleBasedSimulation(module1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-4}) {Length = 4e-3}];
+        foreach (Simulation setup in setups)
         {
-            if (timeSteps[i] < 0.0009)
-                Assert.AreEqual(7, values[i]);
-            else if (timeSteps[i] > 0.0011 && timeSteps[i] < 0.0019)
-                Assert.AreEqual(6, values[i]);
-            else if (timeSteps[i] > 0.0021 && timeSteps[i] < 0.0029)
-                Assert.AreEqual(3, values[i]);
-            else if (timeSteps[i] > 0.0031)
-                Assert.AreEqual(1, values[i]);
+            Stimulus[] selectorStimuli = [
+                new PulseStimulus(1e-3, 1e-3, 2e-3),
+                new PulseStimulus(2e-3, 2e-3, 4e-3),
+            ];
+            setup.AssignStimulus(pSelector, new MultiDimensionalStimulus(selectorStimuli));
+            SubcircuitReference subcircuit = new(module1, []);
+            setup.SignalsToMonitor.Add(new(subcircuit, output));
+            ISimulationResult[] results = [.. setup.Simulate()];
+            ISimulationResult outputResults = results[0];
+            double[] timeSteps = outputResults.TimeSteps;
+            int[] values = outputResults.Values;
+            for (int i = 0; i < outputResults.TimeSteps.Length; i++)
+            {
+                int? expectedResult = timeSteps[i] switch
+                {
+                    >      timeBuffer and < 1e-3-timeBuffer => 7,
+                    > 1e-3+timeBuffer and < 2e-3-timeBuffer => 6,
+                    > 2e-3+timeBuffer and < 3e-3-timeBuffer => 3,
+                    > 3e-3+timeBuffer and < 4e-3-timeBuffer => 1,
+                    _ => null,
+                };
+
+                if (expectedResult is not null)
+                    Assert.AreEqual(expectedResult, values[i]);
+            }
         }
     }
 
@@ -171,43 +190,45 @@ public class SimulationTests
         m1.AddNewPort(output, PortDirection.Output);
         output.AssignBehavior(input.And(new Literal(5, 3)));
 
-        SpiceBasedSimulation setup = new(m1)
+        Simulation[] setups = [new SpiceBasedSimulation(m1)
         {
             Length = 1e-3,
             StepSize = 1e-5,
-        };
-        
-        SubcircuitReference subcircuit = new(m1, []);
-        setup.SignalsToMonitor.Add(new(subcircuit, input));
-        setup.SignalsToMonitor.Add(new(subcircuit, output));
-
-        PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
-        PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);
-        PulseStimulus stimulus0 = new(0.125e-3, 0.125e-3, 0.25e-3);
-
-        MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
-        setup.AssignStimulus(inputPort, stimulus);
-        ISimulationResult[] results = [.. setup.Simulate()];
-
-        ISimulationResult outputResult = results[1];
-        for (int i = 0; i < outputResult.TimeSteps.Length; i++)
+        }, new RuleBasedSimulation(m1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-5}) {Length = 1e-3}];
+        foreach (Simulation setup in setups)
         {
-            double time = outputResult.TimeSteps[i];
-            int? expectedResult = time switch
-            {
-                >          timeBuffer and < 0.125e-3-timeBuffer => 0,
-                > 0.125e-3+timeBuffer and < 0.250e-3-timeBuffer => 1,
-                > 0.250e-3+timeBuffer and < 0.375e-3-timeBuffer => 0,
-                > 0.375e-3+timeBuffer and < 0.500e-3-timeBuffer => 1,
-                > 0.500e-3+timeBuffer and < 0.625e-3-timeBuffer => 4,
-                > 0.625e-3+timeBuffer and < 0.750e-3-timeBuffer => 5,
-                > 0.750e-3+timeBuffer and < 0.875e-3-timeBuffer => 4,
-                > 0.875e-3+timeBuffer and < 1.000e-3-timeBuffer => 5,
-                _ => null,
-            };
+            SubcircuitReference subcircuit = new(m1, []);
+            setup.SignalsToMonitor.Add(new(subcircuit, input));
+            setup.SignalsToMonitor.Add(new(subcircuit, output));
 
-            if (expectedResult is not null)
-                Assert.AreEqual(expectedResult, outputResult.Values[i]);
+            PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
+            PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);
+            PulseStimulus stimulus0 = new(0.125e-3, 0.125e-3, 0.25e-3);
+
+            MultiDimensionalStimulus stimulus = new([stimulus0, stimulus1, stimulus2]);
+            setup.AssignStimulus(inputPort, stimulus);
+            ISimulationResult[] results = [.. setup.Simulate()];
+
+            ISimulationResult outputResult = results[1];
+            for (int i = 0; i < outputResult.TimeSteps.Length; i++)
+            {
+                double time = outputResult.TimeSteps[i];
+                int? expectedResult = time switch
+                {
+                    >          timeBuffer and < 0.125e-3-timeBuffer => 0,
+                    > 0.125e-3+timeBuffer and < 0.250e-3-timeBuffer => 1,
+                    > 0.250e-3+timeBuffer and < 0.375e-3-timeBuffer => 0,
+                    > 0.375e-3+timeBuffer and < 0.500e-3-timeBuffer => 1,
+                    > 0.500e-3+timeBuffer and < 0.625e-3-timeBuffer => 4,
+                    > 0.625e-3+timeBuffer and < 0.750e-3-timeBuffer => 5,
+                    > 0.750e-3+timeBuffer and < 0.875e-3-timeBuffer => 4,
+                    > 0.875e-3+timeBuffer and < 1.000e-3-timeBuffer => 5,
+                    _ => null,
+                };
+
+                if (expectedResult is not null)
+                    Assert.AreEqual(expectedResult, outputResult.Values[i]);
+            }
         }
     }
 }
