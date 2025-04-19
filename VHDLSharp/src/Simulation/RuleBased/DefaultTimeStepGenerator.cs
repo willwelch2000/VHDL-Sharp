@@ -44,9 +44,9 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
 
         // Otherwise, return points around the next independent time step
         if (nextIndependentMinusMinStep > state.CurrentTimeStep)
-            yield return nextIndependentMinusMinStep;
+            if (nextIndependentMinusMinStep <= simulationLength)
+                yield return nextIndependentMinusMinStep;
         yield return nextIndependentTimeStep;
-        if(nextIndependentPlusMinStep > simulationLength)
-            yield return nextIndependentPlusMinStep;
+        yield return nextIndependentPlusMinStep;
     }
 }
