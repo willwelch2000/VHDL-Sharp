@@ -38,6 +38,6 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
         $"{outputSignal} <= {LogicExpression.GetVhdl()};";
 
     /// <inheritdoc/>
-    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal) =>
-        new(outputSignal, (state) => LogicExpression.GetOutputValue(state, outputSignal.Subcircuit));
+    protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal) =>
+        LogicExpression.GetOutputValue(state, outputSignal.Subcircuit);
 }

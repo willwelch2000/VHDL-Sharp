@@ -1,6 +1,7 @@
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Modules;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Conditions;
 
@@ -24,6 +25,10 @@ public abstract class Condition : ICondition
 
     /// <inheritdoc/>
     public abstract string ToLogicString(LogicStringOptions options);
+
+    /// <inheritdoc/>
+    // public abstract bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context);
+    public bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => throw new NotImplementedException();
 
     /// <summary>
     /// Get parent module based on named input signals

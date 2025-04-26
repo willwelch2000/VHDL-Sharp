@@ -40,6 +40,9 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     public abstract TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) where TOut : new();
 
     /// <inheritdoc/>
+    public abstract V PerformFunction<V>(Func<T, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not);
+
+    /// <inheritdoc/>
     public bool CanCombine(IEnumerable<ILogicallyCombinable<T>> others)
     {
         T? first = FirstBaseObject;

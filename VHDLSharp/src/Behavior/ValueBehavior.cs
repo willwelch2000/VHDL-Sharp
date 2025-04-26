@@ -62,6 +62,5 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     }
 
     /// <inheritdoc/>
-    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal) =>
-        new(outputSignal, (state) => Value);
+    protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal) => Value;
 }

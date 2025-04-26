@@ -86,8 +86,32 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
+    protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        throw new NotImplementedException();
+        // Check if any rule is satisfied
+        // If so, use the corresponding value
+        // Otherwise, use the previous value for the output signal (0 if first step)
+
+        // If first step, use 0 as value
+        int lastIndex = state.CurrentTimeStepIndex - 1;
+        if (lastIndex < 0)
+            return 0;
+
+        // Check if any condition set is satisfied--if so, use the corresponding value
+        foreach ((ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior) in ConditionMappings)
+            if (EvaluateConditionCombo(Condition, state, outputSignal.Subcircuit))
+                return Behavior.GetOutputValue(state, outputSignal);
+
+        // Otherwise, use the previous value from the state
+        return state.GetSignalValues(outputSignal)[lastIndex];
+    }
+
+    private bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        bool Primary(ICondition condition) => condition.Evaluate(state, context);
+        bool And(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a && b);
+        bool Or(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a || b);
+        bool Not(bool input) => !input;
+        return conditionCombo.PerformFunction(Primary, And, Or, Not);
     }
 }

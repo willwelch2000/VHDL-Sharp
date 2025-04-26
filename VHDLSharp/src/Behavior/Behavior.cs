@@ -109,7 +109,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
             throw new InvalidException("Output signal must be valid to use to get simulation rule");
         if (!IsCompatible(outputSignal.Signal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
-        return GetSimulationRuleWithoutCheck(outputSignal);
+        return new(outputSignal, (state) => GetOutputValueWithoutCheck(state, outputSignal));
     }
 
     /// <summary>
@@ -126,14 +126,23 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <param name="uniqueId">Unique string provided to this behavior so that it can have a unique name</param>
     /// <returns></returns>
     protected abstract SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId);
+
+    /// <inheritdoc/>
+    public int GetOutputValue(RuleBasedSimulationState state, SignalReference outputSignal)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
+        return GetOutputValueWithoutCheck(state, outputSignal);
+    }
     
     /// <summary>
-    /// Get simulation rule for a specific signal without checking validity. 
-    /// The validity check is managed by the base class
+    /// Get output value given simulation state and subcircuit context. 
+    /// Validity check has already been performed when this is called
     /// </summary>
-    /// <param name="outputSignal">Specific output signal for this behavior</param>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="outputSignal">Reference to output signal--subcircuit can be used as context</param>
     /// <returns></returns>
-    protected abstract SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal);
+    protected abstract int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal);
     
     /// <summary>
     /// Call this method to raise the <see cref="Updated"/> event
