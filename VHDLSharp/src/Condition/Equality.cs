@@ -1,6 +1,7 @@
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Conditions;
 
@@ -34,6 +35,10 @@ public class Equality : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override IEnumerable<INamedSignal> InputSignals => ComparisonSignal is INamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
+
+    /// <inheritdoc/>
+    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
+        MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";

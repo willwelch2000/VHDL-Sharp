@@ -2,6 +2,7 @@ using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Simulations;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Signals;
@@ -73,6 +74,21 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// </summary>
     /// <returns></returns>
     public string GetVhdlName();
+
+    /// <summary>
+    /// Get value of the signal given rule-based simulation state and context
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="context"></param>
+    /// <param name="lastIndex"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null) => this switch
+    {
+        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex ?? state.CurrentTimeStepIndex - 1],
+        ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
+        _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
+    };
 
     /// <summary>
     /// Given several signals, returns true if they can be combined together

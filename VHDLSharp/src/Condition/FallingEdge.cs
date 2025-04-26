@@ -1,6 +1,7 @@
 
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Conditions;
 
@@ -16,6 +17,14 @@ public class FallingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrive
 
     /// <inheritdoc/>
     public override IEnumerable<INamedSignal> InputSignals => [Signal];
+
+    /// <inheritdoc/>
+    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        SignalReference signalReference = context.GetChildSignalReference(Signal);
+        bool[] values = [.. state.GetSingleNodeSignalValues(signalReference)];
+        return values.Length > 1 && values[^2] && !values[^1];
+    }
 
     /// <inheritdoc/>
     public override string ToLogicString() => $"falling_edge({Signal.Name})";

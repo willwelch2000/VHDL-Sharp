@@ -108,12 +108,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
             return 0;
 
         int dimension = Dimension.NonNullValue;
-        int Primary(ISignal signal) => signal switch
-        {
-            INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex],
-            ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
-            _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
-        };
+        int Primary(ISignal signal) => signal.GetLastOutputValue(state, context, lastIndex);
         int And(IEnumerable<int> inputs) => inputs.Aggregate((a, b) => a & b);
         int Or(IEnumerable<int> inputs) => inputs.Aggregate((a, b) => a | b);
         int Not(int input) => (1 << dimension) - 1 - input;
