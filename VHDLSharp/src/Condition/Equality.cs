@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Conditions;
 
@@ -19,7 +21,9 @@ public class Equality : Condition, IConstantCondition
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
-        CheckValid();
+        // Check after construction
+        if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
+            throw exception;
     }
 
     /// <summary>
@@ -38,6 +42,7 @@ public class Equality : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
+        state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
@@ -46,12 +51,15 @@ public class Equality : Condition, IConstantCondition
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
-    /// <summary>
-    /// Called after construction
-    /// </summary>
-    private void CheckValid()
+    /// <inheritdoc/>
+    public override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         if (!MainSignal.CanCombine(ComparisonSignal) || !ComparisonSignal.CanCombine(MainSignal))
-            throw new IncompatibleSignalException("Main signal is not compatible with comparison signal");
+        {
+            exception =  new IncompatibleSignalException("Main signal is not compatible with comparison signal");
+            return false;
+        }
+        exception = null;
+        return true;
     }
 }

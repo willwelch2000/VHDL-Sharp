@@ -81,11 +81,16 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <param name="state"></param>
     /// <param name="context"></param>
     /// <param name="lastIndex"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
+    /// <returns>Value if possible</returns>
+    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, 
+    /// or if it doesn't have a value in the state yet</exception>
     internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null) => this switch
     {
-        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex ?? state.CurrentTimeStepIndex - 1],
+        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal)) switch
+        {
+            List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
+            _ => throw new Exception("Values list not long enough")
+        },
         ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
         _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
     };

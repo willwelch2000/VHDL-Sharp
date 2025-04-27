@@ -1,4 +1,5 @@
 
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -31,4 +32,11 @@ public class FallingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrive
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
+
+    /// <inheritdoc/>
+    public override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
+    {
+        exception = null;
+        return true;
+    }
 }

@@ -161,4 +161,16 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
             return false;
         return Dimension.Compatible(outputSignal.Dimension);
     }
+
+    /// <summary>
+    /// Add a tracked child entity
+    /// </summary>
+    /// <param name="entity"></param>
+    protected void AddChildEntity(object entity) => childEntities.Add(entity);
+
+    /// <summary>
+    /// Remove a tracked child entity
+    /// </summary>
+    /// <param name="entity"></param>
+    protected void RemoveChildEntity(object entity) => childEntities.Remove(entity);
 }

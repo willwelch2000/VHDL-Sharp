@@ -8,6 +8,7 @@ using VHDLSharp.Dimensions;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Simulations;
+using System.Collections.Specialized;
 
 namespace VHDLSharp.Behaviors;
 
@@ -29,7 +30,7 @@ public class DynamicBehavior : Behavior
     /// </summary>
     public DynamicBehavior()
     {
-        ConditionMappings.CollectionChanged += InvokeBehaviorUpdated;
+        ConditionMappings.CollectionChanged += ConditionMappingUpdated;
     }
 
     /// <inheritdoc/>
@@ -88,10 +89,6 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        // Check if any rule is satisfied
-        // If so, use the corresponding value
-        // Otherwise, use the previous value for the output signal (0 if first step)
-
         // If first step, use 0 as value
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)
@@ -113,5 +110,29 @@ public class DynamicBehavior : Behavior
         bool Or(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a || b);
         bool Not(bool input) => !input;
         return conditionCombo.PerformFunction(Primary, And, Or, Not);
+    }
+
+    private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Track each new condition/behavior in validity manager
+        if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is KeyValuePair<ILogicallyCombinable<ICondition>, ICombinationalBehavior> kvp)
+                {
+                    AddChildEntity(kvp.Key);
+                    AddChildEntity(kvp.Value);
+                }
+        
+        // If something has been removed, remove behavior from tracking
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                if (oldItem is KeyValuePair<ILogicallyCombinable<ICondition>, ICombinationalBehavior> kvp)
+                {
+                    RemoveChildEntity(kvp.Key);
+                    RemoveChildEntity(kvp.Value);
+                }
+
+        // Invoke module update
+        InvokeBehaviorUpdated(sender, e);
     }
 }
