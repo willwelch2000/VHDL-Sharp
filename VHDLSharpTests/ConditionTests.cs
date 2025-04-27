@@ -23,9 +23,9 @@ public class ConditionTests
 
         Equality equalitySingle = new(s1, s2);
         Assert.ThrowsException<IncompatibleSignalException>(() => new Equality(v1, v3));
-        Equality equalityVector = new(v1, v2);
+        Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
-        FallingEdge fallingEdge = new(s1);
+        FallingEdge fallingEdge = s1.FallingEdge;
 
         SubcircuitReference context = new(module1, []);
         SignalReference s1Ref = context.GetChildSignalReference(s1);

@@ -1,4 +1,5 @@
 using VHDLSharp.Behaviors;
+using VHDLSharp.Conditions;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -56,4 +57,10 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     /// </summary>
     /// <param name="value"></param>
     public void AssignBehavior(bool value) => AssignBehavior(new ValueBehavior(value ? 1 : 0));
+
+    /// <inheritdoc/>
+    public RisingEdge RisingEdge => new(this);
+    
+    /// <inheritdoc/>
+    public FallingEdge FallingEdge => new(this);
 }

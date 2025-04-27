@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Conditions;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -177,4 +178,7 @@ public abstract class NamedSignal : INamedSignal
         equivalentSignal = port is null ? null : mapping[port];
         return equivalentSignal is not null;
     }
+
+    /// <inheritdoc/>
+    public Equality EqualityWith(ISignal comparison) => new(this, comparison);
 }
