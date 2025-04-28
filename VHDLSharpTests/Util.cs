@@ -12,6 +12,7 @@ internal static partial class Util
     private static Module? sampleModule2 = null;
     private static Module? andModule = null;
     private static Module? orModule = null;
+    private static Module? flipFlopModule = null;
 
     internal static Module GetSampleModule1()
     {
@@ -77,6 +78,23 @@ internal static partial class Util
         andModule.SignalBehaviors[pOut.Signal] = new LogicBehavior(pIn1.Signal.And(pIn2.Signal));
 
         return andModule;
+    }
+
+    internal static Module GetFlipFlopModule()
+    {
+        if (flipFlopModule is not null)
+            return flipFlopModule;
+
+        flipFlopModule = new("FlipFlopMod");
+        Signal load = flipFlopModule.GenerateSignal("LOAD");
+        Signal outSig = flipFlopModule.GenerateSignal("OUT");
+        flipFlopModule.AddNewPort(load, PortDirection.Input);
+        Port pIn = flipFlopModule.AddNewPort("IN", PortDirection.Input);
+        flipFlopModule.AddNewPort(outSig, PortDirection.Output);
+        DynamicBehavior behavior = new();
+        behavior.ConditionMappings.Add((load.RisingEdge, new LogicBehavior(pIn.Signal)));
+        outSig.AssignBehavior(behavior);
+        return flipFlopModule;
     }
     
     // From ChatGPT

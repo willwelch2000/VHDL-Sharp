@@ -23,7 +23,7 @@ public class DynamicBehavior : Behavior
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
-    private ObservableCollection<(ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+    public ObservableCollection<(ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <summary>
     /// Generate new dynamic behavior
