@@ -132,6 +132,10 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     {
         if (!ValidityManager.IsValid())
             throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
+            throw new InvalidException("Output signal must be valid to use to get output value");
+        if (!IsCompatible(outputSignal.Signal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetOutputValueWithoutCheck(state, outputSignal);
     }
     

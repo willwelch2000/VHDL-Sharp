@@ -70,8 +70,12 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        // Check parent modules
+        // Check parent modules of input signals
         base.CheckTopLevelValidity(out exception);
+
+        // Check that there's only one event-driven condition
+        if (ConditionMappings.SkipLast(1).Select(m => m.Condition).OfType<IEventDrivenCondition>().Count() > 1)
+            exception = new Exception("Only 1 event-driven condition is allowed, and it must be last");
 
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
