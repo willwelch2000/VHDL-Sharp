@@ -252,9 +252,9 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 List<IEntity> entities = [.. innerOutput.SpiceSharpEntities];
                 for (int i = 0; i < dimension; i++)
                 {
-                    Subcircuit orSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetNotSubcircuit(), 
+                    Subcircuit notSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetNotSubcircuit(), 
                         innerOutput.OutputSignalNames[i], outputSignalNames[i]);
-                    entities.Add(orSubcircuit);
+                    entities.Add(notSubcircuit);
                 }
 
                 return new()

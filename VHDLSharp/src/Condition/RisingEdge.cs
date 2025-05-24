@@ -1,8 +1,12 @@
 
 using System.Diagnostics.CodeAnalysis;
+using SpiceSharp.Components;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
+using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.Conditions;
 
@@ -39,4 +43,9 @@ public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDriven
         exception = null;
         return true;
     }
+
+    /// <inheritdoc/>
+    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
+        !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
+        new([new Resistor(SpiceUtil.GetSpiceName(uniqueId, 0, "connect"), Signal.Name, outputSignal.Name, 1e-3)]);
 }

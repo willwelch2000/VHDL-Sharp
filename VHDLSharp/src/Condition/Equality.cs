@@ -3,6 +3,7 @@ using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Conditions;
@@ -32,8 +33,7 @@ public class Equality : Condition, IConstantCondition
     public INamedSignal MainSignal { get; }
 
     /// <summary>
-    /// If specified, the main signal is compared against this
-    /// If null, the integer value is used instead
+    /// The main signal is compared against this
     /// </summary>
     public ISignal ComparisonSignal { get; }
 
@@ -42,11 +42,15 @@ public class Equality : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
+        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to evaluate") : 
+        !((IValidityManagedEntity)context).ValidityManager.IsValid() ? throw new InvalidException("Subcircuit context must be valid to evluate condition") :
         state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
-    public override string ToLogicString() => $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
+    public override string ToLogicString() => 
+        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to evaluate") : 
+        $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
@@ -61,5 +65,19 @@ public class Equality : Condition, IConstantCondition
         }
         exception = null;
         return true;
+    }
+
+    /// <inheritdoc/>
+    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal)
+    {
+        if (!ValidityManager.IsValid())
+            throw new InvalidException("Condition must be valid to get Spice representation");
+        if (!MainSignal.CanCombine(outputSignal) || !outputSignal.CanCombine(MainSignal))
+            throw new IncompatibleSignalException("Output signal is not compatible with this condition");
+
+        List<SpiceCircuit> circuits = [];
+        // Signal[] intermediateSignals
+        // Add ANDs for each pair of single-node signals
+        throw new NotImplementedException();
     }
 }

@@ -1,8 +1,12 @@
 
 using System.Diagnostics.CodeAnalysis;
+using SpiceSharp.Components;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
+using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.Conditions;
 
@@ -39,4 +43,9 @@ public class FallingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrive
         exception = null;
         return true;
     }
+
+    /// <inheritdoc/>
+    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
+        !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
+        new SpiceCircuit([new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "not"), SpiceUtil.GetNotSubcircuit(), Signal.Name, outputSignal.Name)]).WithCommonEntities();
 }
