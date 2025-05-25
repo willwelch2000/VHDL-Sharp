@@ -1,9 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Utility;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Conditions;
@@ -75,9 +78,15 @@ public class Equality : Condition, IConstantCondition
         if (!MainSignal.CanCombine(outputSignal) || !outputSignal.CanCombine(MainSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this condition");
 
-        List<SpiceCircuit> circuits = [];
-        // Signal[] intermediateSignals
-        // Add ANDs for each pair of single-node signals
-        throw new NotImplementedException();
+        List<IEntity> entities = [];
+        Signal[] intermediateSignals = [.. Enumerable.Range(0, MainSignal.Dimension.NonNullValue).Select(i => new Signal(SpiceUtil.GetSpiceName(uniqueId, i, "equalityInt"), MainSignal.ParentModule))];
+        string[] mainNames = [.. MainSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+        string[] compNames = [.. ComparisonSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+        // ANDs for each pair of single-node signals--TODO these should become NANDs and a NOR
+        for (int i = 0; i < MainSignal.Dimension.NonNullValue; i++)
+            entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "andEqualityInt"), SpiceUtil.GetAndSubcircuit(2), mainNames[i], compNames[i]));
+        // AND for the intermediate signals
+        entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "equalityAndFinal"), SpiceUtil.GetAndSubcircuit(2), [.. intermediateSignals.Select(s => s.GetSpiceName())]));
+        return new SpiceCircuit(entities).WithCommonEntities();
     }
 }
