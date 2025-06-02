@@ -19,7 +19,10 @@ internal static class SpiceUtil
     private static readonly Dictionary<int, INamedSubcircuitDefinition> nandSubcircuits = [];
     private static readonly Dictionary<int, INamedSubcircuitDefinition> norSubcircuits = [];
     private static readonly Dictionary<int, INamedSubcircuitDefinition> xnorSubcircuits = [];
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> muxSubcircuits = [];
     private static INamedSubcircuitDefinition? notSubcircuit = null;
+    private static INamedSubcircuitDefinition? dLatchWithOverride = null;
+    private static INamedSubcircuitDefinition? dffWithAsyncLoad = null;
     
     internal static double VDD => 5.0;
 
@@ -88,7 +91,7 @@ internal static class SpiceUtil
             return subcircuit;
 
         Circuit circuit = [.. CommonEntities];
-        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}"), "OUT"];
 
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
@@ -117,7 +120,7 @@ internal static class SpiceUtil
             return subcircuit;
 
         Circuit circuit = [.. CommonEntities];
-        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}"), "OUT"];
 
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
@@ -150,7 +153,7 @@ internal static class SpiceUtil
             return subcircuit;
 
         Circuit circuit = [.. CommonEntities];
-        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}"), "OUT"];
 
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
@@ -179,7 +182,7 @@ internal static class SpiceUtil
             return subcircuit;
 
         Circuit circuit = [.. CommonEntities];
-        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}"), "OUT"];
 
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
@@ -212,7 +215,7 @@ internal static class SpiceUtil
             return subcircuit;
 
         Circuit circuit = [.. CommonEntities];
-        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}"), "OUT"];
 
         if (numInputs != 2)
             throw new NotImplementedException("XNOR only supported for 2 inputs");
@@ -244,6 +247,109 @@ internal static class SpiceUtil
 
         notSubcircuit = new NamedSubcircuitDefinition("NOT", circuit, pins);
         return notSubcircuit;
+    }
+
+
+    /// <summary>
+    /// Subcircuit for MUX--named MUX{dim}.
+    /// Pins are SEL{i} for select bits, then IN{i} for inputs, then OUT for output
+    /// </summary>
+    /// <param name="dim"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetMuxSubcircuit(int dim)
+    {
+        if (xnorSubcircuits.TryGetValue(dim, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        if (dim < 1)
+            throw new Exception("Dim must be >= 1");
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, dim).Select(i => $"SEL{i}"), 
+                         .. Enumerable.Range(1, 1<<dim).Select(i => $"IN{i}"), "OUT"];
+
+        // NOTs for the select bits
+        for (int i = 1; i <= dim; i++)
+            circuit.Add(new Subcircuit($"not{i}", GetNotSubcircuit(), $"SEL{i}", $"SEL{i}_not"));
+
+        // MUX options
+        INamedSubcircuitDefinition nand1 = GetNandSubcircuit(1 + dim);
+        for (int i = 0; i < 1<<dim; i++)
+        {
+            List<string> nodes = [$"IN{i+1}"];
+            for (int j = 0; j < dim; j++)
+                nodes.Add((i & 1<<j) > 0 ? $"SEL{j+1}" : $"SEL{j+1}_not");
+            nodes.Add($"int{i+1}");
+            circuit.Add(new Subcircuit($"nandIn{i+1}", nand1, [.. nodes]));
+        }
+
+        // NAND all together
+        circuit.Add(new Subcircuit("final", GetNandSubcircuit(1<<dim), [.. Enumerable.Range(1, 1<<dim).Select(i => $"int{i}"), "OUT"]));
+        
+        subcircuit = new NamedSubcircuitDefinition($"MUX{dim}", circuit, pins);
+        muxSubcircuits[dim] = subcircuit;
+        return subcircuit;
+    }
+
+
+    /// <summary>
+    /// Subcircuit for D Latch with override. 
+    /// Acts like a regular D Latch, but 
+    /// Pins: D--normal input, DO--override input, 
+    /// L--normal load, LO--override load, Q--output
+    /// </summary>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetDLatchWithOverride()
+    {
+        if (dLatchWithOverride is not null)
+            return dLatchWithOverride;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = ["D", "DO", "L", "LO", "Q"];
+
+        INamedSubcircuitDefinition nand2 = GetNandSubcircuit(2);
+        INamedSubcircuitDefinition inv = GetNotSubcircuit();
+        INamedSubcircuitDefinition mux1 = GetMuxSubcircuit(1);
+
+        // NANDs
+        circuit.Add(new Subcircuit("nand1", nand2, "D", "L", "net1"));
+        circuit.Add(new Subcircuit("inv1", inv, "D", "Db"));
+        circuit.Add(new Subcircuit("nand2", nand2, "Db", "L", "net2"));
+
+        // MUXes
+        circuit.Add(new Subcircuit("inv2", inv, "DO", "DOb"));
+        circuit.Add(new Subcircuit("mux1", mux1, "LO", "net1", "DOb", "Sb"));
+        circuit.Add(new Subcircuit("mux2", mux1, "LO", "net2", "DO", "Rb"));
+
+        // SR Latch
+        circuit.Add(new Subcircuit("nand3", nand2, "Sb", "Qb", "Q"));
+        circuit.Add(new Subcircuit("nand4", nand2, "Rb", "Q", "Qb"));
+        
+        dLatchWithOverride = new NamedSubcircuitDefinition($"DLatchWithOverride", circuit, pins);
+        return dLatchWithOverride;
+    }
+
+    internal static INamedSubcircuitDefinition GetDffWithAsyncLoad()
+    {
+        if (dffWithAsyncLoad is not null)
+            return dffWithAsyncLoad;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = ["D", "DA", "CLK", "LA", "Q"];
+        
+        INamedSubcircuitDefinition inv = GetNotSubcircuit();
+        INamedSubcircuitDefinition latch = GetDLatchWithOverride();
+
+        // CLK inverters
+        circuit.Add(new Subcircuit("inv1", inv, "CLK", "CLKb"));
+        circuit.Add(new Subcircuit("inv2", inv, "CLKb", "CLK2"));
+
+        // Latches
+        circuit.Add(new Subcircuit("latch1", latch, "D", "DA", "CLKb", "LA", "Qmid"));
+        circuit.Add(new Subcircuit("latch2", latch, "Qmid", "DA", "CLK2", "LA", "Q"));
+        
+        dffWithAsyncLoad = new NamedSubcircuitDefinition($"DFFWithAsyncLoad", circuit, pins);
+        return dffWithAsyncLoad;
     }
 
     /// <summary>
