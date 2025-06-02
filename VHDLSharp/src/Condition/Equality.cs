@@ -75,18 +75,26 @@ public class Equality : Condition, IConstantCondition
     {
         if (!ValidityManager.IsValid())
             throw new InvalidException("Condition must be valid to get Spice representation");
-        if (!MainSignal.CanCombine(outputSignal) || !outputSignal.CanCombine(MainSignal))
-            throw new IncompatibleSignalException("Output signal is not compatible with this condition");
+        if (outputSignal.ParentModule != ParentModule)
+            throw new IncompatibleSignalException("Output signal must have same parent module as condition");
 
         List<IEntity> entities = [];
         Signal[] intermediateSignals = [.. Enumerable.Range(0, MainSignal.Dimension.NonNullValue).Select(i => new Signal(SpiceUtil.GetSpiceName(uniqueId, i, "equalityInt"), MainSignal.ParentModule))];
         string[] mainNames = [.. MainSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
         string[] compNames = [.. ComparisonSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
-        // ANDs for each pair of single-node signals--TODO these should become NANDs and a NOR
-        for (int i = 0; i < MainSignal.Dimension.NonNullValue; i++)
-            entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "andEqualityInt"), SpiceUtil.GetAndSubcircuit(2), mainNames[i], compNames[i]));
-        // AND for the intermediate signals
-        entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "equalityAndFinal"), SpiceUtil.GetAndSubcircuit(2), [.. intermediateSignals.Select(s => s.GetSpiceName())]));
+
+        // Single-dimension case--simpler
+        if (MainSignal.Dimension.NonNullValue == 1)
+            entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "equalityXnor"), SpiceUtil.GetXnorSubcircuit(2), mainNames[0], compNames[0], outputSignal.GetSpiceName()));
+        else
+        {
+            // XNOR for each pair of single-node signals
+            for (int i = 0; i < MainSignal.Dimension.NonNullValue; i++)
+                entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "equalityXnorInt"), SpiceUtil.GetXnorSubcircuit(2), mainNames[i], compNames[i], intermediateSignals[i].GetSpiceName()));
+            // AND for the intermediate signals
+            entities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "equalityAndFinal"), SpiceUtil.GetAndSubcircuit(intermediateSignals.Length), [.. intermediateSignals.Select(s => s.GetSpiceName()), outputSignal.GetSpiceName()]));
+        }
+
         return new SpiceCircuit(entities).WithCommonEntities();
     }
 }

@@ -13,7 +13,7 @@ public class TimeDefinedStimulus : Stimulus
     /// <summary>
     /// Mapping of times to digital values
     /// </summary>
-    public Dictionary<double, bool> Points { get; } = [];
+    public Dictionary<double, bool> Points { get; set; } = [];
 
     private static double GetVoltage(bool input) => input ? SpiceUtil.VDD : 0;
 
@@ -40,6 +40,7 @@ public class TimeDefinedStimulus : Stimulus
             // Add point right after with new value
             vector.Add(time + Util.RiseFall);
             vector.Add(GetVoltage(val));
+            prevVal = val;
         }
 
         Pwl pwl = new();

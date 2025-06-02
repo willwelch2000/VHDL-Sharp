@@ -7,6 +7,9 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Simulations;
 using SpiceSharp.Entities;
+using VHDLSharp.Conditions;
+using VHDLSharp.SpiceCircuits;
+using ScottPlot;
 
 namespace VHDLSharp;
 
@@ -14,7 +17,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        AndLiteralTest();
+        TestSpiceSharp2();
     }
 
     public static void MainTest()
@@ -198,6 +201,78 @@ public static class Program
             Console.WriteLine($"Baseout1: {baseout1.Value}");
             Console.WriteLine($"Baseout2: {baseout2.Value}");
         }
+    }
+
+    public static void TestSpiceSharp2()
+    {
+        Module module1 = new("m1");
+        Signal s1 = module1.GenerateSignal("s1");
+        Signal s2 = module1.GenerateSignal("s2");
+        Signal s3 = module1.GenerateSignal("s3");
+        Vector v1 = module1.GenerateVector("v1", 3);
+        Vector v2 = module1.GenerateVector("v2", 3);
+
+        Equality equalitySingle = new(s1, s2);
+        Equality equalityVector = v1.EqualityWith(v2);
+        RisingEdge risingEdge = new(s1);
+        FallingEdge fallingEdge = s1.FallingEdge;
+
+        TimeDefinedStimulus s1Stimulus = new()
+        {
+            Points = new() { {0, false}, {2, true}, {3, false} }
+        };
+        TimeDefinedStimulus s2Stimulus = new()
+        {
+            Points = new() { {0, false}, {1, true} }
+        };
+        MultiDimensionalStimulus v1Stimulus = new([
+            new PulseStimulus(2, 10, 20),
+            new ConstantStimulus(false),
+            new PulseStimulus(2, 10, 20),
+        ]);
+        MultiDimensionalStimulus v2Stimulus = new([
+            new PulseStimulus(1, 10, 20),
+            new ConstantStimulus(false),
+            new PulseStimulus(1, 10, 20),
+        ]);
+        SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
+            s1Stimulus.GetSpice(s1, "s1Stimulus"),
+            s2Stimulus.GetSpice(s2, "s2Stimulus"),
+            v1Stimulus.GetSpice(v1, "v1Stimulus"),
+            v2Stimulus.GetSpice(v2, "v2Stimulus"),
+        ]);
+
+        Circuit equalitySingleCircuit = equalitySingle.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalityVectorCircuit = equalityVector.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit risingEdgeCircuit = risingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit fallingEdgeCircuit = fallingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+
+        var tran = new Transient("Tran 1", 0.1, 5);
+        var s1Exp = new RealVoltageExport(tran, "s1");
+        var s2Exp = new RealVoltageExport(tran, "s2");
+        var s3Exp = new RealVoltageExport(tran, "s3");
+
+        List<double> time = [];
+        List<double> s1Results = [];
+        List<double> s2Results = [];
+        List<double> s3Results = [];
+        int i = 0;
+        foreach (int _ in tran.Run(equalitySingleCircuit, Transient.ExportTransient))
+        {
+            Console.WriteLine(i++);
+            Console.WriteLine($"{tran.Time}: {s1Exp.Value}");
+            Console.WriteLine();
+            time.Add(tran.Time);
+            s1Results.Add(s1Exp.Value);
+            s2Results.Add(s2Exp.Value);
+            s3Results.Add(s3Exp.Value);
+        }
+
+        Plot plot = new();
+        plot.Add.ScatterLine(time, s1Results, Colors.Blue);
+        plot.Add.ScatterLine(time, s2Results, Colors.Red);
+        plot.Add.ScatterLine(time, s3Results, Colors.Green);
+        plot.SavePng("test.png", 1000, 1000);
     }
     
     private static void AndLiteralTest()

@@ -1,8 +1,11 @@
+using SpiceSharp;
+using SpiceSharp.Simulations;
 using VHDLSharp.Conditions;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
+using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
@@ -91,5 +94,115 @@ public class ConditionTests
         Assert.IsTrue(equalityVector.Evaluate(state, context));
         Assert.IsFalse(risingEdge.Evaluate(state, context));
         Assert.IsTrue(fallingEdge.Evaluate(state, context));
+    }
+
+    [TestMethod]
+    public void SpiceSimTest()
+    {
+        Module module1 = new("m1");
+        Signal s1 = module1.GenerateSignal("s1");
+        Signal s2 = module1.GenerateSignal("s2");
+        Signal s3 = module1.GenerateSignal("s3");
+        Vector v1 = module1.GenerateVector("v1", 3);
+        Vector v2 = module1.GenerateVector("v2", 3);
+
+        Equality equalitySingle = new(s1, s2);
+        Equality equalityVector = v1.EqualityWith(v2);
+        RisingEdge risingEdge = new(s1);
+        FallingEdge fallingEdge = s1.FallingEdge;
+
+        TimeDefinedStimulus s1Stimulus = new()
+        {
+            Points = new() { {0, false}, {2e-2, true}, {3e-2, false} }
+        };
+        TimeDefinedStimulus s2Stimulus = new()
+        {
+            Points = new() { {0, false}, {1e-2, true} }
+        };
+        MultiDimensionalStimulus v1Stimulus = new([
+            new PulseStimulus(2e-2, 10e-2, 20e-2),
+            new ConstantStimulus(false),
+            new PulseStimulus(2e-2, 10e-2, 20e-2),
+        ]);
+        MultiDimensionalStimulus v2Stimulus = new([
+            new PulseStimulus(1e-2, 10e-2, 20e-2),
+            new ConstantStimulus(false),
+            new PulseStimulus(1e-2, 10e-2, 20e-2),
+        ]);
+        SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
+            s1Stimulus.GetSpice(s1, "s1Stimulus"),
+            s2Stimulus.GetSpice(s2, "s2Stimulus"),
+            v1Stimulus.GetSpice(v1, "v1Stimulus"),
+            v2Stimulus.GetSpice(v2, "v2Stimulus"),
+        ]);
+
+        Circuit equalitySingleCircuit = equalitySingle.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalityVectorCircuit = equalityVector.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit risingEdgeCircuit = risingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit fallingEdgeCircuit = fallingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+
+        var tran = new Transient("Tran 1", 0.1e-2, 5e-2);
+        var s3Exp = new RealVoltageExport(tran, "s3");
+
+        // Check single-node equality
+        foreach (int _ in tran.Run(equalitySingleCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 1e-2-Util.TimeBuffer => true,
+                > 1e-2+Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
+                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => true,
+                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+
+        // Check vector equality
+        foreach (int _ in tran.Run(equalityVectorCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 1e-2-Util.TimeBuffer => true,
+                > 1e-2+Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
+                > 2e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => true,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+
+        // Check rising edge
+        foreach (int _ in tran.Run(risingEdgeCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
+                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => true,
+                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+
+        // Check falling edge
+        foreach (int _ in tran.Run(fallingEdgeCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 2e-2-Util.TimeBuffer => true,
+                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => false,
+                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => true,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
     }
 }

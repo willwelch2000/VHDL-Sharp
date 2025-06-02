@@ -90,7 +90,6 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <returns></returns>
     public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, CircuitElements);
 
-
     /// <summary>
     /// Convert to Spice subcircuit object given name and pins
     /// </summary>
@@ -141,10 +140,18 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     }
 
     /// <summary>
-    /// Generate a <see cref="SpiceCircuit"/> by combining several objects.
+    /// Generate a <see cref="SpiceCircuit"/> by combining several other circuits with this one.
     /// Ignores duplicate entities so that common entities/models don't appear twice
     /// </summary>
-    /// <param name="circuits"></param>
+    /// <param name="otherCircuits">Circuits to combine with this</param>
+    /// <returns></returns>
+    public SpiceCircuit CombineWith(IEnumerable<SpiceCircuit> otherCircuits) => Combine([this, .. otherCircuits]);
+
+    /// <summary>
+    /// Generate a <see cref="SpiceCircuit"/> by combining several circuits.
+    /// Ignores duplicate entities so that common entities/models don't appear twice
+    /// </summary>
+    /// <param name="circuits">Circuits to combine</param>
     /// <returns></returns>
     public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
     {

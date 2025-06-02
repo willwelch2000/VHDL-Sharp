@@ -14,6 +14,9 @@ internal static partial class Util
     private static Module? orModule = null;
     private static Module? flipFlopModule = null;
 
+    // Time buffer around transition points where we don't check in simulations
+    public const double TimeBuffer = 2e-6;
+
     internal static Module GetSampleModule1()
     {
         if (sampleModule1 is not null)

@@ -16,6 +16,9 @@ internal static class SpiceUtil
     // Mapping of #inputs to subcircuit definition
     private static readonly Dictionary<int, INamedSubcircuitDefinition> andSubcircuits = [];
     private static readonly Dictionary<int, INamedSubcircuitDefinition> orSubcircuits = [];
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> nandSubcircuits = [];
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> norSubcircuits = [];
+    private static readonly Dictionary<int, INamedSubcircuitDefinition> xnorSubcircuits = [];
     private static INamedSubcircuitDefinition? notSubcircuit = null;
     
     internal static double VDD => 5.0;
@@ -75,6 +78,35 @@ internal static class SpiceUtil
     }
 
     /// <summary>
+    /// Subcircuit for NAND gate
+    /// </summary>
+    /// <param name="numInputs"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetNandSubcircuit(int numInputs)
+    {
+        if (nandSubcircuits.TryGetValue(numInputs, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+
+        // Add a PMOS and NMOS for each input signal
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in parallel from VDD to nandSignal
+            circuit.Add(new Mosfet1($"pnand{i}", "OUT", $"IN{i}", "VDD", "VDD", PmosModel.Name));
+            // NMOSs go in series from nandSignal to ground
+            string nDrain = i == 1 ? "OUT" : $"nand{i}";
+            string nSource = i == numInputs ? "0" : $"nand{i+1}";
+            circuit.Add(new Mosfet1($"nnand{i}", nDrain, $"IN{i}", nSource, nSource, NmosModel.Name));
+        }
+
+        subcircuit = new NamedSubcircuitDefinition($"NAND{numInputs}", circuit, pins);
+        nandSubcircuits[numInputs] = subcircuit;
+        return subcircuit;
+    }
+
+    /// <summary>
     /// Subcircuit for AND gate
     /// </summary>
     /// <param name="numInputs"></param>
@@ -108,6 +140,35 @@ internal static class SpiceUtil
     }
 
     /// <summary>
+    /// Subcircuit for NOR gate
+    /// </summary>
+    /// <param name="numInputs"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetNorSubcircuit(int numInputs)
+    {
+        if (norSubcircuits.TryGetValue(numInputs, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+
+        // Add a PMOS and NMOS for each input signal
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in series from VDD to norSignal
+            string pDrain = i == 1 ? "OUT" : $"nor{i}";
+            string pSource = i == numInputs ? "VDD" : $"nor{i+1}";
+            circuit.Add(new Mosfet1($"pnor{i}", pDrain, $"IN{i}", pSource, pSource, PmosModel.Name));
+            // NMOSs go in parallel from norSignal to ground
+            circuit.Add(new Mosfet1($"nnor{i}", "OUT", $"IN{i}", "0", "0", NmosModel.Name));
+        }
+
+        subcircuit = new NamedSubcircuitDefinition($"NOR{numInputs}", circuit, pins);
+        norSubcircuits[numInputs] = subcircuit;
+        return subcircuit;
+    }
+
+    /// <summary>
     /// Subcircuit for OR gate
     /// </summary>
     /// <param name="numInputs"></param>
@@ -137,6 +198,32 @@ internal static class SpiceUtil
 
         subcircuit = new NamedSubcircuitDefinition($"OR{numInputs}", circuit, pins);
         orSubcircuits[numInputs] = subcircuit;
+        return subcircuit;
+    }
+
+    /// <summary>
+    /// Subcircuit for XNOR gate
+    /// </summary>
+    /// <param name="numInputs"></param>
+    /// <returns></returns>
+    internal static INamedSubcircuitDefinition GetXnorSubcircuit(int numInputs)
+    {
+        if (xnorSubcircuits.TryGetValue(numInputs, out INamedSubcircuitDefinition? subcircuit))
+            return subcircuit;
+
+        Circuit circuit = [.. CommonEntities];
+        string[] pins = [.. Enumerable.Range(1, numInputs).Select(i => $"IN{i}").Append("OUT")];
+
+        if (numInputs != 2)
+            throw new NotImplementedException("XNOR only supported for 2 inputs");
+
+        // AB + !A!B = A*B + !(A+B) = !!(A*B + !(A+B)) = !(!(A*B)*(A+B))
+        circuit.Add(new Subcircuit("nand1", GetNandSubcircuit(2), "IN1", "IN2", "nand1out"));
+        circuit.Add(new Subcircuit("or", GetOrSubcircuit(2), "IN1", "IN2", "orout"));
+        circuit.Add(new Subcircuit("nand2", GetNandSubcircuit(2), "nand1out", "orout", "OUT"));
+
+        subcircuit = new NamedSubcircuitDefinition($"XNOR{numInputs}", circuit, pins);
+        xnorSubcircuits[numInputs] = subcircuit;
         return subcircuit;
     }
 
