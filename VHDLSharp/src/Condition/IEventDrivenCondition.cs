@@ -17,5 +17,5 @@ public interface IEventDrivenCondition : ICondition
     /// <param name="uniqueId"></param>
     /// <param name="outputSignal"></param>
     /// <returns></returns>
-    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal);
+    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal);
 }

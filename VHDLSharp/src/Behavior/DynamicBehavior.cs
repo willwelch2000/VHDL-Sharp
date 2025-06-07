@@ -9,6 +9,8 @@ using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Simulations;
 using System.Collections.Specialized;
+using SpiceSharp.Entities;
+using SpiceSharp.Components;
 
 namespace VHDLSharp.Behaviors;
 
@@ -73,9 +75,22 @@ public class DynamicBehavior : Behavior
         // Check parent modules of input signals
         base.CheckTopLevelValidity(out exception);
 
-        // Check that there's only one event-driven condition
-        if (ConditionMappings.SkipLast(1).Select(m => m.Condition).OfType<IEventDrivenCondition>().Count() > 1)
-            exception = new Exception("Only 1 event-driven condition is allowed, and it must be last");
+        ILogicallyCombinable<ICondition>[] conditions = [.. ConditionMappings.Select(map => map.Condition)];
+        if (conditions.Any(c => c.BaseObjects.Any(obj => obj is IEventDrivenCondition)))
+        {
+            // Check that there's only one event-driven condition
+            if (conditions[0..^1].SelectMany(c => c.BaseObjects).OfType<IEventDrivenCondition>().Any())
+                exception = new Exception("Only 1 event-driven condition is allowed, and it must be last");
+            ILogicallyCombinable<ICondition> lastCondition = conditions[^1];
+            if (lastCondition.BaseObjects.OfType<IEventDrivenCondition>().Count() > 1)
+                exception = new Exception("Event-driven conditions cannot be chained together logically (e.g. Rising-Edge AND Falling-Edge)");
+
+            // Event-driven condition must be at top level and can only be ANDed or ORed
+            if (!(lastCondition is IEventDrivenCondition ||
+                (lastCondition is And<ICondition> andCondition && andCondition.Inputs.Any(i => i is IEventDrivenCondition)) || 
+                lastCondition is Or<ICondition> orCondition && orCondition.Inputs.Any(i => i is IEventDrivenCondition)))
+                exception = new Exception("Event-driven condition must be standalone or ANDed/ORed with another condition");
+        }
 
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
@@ -87,12 +102,69 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
+        if (ConditionMappings.Count == 0)
+            throw new Exception("Must have at least one condition mapping");
+
+        // Create intermediate signals for inner conditions and behaviors, and add their circuits to list
+        INamedSignal[] intermediateSignals = new INamedSignal[ConditionMappings.Count];
+        ISingleNodeNamedSignal? clkSignal = null;
+        ISingleNodeNamedSignal? enSignal = null;
+        List<SpiceCircuit> intermediateCircuits = [];
+        int dimension = outputSignal.Dimension.NonNullValue;
+        foreach ((int i, (ILogicallyCombinable<ICondition> innerCondition, ICombinationalBehavior innerBehavior)) in ConditionMappings.Index())
+        {
+            // Generate intermediate signal matching dimension of output
+            string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"inner{i}");
+            INamedSignal signal;
+            if (dimension == 1)
+                signal = new Signal(intermediateName, outputSignal.ParentModule);
+            else
+                signal = new Vector(intermediateName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
+            intermediateSignals[i] = signal;
+            intermediateCircuits.Add(innerBehavior.GetSpice(signal, $"{uniqueId}_{i}_0"));
+
+            switch (innerCondition)
+            {
+                // Event-driven condition without enable
+                case IEventDrivenCondition eventDrivenCondition:
+                    clkSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}"), outputSignal.ParentModule);
+                    intermediateCircuits.Add(eventDrivenCondition.GetSpice($"{uniqueId}_{i}_0", clkSignal));
+                    break;
+                // Event-driven condition with enable
+                case And<ICondition> andCondition when andCondition.Inputs.Any(i => i is IEventDrivenCondition):
+                    break;
+                // Event-driven condition without enable, paired with a constant condition
+                case Or<ICondition> orCondition when orCondition.Inputs.Any(i => i is IEventDrivenCondition):
+                    break;
+                // No event-driven condition
+                default:
+                    break;
+            }
+        }
+
+        List<IEntity> additionalEntities = [];
+
+        // A single event-based condition
+        if (ConditionMappings.Count == 1 && ConditionMappings[0].Condition is IEventDrivenCondition)
+        {
+            // Add DFF for each dimension
+            foreach ((int i, (ISingleNodeNamedSignal outputSingleSignal, ISingleNodeNamedSignal interSingleSignal)) in outputSignal.ToSingleNodeSignals.Zip(intermediateSignals[0].ToSingleNodeSignals).Index())
+            {
+                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoad(), interSingleSignal.GetSpiceName(), "0", "", "0", outputSingleSignal.GetSpiceName()));
+            }
+
+            return new SpiceCircuit(additionalEntities).CombineWith(intermediateCircuits).WithCommonEntities();
+        }
+
         throw new NotImplementedException();
     }
 
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
+        if (ConditionMappings.Count == 0)
+            throw new Exception("Must have at least one condition mapping");
+
         // If first step, use 0 as value
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)

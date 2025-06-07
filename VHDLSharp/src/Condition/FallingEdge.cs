@@ -45,7 +45,7 @@ public class FallingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrive
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
+    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
         !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
         new SpiceCircuit([new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "not"), SpiceUtil.GetNotSubcircuit(), Signal.Name, outputSignal.Name)]).WithCommonEntities();
 }

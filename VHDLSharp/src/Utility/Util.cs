@@ -4,7 +4,7 @@ namespace VHDLSharp.Utility;
 
 internal static class Util
 {
-    internal static double RiseFall => 1e-6;
+    internal static double RiseFall => 1e-8;
 
     internal static string AddIndentation(this string s, int indents)
     {

@@ -45,7 +45,7 @@ public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDriven
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
+    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
         !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
         new([new Resistor(SpiceUtil.GetSpiceName(uniqueId, 0, "connect"), Signal.Name, outputSignal.Name, 1e-3)]);
 }

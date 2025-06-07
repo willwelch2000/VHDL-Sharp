@@ -140,6 +140,14 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     }
 
     /// <summary>
+    /// Generate a <see cref="SpiceCircuit"/> by combining another circuit with this one.
+    /// Ignores duplicate entities so that common entities/models don't appear twice
+    /// </summary>
+    /// <param name="otherCircuit">Circuit to combine with this</param>
+    /// <returns></returns>
+    public SpiceCircuit CombineWith(SpiceCircuit otherCircuit) => Combine([this, otherCircuit]);
+
+    /// <summary>
     /// Generate a <see cref="SpiceCircuit"/> by combining several other circuits with this one.
     /// Ignores duplicate entities so that common entities/models don't appear twice
     /// </summary>

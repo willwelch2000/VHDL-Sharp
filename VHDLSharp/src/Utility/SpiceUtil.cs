@@ -8,7 +8,7 @@ namespace VHDLSharp.Utility;
 /// <summary>
 /// Utility class for Spice stuff
 /// </summary>
-internal static class SpiceUtil
+public static class SpiceUtil
 {
     private static Mosfet1Model? nmosModel = null;
     private static Mosfet1Model? pmosModel = null;
@@ -291,10 +291,9 @@ internal static class SpiceUtil
         return subcircuit;
     }
 
-
     /// <summary>
     /// Subcircuit for D Latch with override. 
-    /// Acts like a regular D Latch, but 
+    /// Acts like a regular D Latch, but with an override load/input
     /// Pins: D--normal input, DO--override input, 
     /// L--normal load, LO--override load, Q--output
     /// </summary>
@@ -329,6 +328,22 @@ internal static class SpiceUtil
         return dLatchWithOverride;
     }
 
+    public static Circuit GetSrLatchCircuit()
+    {
+        Circuit circuit = [.. CommonEntities];
+        INamedSubcircuitDefinition nand2 = GetNandSubcircuit(2);
+        circuit.Add(new Subcircuit("nand1", nand2, "Sb", "Qb", "Q"));
+        circuit.Add(new Subcircuit("nand2", nand2, "Rb", "Q", "Qb"));
+        return circuit;
+    }
+
+    /// <summary>
+    /// Subcircuit for DFF with async load. 
+    /// Acts like a regular DFF Latch, but with an additional async load and input
+    /// Pins: D--normal input, DA--async input, 
+    /// CLK--synchronous clock, LA--async load, Q--output
+    /// </summary>
+    /// <returns></returns>
     internal static INamedSubcircuitDefinition GetDffWithAsyncLoad()
     {
         if (dffWithAsyncLoad is not null)
@@ -336,7 +351,7 @@ internal static class SpiceUtil
 
         Circuit circuit = [.. CommonEntities];
         string[] pins = ["D", "DA", "CLK", "LA", "Q"];
-        
+
         INamedSubcircuitDefinition inv = GetNotSubcircuit();
         INamedSubcircuitDefinition latch = GetDLatchWithOverride();
 
@@ -347,7 +362,7 @@ internal static class SpiceUtil
         // Latches
         circuit.Add(new Subcircuit("latch1", latch, "D", "DA", "CLKb", "LA", "Qmid"));
         circuit.Add(new Subcircuit("latch2", latch, "Qmid", "DA", "CLK2", "LA", "Q"));
-        
+
         dffWithAsyncLoad = new NamedSubcircuitDefinition($"DFFWithAsyncLoad", circuit, pins);
         return dffWithAsyncLoad;
     }

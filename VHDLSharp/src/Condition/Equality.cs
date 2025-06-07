@@ -71,7 +71,7 @@ public class Equality : Condition, IConstantCondition
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpiceCircuit(string uniqueId, ISingleNodeNamedSignal outputSignal)
+    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
         if (!ValidityManager.IsValid())
             throw new InvalidException("Condition must be valid to get Spice representation");
