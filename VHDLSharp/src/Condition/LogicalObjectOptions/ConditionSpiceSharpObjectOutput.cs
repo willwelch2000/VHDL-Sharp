@@ -1,4 +1,4 @@
-namespace VHDLSharp.Signals;
+namespace VHDLSharp.Conditions;
 
 using VHDLSharp.LogicTree;
 using SpiceSharp;
@@ -9,11 +9,6 @@ using SpiceSharp.Entities;
 /// </summary>
 internal class ConditionSpiceSharpObjectOutput
 {
-    /// <summary>
-    /// Signal names of this portion
-    /// </summary>
-    internal string OutputSignalName { get; set; } = string.Empty;
-
     /// <summary>
     /// Spice# entities added by the process
     /// </summary>

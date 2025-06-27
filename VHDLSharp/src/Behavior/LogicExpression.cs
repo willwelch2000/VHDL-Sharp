@@ -58,7 +58,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// Only includes the right-hand side of the VHDL statement
     /// </summary>
     /// <returns></returns>
-    public string GetVhdl() => InnerExpression.GenerateLogicalObject(SignalVhdlObjectOptions, new()).VhdlString;
+    public string GetVhdl() => InnerExpression.GenerateLogicalObject(ISignal.SignalVhdlObjectOptions, new()).VhdlString;
 
     /// <summary>
     /// Gets Spice representation of logical expression of signals
@@ -71,7 +71,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
-        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
+        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(ISignal.SignalSpiceSharpObjectOptions, new()
         {
             UniqueId = $"{uniqueId}_0",
         });
@@ -165,26 +165,4 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
         => expression is LogicExpression logicExpression ? logicExpression : new(expression);
-
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
-
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
-    {
-        get
-        {
-            signalSpiceSharpObjectOptions ??= ISignal.SignalSpiceSharpObjectOptions;
-            return signalSpiceSharpObjectOptions!;
-        }
-    }
-
-    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput>? signalVhdlObjectOptions;
-
-    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> SignalVhdlObjectOptions
-    {
-        get
-        {
-            signalVhdlObjectOptions ??= ISignal.SignalVhdlObjectOptions;
-            return signalVhdlObjectOptions!;
-        }
-    }
 }
