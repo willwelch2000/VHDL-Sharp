@@ -5,7 +5,7 @@ using SpiceSharp;
 using SpiceSharp.Entities;
 
 /// <summary>
-/// Class used as return value for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object
+/// Class used as return value for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object from a signal tree
 /// </summary>
 internal class SignalSpiceSharpObjectOutput
 {

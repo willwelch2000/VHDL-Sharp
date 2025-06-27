@@ -298,7 +298,7 @@ public static class SpiceUtil
     /// L--normal load, LO--override load, Q--output
     /// </summary>
     /// <returns></returns>
-    internal static INamedSubcircuitDefinition GetDLatchWithOverride()
+    internal static INamedSubcircuitDefinition GetDLatchWithOverrideSubcircuit()
     {
         if (dLatchWithOverride is not null)
             return dLatchWithOverride;
@@ -328,7 +328,7 @@ public static class SpiceUtil
         return dLatchWithOverride;
     }
 
-    public static Circuit GetSrLatchCircuit()
+    internal static Circuit GetSrLatchCircuit()
     {
         Circuit circuit = [.. CommonEntities];
         INamedSubcircuitDefinition nand2 = GetNandSubcircuit(2);
@@ -344,7 +344,7 @@ public static class SpiceUtil
     /// CLK--synchronous clock, LA--async load, Q--output
     /// </summary>
     /// <returns></returns>
-    internal static INamedSubcircuitDefinition GetDffWithAsyncLoad()
+    internal static INamedSubcircuitDefinition GetDffWithAsyncLoadSubcircuit()
     {
         if (dffWithAsyncLoad is not null)
             return dffWithAsyncLoad;
@@ -353,7 +353,7 @@ public static class SpiceUtil
         string[] pins = ["D", "DA", "CLK", "LA", "Q"];
 
         INamedSubcircuitDefinition inv = GetNotSubcircuit();
-        INamedSubcircuitDefinition latch = GetDLatchWithOverride();
+        INamedSubcircuitDefinition latch = GetDLatchWithOverrideSubcircuit();
 
         // CLK inverters
         circuit.Add(new Subcircuit("inv1", inv, "CLK", "CLKb"));

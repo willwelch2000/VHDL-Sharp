@@ -106,55 +106,128 @@ public class DynamicBehavior : Behavior
             throw new Exception("Must have at least one condition mapping");
 
         // Create intermediate signals for inner conditions and behaviors, and add their circuits to list
-        INamedSignal[] intermediateSignals = new INamedSignal[ConditionMappings.Count];
+        List<(INamedSignal value, ISingleNodeNamedSignal condition)> asyncSignals = [];
+        INamedSignal? dSignal = null;
         ISingleNodeNamedSignal? clkSignal = null;
         ISingleNodeNamedSignal? enSignal = null;
         List<SpiceCircuit> intermediateCircuits = [];
         int dimension = outputSignal.Dimension.NonNullValue;
         foreach ((int i, (ILogicallyCombinable<ICondition> innerCondition, ICombinationalBehavior innerBehavior)) in ConditionMappings.Index())
         {
-            // Generate intermediate signal matching dimension of output
+            // Generate intermediate signal from behavior matching dimension of output
             string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"inner{i}");
-            INamedSignal signal;
-            if (dimension == 1)
-                signal = new Signal(intermediateName, outputSignal.ParentModule);
-            else
-                signal = new Vector(intermediateName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
-            intermediateSignals[i] = signal;
-            intermediateCircuits.Add(innerBehavior.GetSpice(signal, $"{uniqueId}_{i}_0"));
+            INamedSignal intSignal = dimension == 1 ? new Signal(intermediateName, outputSignal.ParentModule) :
+                new Vector(intermediateName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
+            intermediateCircuits.Add(innerBehavior.GetSpice(intSignal, $"{uniqueId}_{i}_0"));
+
+            ILogicallyCombinable<ICondition> GetConditionWithoutEvent(LogicTree<ICondition> tree)
+            {
+                ILogicallyCombinable<ICondition>[] inputsWithoutEvent = [.. tree.Inputs.Where(i => i is not IEventDrivenCondition)];
+                return inputsWithoutEvent.Length == 1 ? inputsWithoutEvent[0] : new And<ICondition>(inputsWithoutEvent);
+            }
+
+            void HandleEvent(IEventDrivenCondition eventDrivenCondition)
+            {
+                clkSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}Clk"), outputSignal.ParentModule);
+                intermediateCircuits.Add(eventDrivenCondition.GetSpice($"{uniqueId}_{i}_0", clkSignal));
+                dSignal = intSignal;
+            }
+
+            void HandleAsyncLoad(ILogicallyCombinable<ICondition> condition)
+            {
+                Signal select = new(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}Sel"), outputSignal.ParentModule);
+                asyncSignals.Add((intSignal, select));
+                // intermediateCircuits.Add(innerCondition.PerformFunction(select)); TODO
+            }
+
+            void HandleEnable(ILogicallyCombinable<ICondition> condition)
+            {
+                enSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}En"), outputSignal.ParentModule);
+                // intermediateCircuits.Add(andWithoutEvent.PerformFunction(enSignal)) TODO
+            }
 
             switch (innerCondition)
             {
                 // Event-driven condition without enable
                 case IEventDrivenCondition eventDrivenCondition:
-                    clkSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}"), outputSignal.ParentModule);
-                    intermediateCircuits.Add(eventDrivenCondition.GetSpice($"{uniqueId}_{i}_0", clkSignal));
+                    HandleEvent(eventDrivenCondition);
                     break;
                 // Event-driven condition with enable
-                case And<ICondition> andCondition when andCondition.Inputs.Any(i => i is IEventDrivenCondition):
+                case And<ICondition> andCondition when andCondition.Inputs.OfType<IEventDrivenCondition>().FirstOrDefault() is IEventDrivenCondition eventDrivenCondition:
+                    HandleEvent(eventDrivenCondition);
+                    // Enable function
+                    ILogicallyCombinable<ICondition> andWithoutEvent = GetConditionWithoutEvent(andCondition);
+                    HandleEnable(andWithoutEvent);
                     break;
                 // Event-driven condition without enable, paired with a constant condition
-                case Or<ICondition> orCondition when orCondition.Inputs.Any(i => i is IEventDrivenCondition):
+                case Or<ICondition> orCondition when orCondition.Inputs.OfType<IEventDrivenCondition>().FirstOrDefault() is IEventDrivenCondition eventDrivenCondition:
+                    HandleEvent(eventDrivenCondition);
+                    // Asynchronous load--Select
+                    ILogicallyCombinable<ICondition> orWithoutEvent = GetConditionWithoutEvent(orCondition);
+                    HandleAsyncLoad(orWithoutEvent);
                     break;
                 // No event-driven condition
                 default:
+                    // Asynchronous load--Select
+                    HandleAsyncLoad(innerCondition);
                     break;
             }
         }
 
+        INamedSignal? dAfterEnSignal = dSignal;
+        string qName = SpiceUtil.GetSpiceName(uniqueId, 0, $"Q");
+        INamedSignal qSignal = dimension == 1 ? new Signal(qName, outputSignal.ParentModule) :
+            new Vector(qName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
         List<IEntity> additionalEntities = [];
+        string[]? dAfterEnSignalBits = null;
+        string[] qSignalBits = [.. qSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
 
-        // A single event-based condition
-        if (ConditionMappings.Count == 1 && ConditionMappings[0].Condition is IEventDrivenCondition)
+        // MUX--add MUX in each dimension if enable signal is present
+        if (enSignal is not null)
         {
-            // Add DFF for each dimension
-            foreach ((int i, (ISingleNodeNamedSignal outputSingleSignal, ISingleNodeNamedSignal interSingleSignal)) in outputSignal.ToSingleNodeSignals.Zip(intermediateSignals[0].ToSingleNodeSignals).Index())
-            {
-                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoad(), interSingleSignal.GetSpiceName(), "0", "", "0", outputSingleSignal.GetSpiceName()));
-            }
-
-            return new SpiceCircuit(additionalEntities).CombineWith(intermediateCircuits).WithCommonEntities();
+            if (dSignal is null) throw new("Impossible");
+            string dAfterEnName = SpiceUtil.GetSpiceName(uniqueId, 0, $"dAfterEn");
+            dAfterEnSignal = dimension == 1 ? new Signal(dAfterEnName, outputSignal.ParentModule) :
+                new Vector(dAfterEnName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
+            string[] dSignalBits = [.. dSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+            dAfterEnSignalBits = [.. dAfterEnSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+            for (int i = 0; i < dimension; i++)
+                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "MUX"), SpiceUtil.GetMuxSubcircuit(1), dSignalBits[i], qSignalBits[i], dAfterEnSignalBits[i]));
         }
+
+        dAfterEnSignalBits ??= dSignal is null ? [.. Enumerable.Range(0, dimension).Select(i => "0")] : [.. dSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+
+        // DFF--add DFF in each dimension no matter what
+        string[] outputSignalBits = [.. outputSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+        string[] asyncLoadSignalBits = []; // TODO
+        for (int i = 0; i < dimension; i++)
+            additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoadSubcircuit(), dAfterEnSignalBits[i], outputSignalBits[i], clkSignal?.GetSpiceName() ?? "0", asyncLoadSignalBits[i], qSignalBits[i]));
+
+
+        // for (int i = 0; i < outputSignal.Dimension.NonNullValue; i++)
+        // {
+        //     // MUX
+        //     // ISingleNodeNamedSignal dSignal;
+        //     if (enSignal is not null)
+        //     {
+        //         if (dSignal is null)
+        //             throw new("Impossible");
+        //         intermediateCircuits.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "MUX"), SpiceUtil.GetMuxSubcircuit(1), ))
+        //             }
+        // }
+
+
+        // // A single event-based condition
+        // if (ConditionMappings.Count == 1 && ConditionMappings[0].Condition is IEventDrivenCondition)
+        // {
+        //     // Add DFF for each dimension
+        //     foreach ((int i, (ISingleNodeNamedSignal outputSingleSignal, ISingleNodeNamedSignal interSingleSignal)) in outputSignal.ToSingleNodeSignals.Zip(intermediateSignals[0].ToSingleNodeSignals).Index())
+        //     {
+        //         additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoadSubcircuit(), interSingleSignal.GetSpiceName(), "0", "", "0", outputSingleSignal.GetSpiceName()));
+        //     }
+
+        //     return new SpiceCircuit(additionalEntities).CombineWith(intermediateCircuits).WithCommonEntities();
+        // }
 
         throw new NotImplementedException();
     }

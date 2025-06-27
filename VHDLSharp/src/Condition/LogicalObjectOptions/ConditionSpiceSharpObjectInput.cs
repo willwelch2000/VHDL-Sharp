@@ -4,9 +4,9 @@ using VHDLSharp.LogicTree;
 using SpiceSharp;
 
 /// <summary>
-/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object from a signal tree
+/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object from a condition tree
 /// </summary>
-internal class SignalSpiceSharpObjectInput
+internal class ConditionSpiceSharpObjectInput
 {
     /// <summary>
     /// Unique id that this portion can use.
