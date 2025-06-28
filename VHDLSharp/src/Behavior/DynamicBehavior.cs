@@ -118,7 +118,8 @@ public class DynamicBehavior : Behavior
             string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"inner{i}");
             INamedSignal intSignal = dimension == 1 ? new Signal(intermediateName, outputSignal.ParentModule) :
                 new Vector(intermediateName, outputSignal.ParentModule, outputSignal.Dimension.NonNullValue);
-            intermediateCircuits.Add(innerBehavior.GetSpice(intSignal, $"{uniqueId}_{i}_0"));
+            int j = 0;
+            intermediateCircuits.Add(innerBehavior.GetSpice(intSignal, $"{uniqueId}_{i}_{j++}"));
 
             ILogicallyCombinable<ICondition> GetConditionWithoutEvent(LogicTree<ICondition> tree)
             {
@@ -129,7 +130,7 @@ public class DynamicBehavior : Behavior
             void HandleEvent(IEventDrivenCondition eventDrivenCondition)
             {
                 clkSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}Clk"), outputSignal.ParentModule);
-                intermediateCircuits.Add(eventDrivenCondition.GetSpice($"{uniqueId}_{i}_0", clkSignal));
+                intermediateCircuits.Add(eventDrivenCondition.GetSpice($"{uniqueId}_{i}_{j++}", clkSignal));
                 dSignal = intSignal;
             }
 
@@ -137,13 +138,21 @@ public class DynamicBehavior : Behavior
             {
                 Signal select = new(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}Sel"), outputSignal.ParentModule);
                 asyncSignals.Add((intSignal, select));
-                // intermediateCircuits.Add(innerCondition.PerformFunction(select)); TODO
+                intermediateCircuits.Add(condition.GenerateLogicalObject(IConstantCondition.ConditionSpiceSharpObjectOptions, new()
+                {
+                    UniqueId = $"{uniqueId}_{i}_{j++}",
+                    OutputSignal = select,
+                }));
             }
 
             void HandleEnable(ILogicallyCombinable<ICondition> condition)
             {
                 enSignal = new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}En"), outputSignal.ParentModule);
-                // intermediateCircuits.Add(andWithoutEvent.PerformFunction(enSignal)) TODO
+                intermediateCircuits.Add(condition.GenerateLogicalObject(IConstantCondition.ConditionSpiceSharpObjectOptions, new()
+                {
+                    UniqueId = $"{uniqueId}_{i}_{j++}",
+                    OutputSignal = enSignal,
+                }));
             }
 
             switch (innerCondition)
