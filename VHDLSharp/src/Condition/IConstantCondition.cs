@@ -1,6 +1,8 @@
+using SpiceSharp.Components;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Signals;
 using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp.Conditions;
 
@@ -20,43 +22,69 @@ public interface IConstantCondition : ICondition
     /// <returns></returns>
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal);
 
-    private static CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, ConditionSpiceSharpObjectOutput>? conditionSpiceSharpObjectOptions;
+    private static CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, SpiceCircuit>? conditionSpiceSharpObjectOptions;
 
-    internal static CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, ConditionSpiceSharpObjectOutput> ConditionSpiceSharpObjectOptions
+    internal static CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, SpiceCircuit> ConditionSpiceSharpObjectOptions
     {
         get
         {
             if (conditionSpiceSharpObjectOptions is not null)
                 return conditionSpiceSharpObjectOptions;
 
-            CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, ConditionSpiceSharpObjectOutput> options = new();
+            CustomLogicObjectOptions<ICondition, ConditionSpiceSharpObjectInput, SpiceCircuit> options = new();
 
-            ConditionSpiceSharpObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ICondition>> innerExpressions, ConditionSpiceSharpObjectInput additionalInput)
+            SpiceCircuit AndOrFunction(IEnumerable<ILogicallyCombinable<ICondition>> innerExpressions, ConditionSpiceSharpObjectInput additionalInput, bool and)
             {
                 if (!innerExpressions.Any())
-                    throw new Exception("Must be at least 1 inner expression for And Function");
+                    throw new Exception($"Must be at least 1 inner expression for {(and ? "And" : "Or")} Function");
+
+                List<SpiceCircuit> circuits = [];
+                List<string> innerOutputs = [];
+                foreach ((int i, ILogicallyCombinable<ICondition> innerExpression) in innerExpressions.Index())
+                {
+                    string subUniqueId = additionalInput.UniqueId + "_" + i;
+                    string innerOutput = SpiceUtil.GetSpiceName(subUniqueId, 0, "out");
+                    innerOutputs.Add(innerOutput);
+                    circuits.Add(innerExpression.GenerateLogicalObject(options, new()
+                    {
+                        UniqueId = subUniqueId,
+                        OutputSignal = new Signal(innerOutput, additionalInput.OutputSignal.ParentModule),
+                    }));
+                }
+
+                circuits.Add(new([new Subcircuit(SpiceUtil.GetSpiceName(additionalInput.UniqueId, 0, and ? "And" : "Or"), and ? SpiceUtil.GetAndSubcircuit(innerOutputs.Count) : SpiceUtil.GetOrSubcircuit(innerOutputs.Count), 
+                    [.. innerOutputs, additionalInput.OutputSignal.GetSpiceName()])]));
+                
+                return SpiceCircuit.Combine(circuits);
             }
-            
-            ConditionSpiceSharpObjectOutput OrFunction(IEnumerable<ILogicallyCombinable<ICondition>> innerExpressions, ConditionSpiceSharpObjectInput additionalInput)
+
+            SpiceCircuit AndFunction(IEnumerable<ILogicallyCombinable<ICondition>> innerExpressions, ConditionSpiceSharpObjectInput additionalInput) =>
+                AndOrFunction(innerExpressions, additionalInput, true);
+
+            SpiceCircuit OrFunction(IEnumerable<ILogicallyCombinable<ICondition>> innerExpressions, ConditionSpiceSharpObjectInput additionalInput) =>
+                AndOrFunction(innerExpressions, additionalInput, false);
+
+            SpiceCircuit NotFunction(ILogicallyCombinable<ICondition> innerExpression, ConditionSpiceSharpObjectInput additionalInput)
             {
-                if (!innerExpressions.Any())
-                    throw new Exception("Must be at least 1 inner expression for Or Function");
+                string subUniqueId = additionalInput.UniqueId + "_0";
+                string innerOutput = SpiceUtil.GetSpiceName(subUniqueId, 0, "out");
+                SpiceCircuit innerCircuit = innerExpression.GenerateLogicalObject(options, new()
+                {
+                    UniqueId = subUniqueId,
+                    OutputSignal = new Signal(innerOutput, additionalInput.OutputSignal.ParentModule)
+                });
+
+                SpiceCircuit newCircuit = new([new Subcircuit(SpiceUtil.GetSpiceName(additionalInput.UniqueId, 0, "not"), SpiceUtil.GetNotSubcircuit(),
+                    innerOutput, additionalInput.OutputSignal.GetSpiceName())]);
+                return innerCircuit.CombineWith(newCircuit);
             }
 
-            ConditionSpiceSharpObjectOutput NotFunction(ILogicallyCombinable<ICondition> innerExpression, ConditionSpiceSharpObjectInput additionalInput)
-            {
-
-            }
-
-            ConditionSpiceSharpObjectOutput BaseFunction(ICondition innerExpression, ConditionSpiceSharpObjectInput additionalInput)
+            SpiceCircuit BaseFunction(ICondition innerExpression, ConditionSpiceSharpObjectInput additionalInput)
             {
                 if (innerExpression is not IConstantCondition constantCondition)
                     throw new Exception("Must be a constant condition to combine with others to create Spice");
 
-                return new()
-                {
-                    SpiceSharpEntities = constantCondition.GetSpice(additionalInput.UniqueId, additionalInput.OutputSignal).CircuitElements,
-                };
+                return constantCondition.GetSpice(additionalInput.UniqueId, additionalInput.OutputSignal);
 
             }
 

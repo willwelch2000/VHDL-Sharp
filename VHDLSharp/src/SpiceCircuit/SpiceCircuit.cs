@@ -10,13 +10,25 @@ namespace VHDLSharp.SpiceCircuits;
 /// <summary>
 /// Class used to define a Spice circuit, using Spice# entities
 /// </summary>
-/// <param name="circuitElements">entities in the circuit</param>
-public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
+public class SpiceCircuit
 {
+    /// <summary>Default constructor</summary>
+    public SpiceCircuit()
+    {
+        CircuitElements = new Circuit();
+    }
+
+    /// <summary>Constructor given elements</summary>
+    /// <param name="circuitElements">entities in the circuit</param>
+    public SpiceCircuit(IEnumerable<IEntity> circuitElements)
+    {
+        CircuitElements = new Circuit(circuitElements);
+    }
+
     /// <summary>
     /// Entities in the circuit
     /// </summary>
-    public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
+    public IEntityCollection CircuitElements { get; }
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
