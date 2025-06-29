@@ -55,7 +55,7 @@ public class SpiceCircuit
         ISet<ISubcircuitDefinition> defsUsedHere = GetSubcircuitDefinitions(false);
 
         // Generate inner context to be used in subcircuits, initializing models context to all the models here + those in the given context
-        // and subcircuit definitions context to those in the given context + subcircuit definitions used here
+        // and subcircuit definitions context to all subcircuit definitions used here + those in the given context
         CircuitContext innerContext = new()
         {
             Models = new HashSet<IEntity>([.. circuitContext.Models, .. CircuitElements.Where(e => e.IsModel())]),
