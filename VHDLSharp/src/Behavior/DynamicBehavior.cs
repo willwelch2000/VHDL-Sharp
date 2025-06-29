@@ -231,7 +231,7 @@ public class DynamicBehavior : Behavior
         }
 
         // OR tree for all async select signals
-            ISingleNodeNamedSignal? asyncLoadSignal = asyncSignalCount != 0 ? new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, "LA"), module) : null;
+        ISingleNodeNamedSignal? asyncLoadSignal = asyncSignalCount != 0 ? new Signal(SpiceUtil.GetSpiceName(uniqueId, 0, "LA"), module) : null;
         // List that keeps up with the signals that need to be ORed together--updates after each level of ORs
         ISingleNodeNamedSignal[] signalsForNextLevel = [.. asyncSignals.Select(s => s.condition)];
         j = 0;
@@ -255,8 +255,8 @@ public class DynamicBehavior : Behavior
                     {
                         Signal orTreeSig = new(SpiceUtil.GetSpiceName(uniqueId, 0, "OrTree" + k), module);
                         newSignalsForNextLevel.Add(orTreeSig);
-                        additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "OR" + k++), SpiceUtil.GetOrSubcircuit(4), 
-                            [.. signalsForNextLevel[(4*k)..(4*(k+1))].Append(orTreeSig).Select(s => s.GetSpiceName())]));
+                        additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "OR" + k++), SpiceUtil.GetOrSubcircuit(4),
+                            [.. signalsForNextLevel[(4 * k)..(4 * (k + 1))].Append(orTreeSig).Select(s => s.GetSpiceName())]));
                     }
                     // 1 left
                     if (k * 4 + 1 == signalsForNextLevel.Length)
@@ -266,8 +266,8 @@ public class DynamicBehavior : Behavior
                     {
                         Signal orTreeSig = new(SpiceUtil.GetSpiceName(uniqueId, 0, "OrTree" + k), module);
                         newSignalsForNextLevel.Add(orTreeSig);
-                        additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "OR" + k), SpiceUtil.GetOrSubcircuit(signalsForNextLevel.Length - 4*k), 
-                            [.. signalsForNextLevel[(4*k)..].Append(orTreeSig).Select(s => s.GetSpiceName())]));
+                        additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "OR" + k), SpiceUtil.GetOrSubcircuit(signalsForNextLevel.Length - 4 * k),
+                            [.. signalsForNextLevel[(4 * k)..].Append(orTreeSig).Select(s => s.GetSpiceName())]));
                     }
                     break;
             }
@@ -279,33 +279,7 @@ public class DynamicBehavior : Behavior
             additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoadSubcircuit(),
                 dAfterEnSignalBits[i], outputSignalBits[i], clkSignal?.GetSpiceName() ?? "0", asyncLoadSignal is null ? "0" : asyncLoadSignal.GetSpiceName(), qSignalBits[i]));
 
-
-        // for (int i = 0; i < outputSignal.Dimension.NonNullValue; i++)
-        // {
-        //     // MUX
-        //     // ISingleNodeNamedSignal dSignal;
-        //     if (enSignal is not null)
-        //     {
-        //         if (dSignal is null)
-        //             throw new("Impossible");
-        //         intermediateCircuits.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "MUX"), SpiceUtil.GetMuxSubcircuit(1), ))
-        //             }
-        // }
-
-
-        // // A single event-based condition
-        // if (ConditionMappings.Count == 1 && ConditionMappings[0].Condition is IEventDrivenCondition)
-        // {
-        //     // Add DFF for each dimension
-        //     foreach ((int i, (ISingleNodeNamedSignal outputSingleSignal, ISingleNodeNamedSignal interSingleSignal)) in outputSignal.ToSingleNodeSignals.Zip(intermediateSignals[0].ToSingleNodeSignals).Index())
-        //     {
-        //         additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, i, "DFF"), SpiceUtil.GetDffWithAsyncLoadSubcircuit(), interSingleSignal.GetSpiceName(), "0", "", "0", outputSingleSignal.GetSpiceName()));
-        //     }
-
-        //     return new SpiceCircuit(additionalEntities).CombineWith(intermediateCircuits).WithCommonEntities();
-        // }
-
-        throw new NotImplementedException();
+        return SpiceCircuit.Combine([.. intermediateCircuits, new(additionalEntities)]);
     }
 
     /// <inheritdoc/>
