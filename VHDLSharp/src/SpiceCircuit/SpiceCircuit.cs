@@ -10,13 +10,25 @@ namespace VHDLSharp.SpiceCircuits;
 /// <summary>
 /// Class used to define a Spice circuit, using Spice# entities
 /// </summary>
-/// <param name="circuitElements">entities in the circuit</param>
-public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
+public class SpiceCircuit
 {
+    /// <summary>Default constructor</summary>
+    public SpiceCircuit()
+    {
+        CircuitElements = new Circuit();
+    }
+
+    /// <summary>Constructor given elements</summary>
+    /// <param name="circuitElements">entities in the circuit</param>
+    public SpiceCircuit(IEnumerable<IEntity> circuitElements)
+    {
+        CircuitElements = new Circuit(circuitElements);
+    }
+
     /// <summary>
     /// Entities in the circuit
     /// </summary>
-    public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
+    public IEntityCollection CircuitElements { get; }
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
@@ -43,7 +55,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         ISet<ISubcircuitDefinition> defsUsedHere = GetSubcircuitDefinitions(false);
 
         // Generate inner context to be used in subcircuits, initializing models context to all the models here + those in the given context
-        // and subcircuit definitions context to those in the given context + subcircuit definitions used here
+        // and subcircuit definitions context to all subcircuit definitions used here + those in the given context
         CircuitContext innerContext = new()
         {
             Models = new HashSet<IEntity>([.. circuitContext.Models, .. CircuitElements.Where(e => e.IsModel())]),

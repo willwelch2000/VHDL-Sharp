@@ -92,11 +92,11 @@ public class StimulusTests
         Assert.AreEqual(4, points.Length);
         Assert.AreEqual(1, points[0].Time);
         Assert.AreEqual(5, points[0].Value);
-        Assert.AreEqual(1.000001, points[1].Time);
+        Assert.AreEqual(1.00000001, points[1].Time);
         Assert.AreEqual(5, points[1].Value);
         Assert.AreEqual(2, points[2].Time);
         Assert.AreEqual(5, points[2].Value);
-        Assert.AreEqual(2.000001, points[3].Time);
+        Assert.AreEqual(2.00000001, points[3].Time);
         Assert.AreEqual(0, points[3].Value);
 
         // Sim rule

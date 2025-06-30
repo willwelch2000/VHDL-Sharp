@@ -18,12 +18,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        TestSpiceSharpLatch();
-
-        // TODO
-        // 1. Add enable to DFF (MUX at main input between D and Q)--maybe just add this on top in DynamicBehavior
-        // 2. Figure out how to perform logic combos with Spice (AND/OR/NOT on conditions)
-        // 3. Connect the condition-combo output to the CLK of the DFF
+        TestDynamicSpice();
     }
 
     public static void MainTest()
@@ -102,13 +97,13 @@ public static class Program
         Vector output = new("out", module1, 3);
         Port pOut = module1.AddNewPort(output, PortDirection.Output);
         Port pSelector = module1.AddNewPort(selector, PortDirection.Input);
-        CaseBehavior behavior =  new(selector);
+        CaseBehavior behavior = new(selector);
         behavior.AddCase(0, new Literal(7, 3));
         behavior.AddCase(1, new Literal(6, 3));
         behavior.AddCase(2, new Literal(3, 3));
         behavior.SetDefault(new Literal(1, 3));
         module1.SignalBehaviors[output] = behavior;
-        
+
         SpiceBasedSimulation setup = new(module1)
         {
             Length = 4e-3,
@@ -166,7 +161,7 @@ public static class Program
     public static void TestSpiceSharp()
     {
         EntityCollection entities = [];
-        
+
         double vdd = 5;
         string nmosModelName = "NmosMod";
         string pmosModelName = "PmosMod";
@@ -190,7 +185,7 @@ public static class Program
         SubcircuitDefinition subcircuit = new(entities, "1", "2");
 
         Circuit circuit = [.. entities];
-        
+
         var tran = new Transient("Tran 1", 1e-3, 0.1);
 
         var s1 = new RealVoltageExport(tran, "s1");
@@ -225,11 +220,11 @@ public static class Program
 
         TimeDefinedStimulus s1Stimulus = new()
         {
-            Points = new() { {0, false}, {2, true}, {3, false} }
+            Points = new() { { 0, false }, { 2, true }, { 3, false } }
         };
         TimeDefinedStimulus s2Stimulus = new()
         {
-            Points = new() { {0, false}, {1, true} }
+            Points = new() { { 0, false }, { 1, true } }
         };
         MultiDimensionalStimulus v1Stimulus = new([
             new PulseStimulus(2, 10, 20),
@@ -338,35 +333,35 @@ public static class Program
 
     public static void TestSpiceSharpLatch()
     {
-        Circuit circuit = SpiceUtil.GetSrLatchCircuit();
-        circuit.Add(new VoltageSource("V1", "Sb", "0", new Pulse(5, 0, 4e-6, 1e-9, 1e-9, 1e-6, 5e-6)));
-        circuit.Add(new VoltageSource("V2", "Rb", "0", 5));
+        // Circuit circuit = SpiceUtil.GetSrLatchCircuit();
+        // circuit.Add(new VoltageSource("V1", "Sb", "0", new Pulse(5, 0, 4e-6, 1e-9, 1e-9, 1e-6, 5e-6)));
+        // circuit.Add(new VoltageSource("V2", "Rb", "0", 5));
 
-        var tran = new Transient("Tran 1", 0.1e-6, 10e-6, 0.1e-6);
-        var sbExp = new RealVoltageExport(tran, "Sb");
-        var rbExp = new RealVoltageExport(tran, "Rb");
-        var qExp = new RealVoltageExport(tran, "Q");
+        // var tran = new Transient("Tran 1", 0.1e-6, 10e-6, 0.1e-6);
+        // var sbExp = new RealVoltageExport(tran, "Sb");
+        // var rbExp = new RealVoltageExport(tran, "Rb");
+        // var qExp = new RealVoltageExport(tran, "Q");
 
-        List<double> time = [];
-        List<double> sbResults = [];
-        List<double> rbResults = [];
-        List<double> qResults = [];
+        // List<double> time = [];
+        // List<double> sbResults = [];
+        // List<double> rbResults = [];
+        // List<double> qResults = [];
 
-        foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
-        {
-            time.Add(tran.Time);
-            sbResults.Add(sbExp.Value);
-            rbResults.Add(rbExp.Value);
-            qResults.Add(qExp.Value);
-        }
+        // foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
+        // {
+        //     time.Add(tran.Time);
+        //     sbResults.Add(sbExp.Value);
+        //     rbResults.Add(rbExp.Value);
+        //     qResults.Add(qExp.Value);
+        // }
 
-        Plot plot = new();
-        plot.Add.ScatterLine(time, sbResults, Colors.Blue);
-        plot.Add.ScatterLine(time, rbResults, Colors.Red);
-        plot.Add.ScatterLine(time, qResults, Colors.Green);
-        plot.SavePng("test.png", 1000, 1000);
+        // Plot plot = new();
+        // plot.Add.ScatterLine(time, sbResults, Colors.Blue);
+        // plot.Add.ScatterLine(time, rbResults, Colors.Red);
+        // plot.Add.ScatterLine(time, qResults, Colors.Green);
+        // plot.SavePng("test.png", 1000, 1000);
     }
-    
+
     private static void AndLiteralTest()
     {
         Module m1 = new("m1");
@@ -399,5 +394,19 @@ public static class Program
         plot.Add.Scatter(results[0].TimeSteps, results[0].Values, ScottPlot.Color.FromHex("#CCCCFF"));
         plot.Add.Scatter(results[1].TimeSteps, results[1].Values, ScottPlot.Colors.Red);
         plot.SavePng("results.png", 400, 300);
+    }
+
+    private static void TestDynamicSpice()
+    {
+        Module flipFlopModule = new("FlipFlopMod");
+        Signal load = flipFlopModule.GenerateSignal("LOAD");
+        Signal outSig = flipFlopModule.GenerateSignal("OUT");
+        flipFlopModule.AddNewPort(load, PortDirection.Input);
+        Port pIn = flipFlopModule.AddNewPort("IN", PortDirection.Input);
+        flipFlopModule.AddNewPort(outSig, PortDirection.Output);
+        DynamicBehavior behavior = new();
+        behavior.ConditionMappings.Add((load.RisingEdge, new LogicBehavior(pIn.Signal)));
+        outSig.AssignBehavior(behavior);
+        File.WriteAllText("OutputSpice.txt", flipFlopModule.GetSpice().AsString());
     }
 }

@@ -113,21 +113,21 @@ public class ConditionTests
 
         TimeDefinedStimulus s1Stimulus = new()
         {
-            Points = new() { {0, false}, {2e-2, true}, {3e-2, false} }
+            Points = new() { {0, false}, {2e-5, true}, {3e-5, false} }
         };
         TimeDefinedStimulus s2Stimulus = new()
         {
-            Points = new() { {0, false}, {1e-2, true} }
+            Points = new() { {0, false}, {1e-5, true} }
         };
         MultiDimensionalStimulus v1Stimulus = new([
-            new PulseStimulus(2e-2, 10e-2, 20e-2),
+            new PulseStimulus(2e-5, 10e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(2e-2, 10e-2, 20e-2),
+            new PulseStimulus(2e-5, 10e-5, 20e-5),
         ]);
         MultiDimensionalStimulus v2Stimulus = new([
-            new PulseStimulus(1e-2, 10e-2, 20e-2),
+            new PulseStimulus(1e-5, 10e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(1e-2, 10e-2, 20e-2),
+            new PulseStimulus(1e-5, 10e-5, 20e-5),
         ]);
         SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
             s1Stimulus.GetSpice(s1, "s1Stimulus"),
@@ -136,12 +136,12 @@ public class ConditionTests
             v2Stimulus.GetSpice(v2, "v2Stimulus"),
         ]);
 
-        Circuit equalitySingleCircuit = equalitySingle.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit equalityVectorCircuit = equalityVector.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit risingEdgeCircuit = risingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit fallingEdgeCircuit = fallingEdge.GetSpiceCircuit("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
 
-        var tran = new Transient("Tran 1", 0.1e-2, 5e-2);
+        var tran = new Transient("Tran 1", 0.1e-5, 5e-5);
         var s3Exp = new RealVoltageExport(tran, "s3");
 
         // Check single-node equality
@@ -149,10 +149,10 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-2-Util.TimeBuffer => true,
-                > 1e-2+Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
-                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => true,
-                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => false,
+                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
+                > 1e-5+Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
+                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
+                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -165,9 +165,9 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-2-Util.TimeBuffer => true,
-                > 1e-2+Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
-                > 2e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => true,
+                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
+                > 1e-5+Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
+                > 2e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => true,
                 _ => null,
             };
 
@@ -180,9 +180,9 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 2e-2-Util.TimeBuffer => false,
-                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => true,
-                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => false,
+                >      Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
+                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
+                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -195,9 +195,9 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 2e-2-Util.TimeBuffer => true,
-                > 2e-2+Util.TimeBuffer and < 3e-2-Util.TimeBuffer => false,
-                > 3e-2+Util.TimeBuffer and < 4e-2-Util.TimeBuffer => true,
+                >      Util.TimeBuffer and < 2e-5-Util.TimeBuffer => true,
+                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => false,
+                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => true,
                 _ => null,
             };
 
