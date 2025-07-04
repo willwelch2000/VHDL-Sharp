@@ -7,6 +7,7 @@ using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Conditions;
 
@@ -26,6 +27,8 @@ public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDriven
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context)
     {
+        if (!((IValidityManagedEntity)context).ValidityManager.IsValid())
+            throw new InvalidException("Subcircuit context must be valid to evluate condition");
         SignalReference signalReference = context.GetChildSignalReference(Signal);
         bool[] values = [.. state.GetSingleNodeSignalValues(signalReference)];
         return values.Length > 1 && !values[^2] && values[^1];

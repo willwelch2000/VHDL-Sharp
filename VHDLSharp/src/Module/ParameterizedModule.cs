@@ -24,15 +24,15 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     /// <summary>
     /// Constructor given input object
     /// </summary>
-    /// <param name="input"></param>
-    public ParameterizedModule(T input)
+    /// <param name="options"></param>
+    public ParameterizedModule(T options)
     {
-        if (allModules.TryGetValue(input, out IModule? foundModule))
+        if (allModules.TryGetValue(options, out IModule? foundModule))
             module = foundModule;
         else
         {
-            module = BuildModule(input);
-            allModules.Add(input, module);
+            module = BuildModule(options);
+            allModules.Add(options, module);
         }
     }
 

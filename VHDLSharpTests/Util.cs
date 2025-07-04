@@ -95,7 +95,7 @@ internal static partial class Util
         Port pIn = flipFlopModule.AddNewPort("IN", PortDirection.Input);
         flipFlopModule.AddNewPort(outSig, PortDirection.Output);
         DynamicBehavior behavior = new();
-        behavior.ConditionMappings.Add((load.RisingEdge, new LogicBehavior(pIn.Signal)));
+        behavior.ConditionMappings.Add((load.RisingEdge(), new LogicBehavior(pIn.Signal)));
         outSig.AssignBehavior(behavior);
         return flipFlopModule;
     }

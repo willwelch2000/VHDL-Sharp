@@ -28,7 +28,7 @@ public class ConditionTests
         Assert.ThrowsException<IncompatibleSignalException>(() => new Equality(v1, v3));
         Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
-        FallingEdge fallingEdge = s1.FallingEdge;
+        FallingEdge fallingEdge = s1.FallingEdge();
 
         SubcircuitReference context = new(module1, []);
         SignalReference s1Ref = context.GetChildSignalReference(s1);
@@ -109,7 +109,7 @@ public class ConditionTests
         Equality equalitySingle = new(s1, s2);
         Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
-        FallingEdge fallingEdge = s1.FallingEdge;
+        FallingEdge fallingEdge = s1.FallingEdge();
 
         TimeDefinedStimulus s1Stimulus = new()
         {

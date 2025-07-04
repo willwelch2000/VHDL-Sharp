@@ -22,7 +22,7 @@ public interface ICondition : ILogicallyCombinable<ICondition>
 
     /// <summary>
     /// Determine if the condition is met given the rule-based simulation state. 
-    /// Should evaluate as true based on the previous time step
+    /// Should evaluate as true/false based on the previous time step
     /// </summary>
     /// <param name="state"></param>
     /// <param name="context"></param>

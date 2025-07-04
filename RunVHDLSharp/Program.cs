@@ -216,7 +216,7 @@ public static class Program
         Equality equalitySingle = new(s1, s2);
         Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
-        FallingEdge fallingEdge = s1.FallingEdge;
+        FallingEdge fallingEdge = s1.FallingEdge();
 
         TimeDefinedStimulus s1Stimulus = new()
         {
@@ -405,7 +405,7 @@ public static class Program
         Port pIn = flipFlopModule.AddNewPort("IN", PortDirection.Input);
         flipFlopModule.AddNewPort(outSig, PortDirection.Output);
         DynamicBehavior behavior = new();
-        behavior.ConditionMappings.Add((load.RisingEdge, new LogicBehavior(pIn.Signal)));
+        behavior.ConditionMappings.Add((load.RisingEdge(), new LogicBehavior(pIn.Signal)));
         outSig.AssignBehavior(behavior);
         File.WriteAllText("OutputSpice.txt", flipFlopModule.GetSpice().AsString());
     }

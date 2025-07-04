@@ -59,8 +59,8 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     public void AssignBehavior(bool value) => AssignBehavior(new ValueBehavior(value ? 1 : 0));
 
     /// <inheritdoc/>
-    public RisingEdge RisingEdge => new(this);
+    public RisingEdge RisingEdge() => new(this);
     
     /// <inheritdoc/>
-    public FallingEdge FallingEdge => new(this);
+    public FallingEdge FallingEdge() => new(this);
 }

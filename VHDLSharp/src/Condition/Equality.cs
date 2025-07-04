@@ -52,7 +52,7 @@ public class Equality : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override string ToLogicString() => 
-        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to evaluate") : 
+        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to get string") : 
         $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
