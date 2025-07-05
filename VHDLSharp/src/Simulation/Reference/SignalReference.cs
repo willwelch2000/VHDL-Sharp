@@ -27,8 +27,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         Subcircuit = subcircuitReference;
         Signal = signal;
         manager = new ValidityManager<SubcircuitReference>(this, [subcircuitReference]);
-        // Call updated to check after construction
-        updated?.Invoke(this, EventArgs.Empty);
+        // Check after construction
         if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
             throw exception;
     }

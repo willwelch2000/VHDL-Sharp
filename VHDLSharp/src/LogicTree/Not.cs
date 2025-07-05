@@ -27,4 +27,8 @@ public class Not<T>(ILogicallyCombinable<T> input) : LogicTree<T> where T : ILog
 
     /// <inheritdoc/>
     public override TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) => options.NotFunction(Input, additionalInput);
+
+    /// <inheritdoc/>
+    public override V PerformFunction<V>(Func<T, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not) =>
+        not(Input.PerformFunction(primary, and, or, not));
 }

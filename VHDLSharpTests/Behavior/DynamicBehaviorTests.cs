@@ -1,0 +1,60 @@
+using VHDLSharp.Behaviors;
+using VHDLSharp.Dimensions;
+using VHDLSharp.Modules;
+using VHDLSharp.Simulations;
+
+namespace VHDLSharpTests;
+
+[TestClass]
+public class DynamicBehaviorTests
+{
+    [TestMethod]
+    public void FlipFlopTest()
+    {
+        Module flipFlopMod = Util.GetFlipFlopModule();
+        DynamicBehavior behavior = flipFlopMod.SignalBehaviors.Values.First() as DynamicBehavior ?? throw new();
+        
+        // Basic stuff
+        Assert.AreEqual(flipFlopMod, behavior.ParentModule);
+        Assert.AreEqual(new Dimension(1), behavior.Dimension);
+        
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(flipFlopMod, []);
+        SignalReference outRef = subcircuitRef.GetChildSignalReference("OUT");
+        SimulationRule simRule = behavior.GetSimulationRule(outRef);
+        Assert.AreEqual(outRef, simRule.OutputSignal);
+        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        SignalReference loadRef = subcircuitRef.GetChildSignalReference("LOAD");
+        SignalReference inRef = subcircuitRef.GetChildSignalReference("IN");
+        RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint([], [0], 0);
+        Assert.AreEqual(0, simRule.OutputValueCalculation(state));
+        state = RuleBasedSimulationState.GivenStartingPoint(new()
+        {
+            {loadRef, [0]},
+            {inRef, [0]},
+            {outRef, [0]},
+        }, [0, 1], 1);
+        Assert.AreEqual(0, simRule.OutputValueCalculation(state));
+        state = RuleBasedSimulationState.GivenStartingPoint(new()
+        {
+            {loadRef, [0, 1]},
+            {inRef, [0, 1]},
+            {outRef, [0, 0]},
+        }, [0, 1, 2], 2);
+        Assert.AreEqual(1, simRule.OutputValueCalculation(state));
+        state = RuleBasedSimulationState.GivenStartingPoint(new()
+        {
+            {loadRef, [0, 1]},
+            {inRef, [0, 0]},
+            {outRef, [0, 0]},
+        }, [0, 1, 2], 2);
+        Assert.AreEqual(0, simRule.OutputValueCalculation(state));
+        state = RuleBasedSimulationState.GivenStartingPoint(new()
+        {
+            {loadRef, [0, 1, 1, 0, 1]},
+            {inRef, [0, 1, 1, 0, 0]},
+            {outRef, [0, 0, 1, 1, 1]},
+        }, [0, 1, 2, 3, 4, 5], 5);
+        Assert.AreEqual(0, simRule.OutputValueCalculation(state));
+    }
+}

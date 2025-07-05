@@ -7,6 +7,10 @@ using SpiceSharp;
 using SpiceSharp.Components;
 using SpiceSharp.Simulations;
 using SpiceSharp.Entities;
+using VHDLSharp.Conditions;
+using VHDLSharp.SpiceCircuits;
+using ScottPlot;
+using VHDLSharp.Utility;
 
 namespace VHDLSharp;
 
@@ -14,7 +18,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        AndLiteralTest();
+        TestDynamicSpice();
     }
 
     public static void MainTest()
@@ -93,13 +97,13 @@ public static class Program
         Vector output = new("out", module1, 3);
         Port pOut = module1.AddNewPort(output, PortDirection.Output);
         Port pSelector = module1.AddNewPort(selector, PortDirection.Input);
-        CaseBehavior behavior =  new(selector);
+        CaseBehavior behavior = new(selector);
         behavior.AddCase(0, new Literal(7, 3));
         behavior.AddCase(1, new Literal(6, 3));
         behavior.AddCase(2, new Literal(3, 3));
         behavior.SetDefault(new Literal(1, 3));
         module1.SignalBehaviors[output] = behavior;
-        
+
         SpiceBasedSimulation setup = new(module1)
         {
             Length = 4e-3,
@@ -157,7 +161,7 @@ public static class Program
     public static void TestSpiceSharp()
     {
         EntityCollection entities = [];
-        
+
         double vdd = 5;
         string nmosModelName = "NmosMod";
         string pmosModelName = "PmosMod";
@@ -181,7 +185,7 @@ public static class Program
         SubcircuitDefinition subcircuit = new(entities, "1", "2");
 
         Circuit circuit = [.. entities];
-        
+
         var tran = new Transient("Tran 1", 1e-3, 0.1);
 
         var s1 = new RealVoltageExport(tran, "s1");
@@ -199,7 +203,165 @@ public static class Program
             Console.WriteLine($"Baseout2: {baseout2.Value}");
         }
     }
-    
+
+    public static void TestSpiceSharp2()
+    {
+        Module module1 = new("m1");
+        Signal s1 = module1.GenerateSignal("s1");
+        Signal s2 = module1.GenerateSignal("s2");
+        Signal s3 = module1.GenerateSignal("s3");
+        Vector v1 = module1.GenerateVector("v1", 3);
+        Vector v2 = module1.GenerateVector("v2", 3);
+
+        Equality equalitySingle = new(s1, s2);
+        Equality equalityVector = v1.EqualityWith(v2);
+        RisingEdge risingEdge = new(s1);
+        FallingEdge fallingEdge = s1.FallingEdge();
+
+        TimeDefinedStimulus s1Stimulus = new()
+        {
+            Points = new() { { 0, false }, { 2, true }, { 3, false } }
+        };
+        TimeDefinedStimulus s2Stimulus = new()
+        {
+            Points = new() { { 0, false }, { 1, true } }
+        };
+        MultiDimensionalStimulus v1Stimulus = new([
+            new PulseStimulus(2, 10, 20),
+            new ConstantStimulus(false),
+            new PulseStimulus(2, 10, 20),
+        ]);
+        MultiDimensionalStimulus v2Stimulus = new([
+            new PulseStimulus(1, 10, 20),
+            new ConstantStimulus(false),
+            new PulseStimulus(1, 10, 20),
+        ]);
+        SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
+            s1Stimulus.GetSpice(s1, "s1Stimulus"),
+            s2Stimulus.GetSpice(s2, "s2Stimulus"),
+            v1Stimulus.GetSpice(v1, "v1Stimulus"),
+            v2Stimulus.GetSpice(v2, "v2Stimulus"),
+        ]);
+
+        Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+
+        var tran = new Transient("Tran 1", 0.1, 5);
+        var s1Exp = new RealVoltageExport(tran, "s1");
+        var s2Exp = new RealVoltageExport(tran, "s2");
+        var s3Exp = new RealVoltageExport(tran, "s3");
+
+        List<double> time = [];
+        List<double> s1Results = [];
+        List<double> s2Results = [];
+        List<double> s3Results = [];
+        int i = 0;
+        foreach (int _ in tran.Run(equalitySingleCircuit, Transient.ExportTransient))
+        {
+            Console.WriteLine(i++);
+            Console.WriteLine($"{tran.Time}: {s1Exp.Value}");
+            Console.WriteLine();
+            time.Add(tran.Time);
+            s1Results.Add(s1Exp.Value);
+            s2Results.Add(s2Exp.Value);
+            s3Results.Add(s3Exp.Value);
+        }
+
+        Plot plot = new();
+        plot.Add.ScatterLine(time, s1Results, Colors.Blue);
+        plot.Add.ScatterLine(time, s2Results, Colors.Red);
+        plot.Add.ScatterLine(time, s3Results, Colors.Green);
+        plot.SavePng("test.png", 1000, 1000);
+    }
+
+    public static void TestSpiceSharp3()
+    {
+        Module module1 = new("m1");
+        Signal d = module1.GenerateSignal("D");
+        Signal clk = module1.GenerateSignal("CLK");
+        Signal la = module1.GenerateSignal("LA");
+        Signal da = module1.GenerateSignal("DA");
+        Signal q = module1.GenerateSignal("Q");
+
+        // SpiceCircuit dffCircuit = new(SpiceUtil.GetDffWithAsyncLoad().Entities);
+        SpiceCircuit dffCircuit = new([]);
+        Stimulus dStim = new PulseStimulus(1e-7, 1e-7, 2e-7);
+        Stimulus daStim = new ConstantStimulus(false);
+        Stimulus clkStim = new PulseStimulus(0.5e-7, 0.5e-7, 1e-7);
+        Stimulus laStim = new ConstantStimulus(false);
+
+        SpiceCircuit circuit = SpiceCircuit.Combine([
+            dStim.GetSpice(d, "dStim"),
+            daStim.GetSpice(da, "daStim"),
+            clkStim.GetSpice(clk, "clkStim"),
+            laStim.GetSpice(la, "laStim"),
+            dffCircuit,
+        ]);
+
+        var tran = new Transient("Tran 1", 0.1e-7, 5e-7);
+        var dExp = new RealVoltageExport(tran, "D");
+        var daExp = new RealVoltageExport(tran, "DA");
+        var clkExp = new RealVoltageExport(tran, "CLK");
+        var laExp = new RealVoltageExport(tran, "LA");
+        var qExp = new RealVoltageExport(tran, "Q");
+
+        List<double> time = [];
+        List<double> dResults = [];
+        List<double> daResults = [];
+        List<double> clkResults = [];
+        List<double> laResults = [];
+        List<double> qResults = [];
+
+        foreach (int _ in tran.Run(circuit.AsCircuit(), Transient.ExportTransient))
+        {
+            time.Add(tran.Time);
+            dResults.Add(dExp.Value);
+            daResults.Add(daExp.Value);
+            clkResults.Add(clkExp.Value);
+            laResults.Add(laExp.Value);
+            qResults.Add(qExp.Value);
+        }
+
+        Plot plot = new();
+        plot.Add.ScatterLine(time, dResults, Colors.Blue);
+        plot.Add.ScatterLine(time, clkResults, Colors.Red);
+        plot.Add.ScatterLine(time, qResults, Colors.Green);
+        plot.SavePng("test.png", 1000, 1000);
+    }
+
+    public static void TestSpiceSharpLatch()
+    {
+        // Circuit circuit = SpiceUtil.GetSrLatchCircuit();
+        // circuit.Add(new VoltageSource("V1", "Sb", "0", new Pulse(5, 0, 4e-6, 1e-9, 1e-9, 1e-6, 5e-6)));
+        // circuit.Add(new VoltageSource("V2", "Rb", "0", 5));
+
+        // var tran = new Transient("Tran 1", 0.1e-6, 10e-6, 0.1e-6);
+        // var sbExp = new RealVoltageExport(tran, "Sb");
+        // var rbExp = new RealVoltageExport(tran, "Rb");
+        // var qExp = new RealVoltageExport(tran, "Q");
+
+        // List<double> time = [];
+        // List<double> sbResults = [];
+        // List<double> rbResults = [];
+        // List<double> qResults = [];
+
+        // foreach (int _ in tran.Run(circuit, Transient.ExportTransient))
+        // {
+        //     time.Add(tran.Time);
+        //     sbResults.Add(sbExp.Value);
+        //     rbResults.Add(rbExp.Value);
+        //     qResults.Add(qExp.Value);
+        // }
+
+        // Plot plot = new();
+        // plot.Add.ScatterLine(time, sbResults, Colors.Blue);
+        // plot.Add.ScatterLine(time, rbResults, Colors.Red);
+        // plot.Add.ScatterLine(time, qResults, Colors.Green);
+        // plot.SavePng("test.png", 1000, 1000);
+    }
+
     private static void AndLiteralTest()
     {
         Module m1 = new("m1");
@@ -214,7 +376,7 @@ public static class Program
             Length = 1e-3,
             StepSize = 1e-5,
         };
-        
+
         SubcircuitReference subcircuit = new(m1, []);
         setup.SignalsToMonitor.Add(new(subcircuit, input));
         setup.SignalsToMonitor.Add(new(subcircuit, output));
@@ -232,5 +394,19 @@ public static class Program
         plot.Add.Scatter(results[0].TimeSteps, results[0].Values, ScottPlot.Color.FromHex("#CCCCFF"));
         plot.Add.Scatter(results[1].TimeSteps, results[1].Values, ScottPlot.Colors.Red);
         plot.SavePng("results.png", 400, 300);
+    }
+
+    private static void TestDynamicSpice()
+    {
+        Module flipFlopModule = new("FlipFlopMod");
+        Signal load = flipFlopModule.GenerateSignal("LOAD");
+        Signal outSig = flipFlopModule.GenerateSignal("OUT");
+        flipFlopModule.AddNewPort(load, PortDirection.Input);
+        Port pIn = flipFlopModule.AddNewPort("IN", PortDirection.Input);
+        flipFlopModule.AddNewPort(outSig, PortDirection.Output);
+        DynamicBehavior behavior = new();
+        behavior.ConditionMappings.Add((load.RisingEdge(), new LogicBehavior(pIn.Signal)));
+        outSig.AssignBehavior(behavior);
+        File.WriteAllText("OutputSpice.txt", flipFlopModule.GetSpice().AsString());
     }
 }

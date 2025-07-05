@@ -36,4 +36,8 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
 
     /// <inheritdoc/>
     public override TOut GenerateLogicalObject<TIn, TOut>(CustomLogicObjectOptions<T, TIn, TOut> options, TIn additionalInput) => options.AndFunction(inputs, additionalInput);
+
+    /// <inheritdoc/>
+    public override V PerformFunction<V>(Func<T, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not) =>
+        and(inputs.Select(i => i.PerformFunction(primary, and, or, not)));
 }

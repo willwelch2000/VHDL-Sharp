@@ -2,6 +2,7 @@ using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Simulations;
 using VHDLSharp.Utility;
 
 namespace VHDLSharp.Signals;
@@ -75,6 +76,26 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     public string GetVhdlName();
 
     /// <summary>
+    /// Get value of the signal given rule-based simulation state and context
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="context"></param>
+    /// <param name="lastIndex"></param>
+    /// <returns>Value if possible</returns>
+    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, 
+    /// or if it doesn't have a value in the state yet</exception>
+    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null) => this switch
+    {
+        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal)) switch
+        {
+            List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
+            _ => throw new Exception("Values list not long enough")
+        },
+        ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
+        _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
+    };
+
+    /// <summary>
     /// Given several signals, returns true if they can be combined together
     /// </summary>
     /// <param name="combinables"></param>
@@ -104,10 +125,16 @@ public interface ISignal : ILogicallyCombinable<ISignal>
         return true;
     }
 
+    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
+    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput>? signalVhdlObjectOptions;
+
     internal static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
     {
         get
         {
+            if (signalSpiceSharpObjectOptions is not null)
+                return signalSpiceSharpObjectOptions;
+
             CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> options = new();
 
             SignalSpiceSharpObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalSpiceSharpObjectInput additionalInput)
@@ -148,7 +175,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 // For each dimension...
                 for (int i = 0; i < dimension; i++)
                 {
-                    Subcircuit andSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "and"), SpiceUtil.GetAndSubcircuit(inputSignalNames.Count), 
+                    Subcircuit andSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "and"), SpiceUtil.GetAndSubcircuit(inputSignalNames.Count),
                         [.. inputSignalNames.Select(s => s[i]), outputSignalNames[i]]);
                     entities.Add(andSubcircuit);
                 }
@@ -199,7 +226,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 // For each dimension...
                 for (int i = 0; i < dimension; i++)
                 {
-                    Subcircuit orSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetOrSubcircuit(inputSignalNames.Count), 
+                    Subcircuit orSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetOrSubcircuit(inputSignalNames.Count),
                         [.. inputSignalNames.Select(s => s[i]), outputSignalNames[i]]);
                     entities.Add(orSubcircuit);
                 }
@@ -231,9 +258,9 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 List<IEntity> entities = [.. innerOutput.SpiceSharpEntities];
                 for (int i = 0; i < dimension; i++)
                 {
-                    Subcircuit orSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetNotSubcircuit(), 
+                    Subcircuit notSubcircuit = new(SpiceUtil.GetSpiceName(uniqueId, i, "or"), SpiceUtil.GetNotSubcircuit(),
                         innerOutput.OutputSignalNames[i], outputSignalNames[i]);
-                    entities.Add(orSubcircuit);
+                    entities.Add(notSubcircuit);
                 }
 
                 return new()
@@ -250,7 +277,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 string[] signals = [.. innerExpression.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
                 string uniqueId = additionalInput.UniqueId;
                 string[] outputSignals = [.. Enumerable.Range(0, signals.Length).Select(i => SpiceUtil.GetSpiceName(uniqueId, i, "baseout"))];
-                
+
                 // Add 1m resistors between signals and output signals
                 IEnumerable<IEntity> entities = Enumerable.Range(0, signals.Length).Select(i =>
                     new Resistor(SpiceUtil.GetSpiceName(uniqueId, i, "res"), signals[i], outputSignals[i], 1e-3));
@@ -268,6 +295,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             options.NotFunction = NotFunction;
             options.BaseFunction = BaseFunction;
 
+            signalSpiceSharpObjectOptions = options;
             return options;
         }
     }
@@ -276,6 +304,9 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     {
         get
         {
+            if (signalVhdlObjectOptions is not null)
+                return signalVhdlObjectOptions;
+
             CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> options = new();
 
             SignalVhdlObjectOutput AndFunction(IEnumerable<ILogicallyCombinable<ISignal>> innerExpressions, SignalVhdlObjectInput additionalInput)
@@ -318,8 +349,8 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             options.NotFunction = NotFunction;
             options.BaseFunction = BaseFunction;
 
+            signalVhdlObjectOptions = options;
             return options;
         }
     }
-
 }

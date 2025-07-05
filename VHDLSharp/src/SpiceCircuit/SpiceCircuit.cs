@@ -10,13 +10,25 @@ namespace VHDLSharp.SpiceCircuits;
 /// <summary>
 /// Class used to define a Spice circuit, using Spice# entities
 /// </summary>
-/// <param name="circuitElements">entities in the circuit</param>
-public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
+public class SpiceCircuit
 {
+    /// <summary>Default constructor</summary>
+    public SpiceCircuit()
+    {
+        CircuitElements = new Circuit();
+    }
+
+    /// <summary>Constructor given elements</summary>
+    /// <param name="circuitElements">entities in the circuit</param>
+    public SpiceCircuit(IEnumerable<IEntity> circuitElements)
+    {
+        CircuitElements = new Circuit(circuitElements);
+    }
+
     /// <summary>
     /// Entities in the circuit
     /// </summary>
-    public IEntityCollection CircuitElements { get; } = new Circuit(circuitElements);
+    public IEntityCollection CircuitElements { get; }
 
     /// <summary>
     /// Get object as a Spice# <see cref="Circuit"/>
@@ -43,7 +55,7 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
         ISet<ISubcircuitDefinition> defsUsedHere = GetSubcircuitDefinitions(false);
 
         // Generate inner context to be used in subcircuits, initializing models context to all the models here + those in the given context
-        // and subcircuit definitions context to those in the given context + subcircuit definitions used here
+        // and subcircuit definitions context to all subcircuit definitions used here + those in the given context
         CircuitContext innerContext = new()
         {
             Models = new HashSet<IEntity>([.. circuitContext.Models, .. CircuitElements.Where(e => e.IsModel())]),
@@ -89,7 +101,6 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     /// <param name="pins">Array of pins for subcircuit</param>
     /// <returns></returns>
     public SpiceSubcircuit ToSpiceSubcircuit(string name, string[] pins) => new(name, pins, CircuitElements);
-
 
     /// <summary>
     /// Convert to Spice subcircuit object given name and pins
@@ -141,10 +152,26 @@ public class SpiceCircuit(IEnumerable<IEntity> circuitElements)
     }
 
     /// <summary>
-    /// Generate a <see cref="SpiceCircuit"/> by combining several objects.
+    /// Generate a <see cref="SpiceCircuit"/> by combining another circuit with this one.
     /// Ignores duplicate entities so that common entities/models don't appear twice
     /// </summary>
-    /// <param name="circuits"></param>
+    /// <param name="otherCircuit">Circuit to combine with this</param>
+    /// <returns></returns>
+    public SpiceCircuit CombineWith(SpiceCircuit otherCircuit) => Combine([this, otherCircuit]);
+
+    /// <summary>
+    /// Generate a <see cref="SpiceCircuit"/> by combining several other circuits with this one.
+    /// Ignores duplicate entities so that common entities/models don't appear twice
+    /// </summary>
+    /// <param name="otherCircuits">Circuits to combine with this</param>
+    /// <returns></returns>
+    public SpiceCircuit CombineWith(IEnumerable<SpiceCircuit> otherCircuits) => Combine([this, .. otherCircuits]);
+
+    /// <summary>
+    /// Generate a <see cref="SpiceCircuit"/> by combining several circuits.
+    /// Ignores duplicate entities so that common entities/models don't appear twice
+    /// </summary>
+    /// <param name="circuits">Circuits to combine</param>
     /// <returns></returns>
     public static SpiceCircuit Combine(IEnumerable<SpiceCircuit> circuits)
     {

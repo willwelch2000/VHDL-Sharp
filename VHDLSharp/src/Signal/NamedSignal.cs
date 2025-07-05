@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Conditions;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
@@ -119,7 +120,7 @@ public abstract class NamedSignal : INamedSignal
     public virtual string GetVhdlDeclaration() => $"signal {Name}\t: {VhdlType}";
 
     // The following functions are given here so that they can be accessed without referring to this object as ISignal
-    
+
     /// <inheritdoc/>
     public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
 
@@ -177,4 +178,11 @@ public abstract class NamedSignal : INamedSignal
         equivalentSignal = port is null ? null : mapping[port];
         return equivalentSignal is not null;
     }
+
+    /// <inheritdoc/>
+    public Equality EqualityWith(ISignal comparison) => new(this, comparison);
+
+    /// <summary>Convert signal to <see cref="LogicBehavior"/></summary>
+    /// <param name="signal">Signal to convert</param>
+    public static implicit operator LogicBehavior(NamedSignal signal) => new(signal);
 }

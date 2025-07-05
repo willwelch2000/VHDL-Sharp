@@ -9,9 +9,6 @@ namespace VHDLSharpTests;
 [TestClass]
 public class SimulationTests
 {
-    // Time buffer around transition points where we don't check
-    private const double timeBuffer = 2e-6;
-
     [TestMethod]
     public void AndExpressionSimulationTest()
     {
@@ -58,7 +55,7 @@ public class SimulationTests
             for (int i = 0; i < s1Values.Length; i++)
             {
                 // Skip points around time buffer
-                if (transitionPoints.Select(p => Math.Abs(timeSteps[i] - p)).Min() < timeBuffer)
+                if (transitionPoints.Select(p => Math.Abs(timeSteps[i] - p)).Min() < Util.TimeBuffer)
                     continue;
                 Assert.AreEqual(s1Values[i] * s2Values[i], s3Values[i]); // ANDing = multiplication
             }
@@ -167,10 +164,10 @@ public class SimulationTests
             {
                 int? expectedResult = timeSteps[i] switch
                 {
-                    >      timeBuffer and < 1e-3-timeBuffer => 7,
-                    > 1e-3+timeBuffer and < 2e-3-timeBuffer => 6,
-                    > 2e-3+timeBuffer and < 3e-3-timeBuffer => 3,
-                    > 3e-3+timeBuffer and < 4e-3-timeBuffer => 1,
+                    >      Util.TimeBuffer and < 1e-3-Util.TimeBuffer => 7,
+                    > 1e-3+Util.TimeBuffer and < 2e-3-Util.TimeBuffer => 6,
+                    > 2e-3+Util.TimeBuffer and < 3e-3-Util.TimeBuffer => 3,
+                    > 3e-3+Util.TimeBuffer and < 4e-3-Util.TimeBuffer => 1,
                     _ => null,
                 };
 
@@ -215,14 +212,14 @@ public class SimulationTests
                 double time = outputResult.TimeSteps[i];
                 int? expectedResult = time switch
                 {
-                    >          timeBuffer and < 0.125e-3-timeBuffer => 0,
-                    > 0.125e-3+timeBuffer and < 0.250e-3-timeBuffer => 1,
-                    > 0.250e-3+timeBuffer and < 0.375e-3-timeBuffer => 0,
-                    > 0.375e-3+timeBuffer and < 0.500e-3-timeBuffer => 1,
-                    > 0.500e-3+timeBuffer and < 0.625e-3-timeBuffer => 4,
-                    > 0.625e-3+timeBuffer and < 0.750e-3-timeBuffer => 5,
-                    > 0.750e-3+timeBuffer and < 0.875e-3-timeBuffer => 4,
-                    > 0.875e-3+timeBuffer and < 1.000e-3-timeBuffer => 5,
+                    >          Util.TimeBuffer and < 0.125e-3-Util.TimeBuffer => 0,
+                    > 0.125e-3+Util.TimeBuffer and < 0.250e-3-Util.TimeBuffer => 1,
+                    > 0.250e-3+Util.TimeBuffer and < 0.375e-3-Util.TimeBuffer => 0,
+                    > 0.375e-3+Util.TimeBuffer and < 0.500e-3-Util.TimeBuffer => 1,
+                    > 0.500e-3+Util.TimeBuffer and < 0.625e-3-Util.TimeBuffer => 4,
+                    > 0.625e-3+Util.TimeBuffer and < 0.750e-3-Util.TimeBuffer => 5,
+                    > 0.750e-3+Util.TimeBuffer and < 0.875e-3-Util.TimeBuffer => 4,
+                    > 0.875e-3+Util.TimeBuffer and < 1.000e-3-Util.TimeBuffer => 5,
                     _ => null,
                 };
 

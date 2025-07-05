@@ -48,6 +48,14 @@ public interface IBehavior
     public SimulationRule GetSimulationRule(SignalReference outputSignal);
 
     /// <summary>
+    /// Get output value given simulation state and subcircuit context. 
+    /// </summary>
+    /// <param name="state">Current state of the simulation</param>
+    /// <param name="outputSignal">Reference to output signal--subcircuit can be used as context</param>
+    /// <returns></returns>
+    public int GetOutputValue(RuleBasedSimulationState state, SignalReference outputSignal);
+
+    /// <summary>
     /// Check that a given output signal is compatible with this
     /// </summary>
     /// <param name="outputSignal"></param>

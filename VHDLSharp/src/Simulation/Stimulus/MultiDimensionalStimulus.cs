@@ -17,7 +17,7 @@ public class MultiDimensionalStimulus : IStimulusSet
     public MultiDimensionalStimulus() {}
 
     /// <summary>
-    /// Constructor with input <see cref="IEnumerable{Stimulus}"/>
+    /// Constructor with input <see cref="IEnumerable{Stimulus}"/> (LSB = index 0)
     /// </summary>
     /// <param name="stimuli"></param>
     public MultiDimensionalStimulus(IEnumerable<Stimulus> stimuli)
@@ -29,7 +29,7 @@ public class MultiDimensionalStimulus : IStimulusSet
     public DefiniteDimension Dimension => new(Stimuli.Count);
 
     /// <summary>
-    /// All stimuli in type <see cref="List{Stimuli}"/>
+    /// All stimuli in type <see cref="List{Stimuli}"/> (LSB = index 0)
     /// </summary>
     public List<Stimulus> Stimuli { get; } = [];
 

@@ -49,12 +49,16 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         return InnerExpression.GenerateLogicalObject(options, additionalInput);
     }
 
+    /// <inheritdoc/>
+    public V PerformFunction<V>(Func<ISignal, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not) =>
+        InnerExpression.PerformFunction(primary, and, or, not);
+
     /// <summary>
     /// Get VHDL representation of logical expression. 
     /// Only includes the right-hand side of the VHDL statement
     /// </summary>
     /// <returns></returns>
-    public string GetVhdl() => InnerExpression.GenerateLogicalObject(SignalVhdlObjectOptions, new()).VhdlString;
+    public string GetVhdl() => InnerExpression.GenerateLogicalObject(ISignal.SignalVhdlObjectOptions, new()).VhdlString;
 
     /// <summary>
     /// Gets Spice representation of logical expression of signals
@@ -67,7 +71,7 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal must be compatible with this expression");
 
-        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(SignalSpiceSharpObjectOptions, new()
+        SignalSpiceSharpObjectOutput output = InnerExpression.GenerateLogicalObject(ISignal.SignalSpiceSharpObjectOptions, new()
         {
             UniqueId = $"{uniqueId}_0",
         });
@@ -103,20 +107,13 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
         if (lastIndex < 0)
             return 0;
 
-        return InnerExpression switch
-        {
-            LogicExpression logicExpression => logicExpression.GetOutputValue(state, context),
-            ISignal signal => signal switch
-            {
-                INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal))[lastIndex],
-                ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
-                _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
-            },
-            And<ISignal> andExp => andExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a & b),
-            Or<ISignal> orExp => orExp.Inputs.Select(i => new LogicExpression(i).GetOutputValue(state, context)).Aggregate((a, b) => a | b),
-            Not<ISignal> {FirstBaseObject: not null} notExp => 1 << notExp.FirstBaseObject!.Dimension.NonNullValue - 1 - new LogicExpression(notExp.Input).GetOutputValue(state, context),
-            _ => throw new Exception("Expression should be made of signals and AND/OR/NOT combinations")
-        };
+        int dimension = Dimension.NonNullValue;
+        int Primary(ISignal signal) => signal.GetLastOutputValue(state, context, lastIndex);
+        int And(IEnumerable<int> inputs) => inputs.Aggregate((a, b) => a & b);
+        int Or(IEnumerable<int> inputs) => inputs.Aggregate((a, b) => a | b);
+        int Not(int input) => (1 << dimension) - 1 - input;
+
+        return InnerExpression.PerformFunction(Primary, And, Or, Not);
     }
 
     /// <summary>
@@ -168,26 +165,4 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
         => expression is LogicExpression logicExpression ? logicExpression : new(expression);
-
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
-
-    private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput> SignalSpiceSharpObjectOptions
-    {
-        get
-        {
-            signalSpiceSharpObjectOptions ??= ISignal.SignalSpiceSharpObjectOptions;
-            return signalSpiceSharpObjectOptions!;
-        }
-    }
-
-    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput>? signalVhdlObjectOptions;
-
-    private static CustomLogicObjectOptions<ISignal, SignalVhdlObjectInput, SignalVhdlObjectOutput> SignalVhdlObjectOptions
-    {
-        get
-        {
-            signalVhdlObjectOptions ??= ISignal.SignalVhdlObjectOptions;
-            return signalVhdlObjectOptions!;
-        }
-    }
 }

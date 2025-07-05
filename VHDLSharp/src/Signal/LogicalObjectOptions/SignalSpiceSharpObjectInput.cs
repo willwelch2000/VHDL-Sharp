@@ -4,12 +4,12 @@ using VHDLSharp.LogicTree;
 using SpiceSharp;
 
 /// <summary>
-/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object
+/// Class used as input for <see cref="CustomLogicObjectOptions{T, TIn, TOut}"/> when generating Spice# <see cref="Circuit"/> object from a signal tree
 /// </summary>
 internal class SignalSpiceSharpObjectInput
 {
     /// <summary>
-    /// Unique id that this portion can use
+    /// Unique id that this portion can use.
     /// Should contain numbers and underscores
     /// </summary>
     internal string UniqueId { get; set; } = string.Empty;

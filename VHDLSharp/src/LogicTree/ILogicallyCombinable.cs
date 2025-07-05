@@ -107,4 +107,21 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
     /// </summary>
     /// <returns></returns>
     public Not<T> Not() => new(this);
+
+    /// <summary>
+    /// Perform a function on the combination, given a primary function and aggregation functions
+    /// </summary>
+    /// <typeparam name="V">Output type of functions</typeparam>
+    /// <param name="primary">Function to be performed on things of type <typeparamref name="T"/></param>
+    /// <param name="and">Aggregation function for AND</param>
+    /// <param name="or">Aggregation function for OR</param>
+    /// <param name="not">Aggregation function for NOT</param>
+    /// <returns>Aggregated result</returns>
+    /// <exception cref="Exception">If function is not overridden when it should be</exception>
+    public V PerformFunction<V>(Func<T, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not)
+    {
+        if (this is T t)
+            return primary(t);
+        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(PerformFunction)}");
+    }
 }

@@ -270,19 +270,18 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         }
     }
 
-    /// <summary>
-    /// Get output value given simulation state and subcircuit context
-    /// </summary>
-    /// <param name="state">Current state of the simulation</param>
-    /// <param name="context">Subcircuit in which this expression exists</param>
-    /// <returns></returns>
-    private int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
+    /// <inheritdoc/>
+    protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
+        if (!IsComplete())
+            throw new IncompleteException("Case behavior must be complete to get simulation rule");
+
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)
             return 0;
 
         // Get selector value as int
+        SubcircuitReference context = outputSignal.Subcircuit;
         SignalReference selectorReference = context.GetChildSignalReference(Selector);
         int lastSelectorValue = state.GetSignalValues(selectorReference)[lastIndex];
 
