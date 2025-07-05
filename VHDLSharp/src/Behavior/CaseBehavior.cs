@@ -204,14 +204,6 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
     }
 
-    /// <inheritdoc/>
-    protected override SimulationRule GetSimulationRuleWithoutCheck(SignalReference outputSignal)
-    {
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to get simulation rule");
-        return new(outputSignal, (state) => GetOutputValue(state, outputSignal.Subcircuit));
-    }
-
     private IEnumerable<(INamedSignal outputSignal, string uniqueId, LogicBehavior behavior)> ToLogicBehaviors(INamedSignal outputSignal, string uniqueId)
     {
         // Loop through cases, generating intermediate signal names and logic behaviors to map to them
