@@ -29,6 +29,8 @@ public class ConditionTests
         Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
         FallingEdge fallingEdge = s1.FallingEdge();
+        High high = new(s1);
+        Low low = new(s1);
 
         SubcircuitReference context = new(module1, []);
         SignalReference s1Ref = context.GetChildSignalReference(s1);
@@ -42,6 +44,8 @@ public class ConditionTests
         Assert.IsFalse(equalityVector.Evaluate(state, context));
         Assert.IsFalse(risingEdge.Evaluate(state, context));
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
+        Assert.IsFalse(high.Evaluate(state, context));
+        Assert.IsFalse(low.Evaluate(state, context));
 
         // Second state--signals at 0
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -55,6 +59,8 @@ public class ConditionTests
         Assert.IsTrue(equalityVector.Evaluate(state, context));
         Assert.IsFalse(risingEdge.Evaluate(state, context));
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
+        Assert.IsFalse(high.Evaluate(state, context));
+        Assert.IsTrue(low.Evaluate(state, context));
 
         // Third state--s2 and v2 moved up
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -68,6 +74,8 @@ public class ConditionTests
         Assert.IsFalse(equalityVector.Evaluate(state, context));
         Assert.IsFalse(risingEdge.Evaluate(state, context));
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
+        Assert.IsFalse(high.Evaluate(state, context));
+        Assert.IsTrue(low.Evaluate(state, context));
 
         // Fourth state--s1 and v1 moved up to match
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -81,6 +89,8 @@ public class ConditionTests
         Assert.IsTrue(equalityVector.Evaluate(state, context));
         Assert.IsTrue(risingEdge.Evaluate(state, context));
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
+        Assert.IsTrue(high.Evaluate(state, context));
+        Assert.IsFalse(low.Evaluate(state, context));
 
         // Fifth state--s1 moved back down
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -94,6 +104,8 @@ public class ConditionTests
         Assert.IsTrue(equalityVector.Evaluate(state, context));
         Assert.IsFalse(risingEdge.Evaluate(state, context));
         Assert.IsTrue(fallingEdge.Evaluate(state, context));
+        Assert.IsFalse(high.Evaluate(state, context));
+        Assert.IsTrue(low.Evaluate(state, context));
     }
 
     [TestMethod]
@@ -110,14 +122,16 @@ public class ConditionTests
         Equality equalityVector = v1.EqualityWith(v2);
         RisingEdge risingEdge = new(s1);
         FallingEdge fallingEdge = s1.FallingEdge();
+        High high = s1.IsHigh();
+        Low low = s1.IsLow();
 
         TimeDefinedStimulus s1Stimulus = new()
         {
-            Points = new() { {0, false}, {2e-5, true}, {3e-5, false} }
+            Points = new() { { 0, false }, { 2e-5, true }, { 3e-5, false } }
         };
         TimeDefinedStimulus s2Stimulus = new()
         {
-            Points = new() { {0, false}, {1e-5, true} }
+            Points = new() { { 0, false }, { 1e-5, true } }
         };
         MultiDimensionalStimulus v1Stimulus = new([
             new PulseStimulus(2e-5, 10e-5, 20e-5),
@@ -136,10 +150,12 @@ public class ConditionTests
             v2Stimulus.GetSpice(v2, "v2Stimulus"),
         ]);
 
-        Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit highCircuit = high.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit lowCircuit = low.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
 
         var tran = new Transient("Tran 1", 0.1e-5, 5e-5);
         var s3Exp = new RealVoltageExport(tran, "s3");
@@ -149,10 +165,10 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
-                > 1e-5+Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
-                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
-                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
+                > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => true,
+                > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => true,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -165,9 +181,9 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
-                > 1e-5+Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
-                > 2e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => true,
+                > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => true,
+                > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
                 _ => null,
             };
 
@@ -180,9 +196,9 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 2e-5-Util.TimeBuffer => false,
-                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
-                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
+                > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => true,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -195,7 +211,37 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 2e-5-Util.TimeBuffer => true,
+                > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => false,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+        
+        // Check high
+        foreach (int _ in tran.Run(highCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => false,
+                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
+                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+        
+        // Check low
+        foreach (int _ in tran.Run(lowCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
                 > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => false,
                 > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => true,
                 _ => null,
