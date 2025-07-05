@@ -113,7 +113,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
         if (namedSignal is not null)
         {
             // If any signal has another parent
-            if (baseSignals.Any(s => s is INamedSignal namedS && namedS.ParentModule != namedSignal.ParentModule))
+            if (baseSignals.Any(s => s is INamedSignal namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
                 return false;
         }
 

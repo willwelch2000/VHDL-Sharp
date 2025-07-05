@@ -37,7 +37,7 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not INamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
+        return Dimension.Compatible(signal.Dimension) && (signal is not INamedSignal namedSignal || ParentModule.Equals(namedSignal.ParentModule));
     }
 
     /// <inheritdoc/>

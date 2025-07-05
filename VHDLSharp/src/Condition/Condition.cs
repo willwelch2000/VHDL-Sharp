@@ -28,7 +28,7 @@ public abstract class Condition : ICondition, IValidityManagedEntity
     public bool CanCombine(ILogicallyCombinable<ICondition> other)
     {
         ICondition? otherCondition = other.BaseObjects.FirstOrDefault(c => c.ParentModule is not null);
-        return otherCondition is null || otherCondition.ParentModule == ParentModule;
+        return otherCondition is null || (otherCondition.ParentModule?.Equals(ParentModule) ?? false);
     }
 
     /// <inheritdoc/>

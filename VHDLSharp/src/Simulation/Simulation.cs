@@ -115,7 +115,7 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
             {
-                if (newItem is SignalReference signalReference && signalReference.TopLevelModule != Module)
+                if (newItem is SignalReference signalReference && !signalReference.TopLevelModule.Equals(Module))
                     throw new Exception($"Added signal reference must use module {Module} as top-level module");
                 childEntities.Add(newItem);
             }

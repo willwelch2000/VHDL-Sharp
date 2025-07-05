@@ -161,7 +161,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <param name="outputSignal"></param>
     public bool IsCompatible(INamedSignal outputSignal)
     {
-        if (ParentModule is not null && outputSignal.ParentModule != ParentModule)
+        if (ParentModule is not null && !outputSignal.ParentModule.Equals(ParentModule))
             return false;
         return Dimension.Compatible(outputSignal.Dimension);
     }

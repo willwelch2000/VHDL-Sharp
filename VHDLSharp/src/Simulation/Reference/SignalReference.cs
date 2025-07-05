@@ -144,7 +144,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         exception = null;
         // Problem if last module doesn't contain signal
         IModule lastModule = Subcircuit.FinalModule;
-        if (Signal.ParentModule != lastModule)
+        if (!Signal.ParentModule.Equals(lastModule))
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
     }

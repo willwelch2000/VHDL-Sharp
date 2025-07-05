@@ -74,9 +74,9 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         }
 
         // Must have correct parent module
-        if (instantiations.Any(i => i.ParentModule != ParentModule))
+        if (instantiations.Any(i => !i.ParentModule.Equals(ParentModule)))
         {
-            IInstantiation incorrect = instantiations.First(i => i.ParentModule != ParentModule);
+            IInstantiation incorrect = instantiations.First(i => !i.ParentModule.Equals(ParentModule));
             exception = new Exception($"Instantiations must have correct parent module ({ParentModule})");
         }
 
@@ -104,7 +104,7 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         HashSet<IModuleLinkedSubcircuitDefinition> moduleSubcircuitDefinitions = [.. existingModuleLinkedSubcircuits];
         foreach (IModule submodule in this.Select(i => i.InstantiatedModule).Distinct())
         {
-            if (moduleSubcircuitDefinitions.Any(def => def.Module == submodule))
+            if (moduleSubcircuitDefinitions.Any(def => def.Module.Equals(submodule)))
                 continue;
             SpiceSubcircuit spiceCircuit = submodule.GetSpice(moduleSubcircuitDefinitions);
 

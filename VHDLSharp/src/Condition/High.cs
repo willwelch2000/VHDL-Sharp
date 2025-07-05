@@ -38,7 +38,7 @@ public class High(ISingleNodeNamedSignal signal) : Condition, IConstantCondition
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
-        if (outputSignal.ParentModule != ParentModule)
+        if (!outputSignal.ParentModule.Equals(ParentModule))
             throw new IncompatibleSignalException("Output signal must have same parent module as condition");
 
         // Just buffer the signal

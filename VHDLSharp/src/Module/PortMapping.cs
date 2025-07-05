@@ -100,11 +100,11 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
                 exception = new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
-            if (port.Signal.ParentModule != InstantiatedModule)
+            if (!port.Signal.ParentModule.Equals(InstantiatedModule))
                 exception = new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
             if (!InstantiatedModule.Ports.Contains(port))
                 exception = new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
-            if (signal.ParentModule != ParentModule)
+            if (!signal.ParentModule.Equals(ParentModule))
                 exception = new PortMappingException($"Signal must have module {ParentModule} as parent");
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
                 exception = new PortMappingException("Output port cannot be assigned to parent module's input port");

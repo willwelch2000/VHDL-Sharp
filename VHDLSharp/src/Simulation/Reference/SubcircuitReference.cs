@@ -158,7 +158,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// <returns></returns>
     public bool Equals(SubcircuitReference? other)
     {
-        return other is not null && TopLevelModule == other.TopLevelModule && Path.SequenceEqual(other.Path);
+        return other is not null && TopLevelModule.Equals(other.TopLevelModule) && Path.SequenceEqual(other.Path);
     }
 
     /// <inheritdoc/>
@@ -196,7 +196,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         IModule module = TopLevelModule;
         foreach (IInstantiation instantiation in Path)
         {
-            if (instantiation.ParentModule != module)
+            if (!instantiation.ParentModule.Equals(module))
                 exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
                 exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");

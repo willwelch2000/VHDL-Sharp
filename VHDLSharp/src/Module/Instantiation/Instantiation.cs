@@ -92,7 +92,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         if (!PortMapping.IsComplete())
             throw new IncompleteException("Instantiation not yet complete");
 
-        if (existingModuleLinkedSubcircuits.FirstOrDefault(def => def.Module == InstantiatedModule) is not IModuleLinkedSubcircuitDefinition subcircuitDef)
+        if (existingModuleLinkedSubcircuits.FirstOrDefault(def => def.Module.Equals(InstantiatedModule)) is not IModuleLinkedSubcircuitDefinition subcircuitDef)
             subcircuitDef = InstantiatedModule.GetSpice(existingModuleLinkedSubcircuits).AsModuleLinkedSubcircuit();
 
         string[] nodes = [.. InstantiatedModule.Ports.SelectMany(p => PortMapping[p].ToSingleNodeSignals).Select(s => s.GetSpiceName())];

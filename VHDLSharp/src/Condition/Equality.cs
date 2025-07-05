@@ -75,7 +75,7 @@ public class Equality : Condition, IConstantCondition
     {
         if (!ValidityManager.IsValid())
             throw new InvalidException("Condition must be valid to get Spice representation");
-        if (outputSignal.ParentModule != ParentModule)
+        if (!outputSignal.ParentModule.Equals(ParentModule))
             throw new IncompatibleSignalException("Output signal must have same parent module as condition");
 
         List<IEntity> entities = [];
