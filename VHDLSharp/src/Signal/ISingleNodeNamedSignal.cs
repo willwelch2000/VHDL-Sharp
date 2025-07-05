@@ -12,4 +12,10 @@ public interface ISingleNodeNamedSignal : INamedSignal, ISingleNodeSignal
     
     /// <summary>Get falling edge condition for this signal</summary>
     public FallingEdge FallingEdge() => new(this);
+
+    /// <summary>Get high condition for this signal</summary>
+    public High IsHigh() => new(this);
+
+    /// <summary>Get low condition for this signal</summary>
+    public Low IsLow() => new(this);
 }
