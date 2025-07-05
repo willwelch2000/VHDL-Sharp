@@ -90,4 +90,11 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public bool IsComplete() => module.IsComplete();
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is ParameterizedModule<T> paramMod &&
+        paramMod.module.Equals(module);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => module.GetHashCode();
 }
