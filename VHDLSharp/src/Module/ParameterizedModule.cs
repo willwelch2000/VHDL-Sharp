@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -90,7 +91,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public string GetVhdlNoSubmodules() => BaseModule.GetVhdlNoSubmodules();
 
     /// <inheritdoc/>
-    public bool IsComplete() => BaseModule.IsComplete();
+    public bool IsComplete([MaybeNullWhen(true)] out string reason) => BaseModule.IsComplete(out reason);
 
     /// <inheritdoc/>
     public override int GetHashCode() => BaseModule.GetHashCode();

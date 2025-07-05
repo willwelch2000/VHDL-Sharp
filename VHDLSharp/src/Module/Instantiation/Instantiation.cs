@@ -68,8 +68,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation is invalid");
 
-        if (!PortMapping.IsComplete())
-            throw new IncompleteException("Instantiation not yet complete");
+        if (!PortMapping.IsComplete(out string? reason))
+            throw new IncompleteException($"Instantiation not yet complete: {reason}");
 
         StringBuilder sb = new();
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
@@ -89,8 +89,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         if (!validityManager.IsValid())
             throw new InvalidException("Instantiation is invalid");
 
-        if (!PortMapping.IsComplete())
-            throw new IncompleteException("Instantiation not yet complete");
+        if (!PortMapping.IsComplete(out string? reason))
+            throw new IncompleteException($"Instantiation not yet complete: {reason}");
 
         if (existingModuleLinkedSubcircuits.FirstOrDefault(def => def.Module.Equals(InstantiatedModule)) is not IModuleLinkedSubcircuitDefinition subcircuitDef)
             subcircuitDef = InstantiatedModule.GetSpice(existingModuleLinkedSubcircuits).AsModuleLinkedSubcircuit();

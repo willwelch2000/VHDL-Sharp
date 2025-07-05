@@ -104,8 +104,18 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     /// <summary>
     /// True if port mapping is complete (all input ports are assigned)
     /// </summary>
+    /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        if (module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey))
+        {
+            reason = null;
+            return true;
+        }
+        reason = module.Ports.First(p => p.Direction == PortDirection.Input).ToString() + " has not been assigned";
+        return false;
+    }
     
     private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {

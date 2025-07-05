@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Modules;
 using VHDLSharp.Validation;
 
@@ -91,15 +92,17 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity
     /// <summary>
     /// True if ready to convert to Spice or simulate
     /// </summary>
-    public bool IsComplete() => StimulusMapping.IsComplete();
+    /// <param name="reason">Explanation for why it's not complete</param>
+    /// <returns></returns>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason) => StimulusMapping.IsComplete(out reason);
 
     /// <inheritdoc/>
     public IEnumerable<ISimulationResult> Simulate()
     {
         if (!manager.IsValid())
             throw new Exception("Simulation setup must be valid to simulate");
-        if (!IsComplete())
-            throw new Exception("Simulation setup must be complete to simulate");
+        if (!IsComplete(out string? reason))
+            throw new Exception($"Simulation setup must be complete to simulate: {reason}");
         return SimulateWithoutCheck();
     }
 

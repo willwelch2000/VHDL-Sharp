@@ -115,8 +115,18 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// <summary>
     /// True if port mapping is complete (all ports are assigned)
     /// </summary>
+    /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
+    public bool IsComplete([MaybeNullWhen(true)] out string? reason)
+    {
+        if (InstantiatedModule.Ports.All(ContainsKey))
+        {
+            reason = null;
+            return true;
+        }
+        reason = InstantiatedModule.Ports.First(p => !ContainsKey(p)).ToString() + " has not been assigned";
+        return false;
+    }
 
     /// <summary>
     /// Assign ports given names

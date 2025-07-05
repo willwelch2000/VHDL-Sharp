@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -48,7 +49,9 @@ public interface IModule : IEquatable<IModule>
     /// <summary>
     /// True if module is ready to be used
     /// </summary>
-    public bool IsComplete();
+    /// <param name="reason">Explanation for why it's not complete</param>
+    /// <returns></returns>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason);
 
     /// <summary>
     /// Convert to string

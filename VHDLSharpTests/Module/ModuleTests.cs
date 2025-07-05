@@ -26,7 +26,7 @@ public class ModuleTests
         m1.AddNewPort(s1, PortDirection.Input);
         m1.AddNewPort(s2, PortDirection.Input);
         m1.AddNewPort(s4, PortDirection.Output);
-        Assert.IsFalse(m1.IsComplete());
+        Assert.IsFalse(m1.IsComplete(out string? reason));
 
         namedSignals = [.. m1.NamedSignals];
         Assert.AreEqual(3, namedSignals.Length);
@@ -36,7 +36,7 @@ public class ModuleTests
 
         s3.AssignBehavior(s1.Not());
         m1.SignalBehaviors[s4] = new LogicBehavior(s3.And(s2));
-        Assert.IsTrue(m1.IsComplete());
+        Assert.IsTrue(m1.IsComplete(out reason));
 
         namedSignals = [.. m1.NamedSignals];
         Assert.AreEqual(4, namedSignals.Length);

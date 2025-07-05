@@ -227,11 +227,9 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public Instantiation AddNewInstantiation(IModule module, string name) => Instantiations.Add(module, name);
 
-    /// <summary>
-    /// True if module is ready to be used
-    /// TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
-    /// </summary>
-    public bool IsComplete()
+    // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
     {
         // If any output signal hasn't been assigned
         INamedSignal[] instantiationOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)];
@@ -241,9 +239,11 @@ public class Module : IModule, IValidityManagedEntity
                 continue;
             if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey) || port.Signal.ToSingleNodeSignals.All(instantiationOutputSignals.Contains)) // Assigned as all children
                 continue;
+            reason = $"Port {port} has not been assigned";
             return false;
         }
 
+        reason = null;
         return true;
     }
 
@@ -262,8 +262,8 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Module not yet complete: {reason}");
 
         StringBuilder sb = new();
 
@@ -296,8 +296,8 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Module not yet complete: {reason}");
 
         StringBuilder sb = new();
 
@@ -350,8 +350,8 @@ public class Module : IModule, IValidityManagedEntity
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
 
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Module not yet complete: {reason}");
 
         string[] pins = [.. PortsToSpice()];
 
@@ -392,8 +392,8 @@ public class Module : IModule, IValidityManagedEntity
     {
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid");
-        if (!IsComplete())
-            throw new IncompleteException("Module not yet complete");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Module not yet complete: {reason}");
         if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid())
             throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule");
         if (!Equals(subcircuit.FinalModule))

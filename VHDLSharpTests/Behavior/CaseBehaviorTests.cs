@@ -25,13 +25,13 @@ public class CaseBehaviorTests
         behavior.AddCase(0, l7);
         behavior[1] = new(l6);
         behavior.AddCase(2, l3);
-        Assert.IsFalse(behavior.IsComplete());
+        Assert.IsFalse(behavior.IsComplete(out string? reason));
         behavior.AddCase(3, l1);
-        Assert.IsTrue(behavior.IsComplete());
+        Assert.IsTrue(behavior.IsComplete(out reason));
         behavior.AddCase(3, null);
-        Assert.IsFalse(behavior.IsComplete());
+        Assert.IsFalse(behavior.IsComplete(out reason));
         behavior.SetDefault(l1);
-        Assert.IsTrue(behavior.IsComplete());
+        Assert.IsTrue(behavior.IsComplete(out reason));
 
         // Basic stuff
         Assert.AreEqual(module1, behavior.ParentModule);

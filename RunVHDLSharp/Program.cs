@@ -10,7 +10,8 @@ using SpiceSharp.Entities;
 using VHDLSharp.Conditions;
 using VHDLSharp.SpiceCircuits;
 using ScottPlot;
-using VHDLSharp.Utility;
+using VHDLSharp.BuiltIn;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp;
 
@@ -18,7 +19,8 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        TestDynamicSpice();
+        TestDff();
+        // TestDynamicSpice();
     }
 
     public static void MainTest()
@@ -80,10 +82,10 @@ public static class Program
         ISimulationResult[] results = [.. setup.Simulate()];
 
         // Plot data
-        ScottPlot.Plot plot = new();
-        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, ScottPlot.Color.FromHex("#CCCCFF"));
-        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, ScottPlot.Colors.Red);
-        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, ScottPlot.Colors.LightBlue);
+        Plot plot = new();
+        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, Color.FromHex("#CCCCFF"));
+        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Red);
+        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.LightBlue);
         plot.SavePng("results.png", 400, 300);
     }
 
@@ -408,5 +410,43 @@ public static class Program
         behavior.ConditionMappings.Add((load.RisingEdge(), new LogicBehavior(pIn.Signal)));
         outSig.AssignBehavior(behavior);
         File.WriteAllText("OutputSpice.txt", flipFlopModule.GetSpice().AsString());
+    }
+
+    private static void TestDff()
+    {
+        IModule dffMod = new DFlipFlop(new());
+
+        Module module1 = new("module1");
+        Port clk = module1.AddNewPort("CLK", PortDirection.Input);
+        Port d = module1.AddNewPort("D", PortDirection.Input);
+        Port q = module1.AddNewPort("Q", PortDirection.Output);
+        // Instantiation dff = module1.AddNewInstantiation(dffMod, "DFF");
+        // dff.PortMapping.SetPort("CLK", clk.Signal);
+        // dff.PortMapping.SetPort("D", d.Signal);
+        // dff.PortMapping.SetPort("Q", q.Signal);
+
+        RuleBasedSimulation setup = new(module1, new DefaultTimeStepGenerator())
+        {
+            Length = 10e-5,
+        };
+        SubcircuitReference subcircuit = new(module1, []);
+        SignalReference clkRef = subcircuit.GetChildSignalReference(clk.Signal);
+        SignalReference dRef = subcircuit.GetChildSignalReference(d.Signal);
+        SignalReference qRef = subcircuit.GetChildSignalReference(q.Signal);
+        setup.SignalsToMonitor.Add(clkRef);
+        setup.SignalsToMonitor.Add(dRef);
+        setup.SignalsToMonitor.Add(qRef);
+
+        setup.AssignStimulus(clk, new PulseStimulus(1e-5, 1e-5, 2e-5));
+        setup.AssignStimulus(d, new PulseStimulus(2e-5, 2e-5, 4e-5));
+        var issues = ((IValidityManagedEntity)setup).ValidityManager.Issues().ToArray();
+        ISimulationResult[] results = [.. setup.Simulate()];
+
+        // Plot data
+        Plot plot = new();
+        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, Color.FromHex("#CCCCFF"));
+        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Red);
+        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.LightBlue);
+        plot.SavePng("results.png", 400, 300);
     }
 }
