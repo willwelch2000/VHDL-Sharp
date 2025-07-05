@@ -14,7 +14,7 @@ namespace VHDLSharp.Behaviors;
 /// A behavior where an output signal is set based on a selector signal's value
 /// </summary>
 /// <param name="selector"></param>
-public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehavior
+public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehavior, ICompletable
 {
     private readonly LogicExpression?[] caseExpressions = new LogicExpression[1 << selector.Dimension.NonNullValue];
 

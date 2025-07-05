@@ -41,7 +41,7 @@ public class PortMappingException : Exception
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
 /// Changes are rejected if they cause a validation error (or an exception in anything linked to IValidityManagedEntity.Updated)
 /// </summary>
-public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity
+public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity, ICompletable
 {
     private readonly ValidityManager manager;
 
@@ -117,7 +117,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
     /// </summary>
     /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete([MaybeNullWhen(true)] out string? reason)
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
     {
         if (InstantiatedModule.Ports.All(ContainsKey))
         {

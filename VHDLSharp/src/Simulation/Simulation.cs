@@ -9,7 +9,7 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Class representing a simulation setup
 /// </summary>
-public abstract class Simulation : ISimulation, IValidityManagedEntity
+public abstract class Simulation : ISimulation, IValidityManagedEntity, ICompletable
 {
     private readonly ValidityManager manager;
 

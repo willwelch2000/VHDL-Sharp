@@ -40,7 +40,7 @@ public class StimulusMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity
+public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity, ICompletable
 {
     private readonly ValidityManager manager;
 

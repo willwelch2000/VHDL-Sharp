@@ -11,7 +11,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule : IEquatable<IModule>
+public interface IModule : IEquatable<IModule>, ICompletable
 {
     /// <summary>
     /// Name of the module
@@ -45,13 +45,6 @@ public interface IModule : IEquatable<IModule>
     /// Get all modules (recursive) used by this module as instantiations
     /// </summary>
     public IEnumerable<IModule> ModulesUsed { get; }
-
-    /// <summary>
-    /// True if module is ready to be used
-    /// </summary>
-    /// <param name="reason">Explanation for why it's not complete</param>
-    /// <returns></returns>
-    public bool IsComplete([MaybeNullWhen(true)] out string reason);
 
     /// <summary>
     /// Convert to string
