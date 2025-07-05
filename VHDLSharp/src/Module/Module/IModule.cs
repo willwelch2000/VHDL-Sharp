@@ -10,7 +10,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule
+public interface IModule : IEquatable<IModule>
 {
     /// <summary>
     /// Name of the module
@@ -108,4 +108,10 @@ public interface IModule
     /// </summary>
     /// <returns></returns>
     public string GetVhdlComponentDeclaration();
+
+    /// <summary>
+    /// If this is a type of module that links to another module (ex. <see cref="ParameterizedModule{T}"/>),
+    /// this should be a link to that module
+    /// </summary>
+    public IModule BaseModule => this;
 }

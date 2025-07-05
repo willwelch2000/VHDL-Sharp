@@ -19,7 +19,8 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     /// <summary>Dictionary that tracks all modules given the input</summary>
     private static readonly Dictionary<T, IModule> allModules = [];
 
-    private readonly IModule module;
+    /// <inheritdoc/>
+    public IModule BaseModule { get; }
 
     /// <summary>
     /// Constructor given input object
@@ -28,11 +29,11 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public ParameterizedModule(T options)
     {
         if (allModules.TryGetValue(options, out IModule? foundModule))
-            module = foundModule;
+            BaseModule = foundModule;
         else
         {
-            module = BuildModule(options);
-            allModules.Add(options, module);
+            BaseModule = BuildModule(options);
+            allModules.Add(options, BaseModule);
         }
     }
 
@@ -44,57 +45,56 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public abstract IModule BuildModule(T input);
 
     /// <inheritdoc/>
-    public string Name => module.Name;
+    public string Name => BaseModule.Name;
 
     /// <inheritdoc/>
-    public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors => module.SignalBehaviors;
+    public ObservableDictionary<INamedSignal, IBehavior> SignalBehaviors => BaseModule.SignalBehaviors;
 
     /// <inheritdoc/>
-    public ObservableCollection<IPort> Ports => module.Ports;
+    public ObservableCollection<IPort> Ports => BaseModule.Ports;
 
     /// <inheritdoc/>
-    public InstantiationCollection Instantiations => module.Instantiations;
+    public InstantiationCollection Instantiations => BaseModule.Instantiations;
 
     /// <inheritdoc/>
-    public IEnumerable<INamedSignal> NamedSignals => module.NamedSignals;
+    public IEnumerable<INamedSignal> NamedSignals => BaseModule.NamedSignals;
 
     /// <inheritdoc/>
-    public IEnumerable<IModule> ModulesUsed => module.ModulesUsed;
+    public IEnumerable<IModule> ModulesUsed => BaseModule.ModulesUsed;
 
     /// <inheritdoc/>
-    public bool ContainsSignal(INamedSignal signal) => module.ContainsSignal(signal);
+    public bool ContainsSignal(INamedSignal signal) => BaseModule.ContainsSignal(signal);
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules() => module.GetSimulationRules();
+    public IEnumerable<SimulationRule> GetSimulationRules() => BaseModule.GetSimulationRules();
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit) => module.GetSimulationRules(subcircuit);
+    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit) => BaseModule.GetSimulationRules(subcircuit);
 
     /// <inheritdoc/>
-    public SpiceSubcircuit GetSpice() => module.GetSpice();
+    public SpiceSubcircuit GetSpice() => BaseModule.GetSpice();
 
     /// <inheritdoc/>
-    public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits) => module.GetSpice(existingModuleLinkedSubcircuits);
+    public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits) => BaseModule.GetSpice(existingModuleLinkedSubcircuits);
 
     /// <inheritdoc/>
-    public override string ToString() => module.ToString();
+    public override string ToString() => BaseModule.ToString();
 
     /// <inheritdoc/>
-    public string GetVhdl() => module.GetVhdl();
+    public string GetVhdl() => BaseModule.GetVhdl();
 
     /// <inheritdoc/>
-    public string GetVhdlComponentDeclaration() => module.GetVhdlComponentDeclaration();
+    public string GetVhdlComponentDeclaration() => BaseModule.GetVhdlComponentDeclaration();
 
     /// <inheritdoc/>
-    public string GetVhdlNoSubmodules() => module.GetVhdlNoSubmodules();
+    public string GetVhdlNoSubmodules() => BaseModule.GetVhdlNoSubmodules();
 
     /// <inheritdoc/>
-    public bool IsComplete() => module.IsComplete();
+    public bool IsComplete() => BaseModule.IsComplete();
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is ParameterizedModule<T> paramMod &&
-        paramMod.module.Equals(module);
+    public override int GetHashCode() => BaseModule.GetHashCode();
 
     /// <inheritdoc/>
-    public override int GetHashCode() => module.GetHashCode();
+    public bool Equals(IModule? other) => other is not null && other.BaseModule.Equals(BaseModule.BaseModule);
 }
