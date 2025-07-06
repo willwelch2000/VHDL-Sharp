@@ -523,4 +523,7 @@ public class Module : IModule, IValidityManagedEntity
 
         return exception is null;
     }
+
+    /// <inheritdoc/>
+    public bool Equals(IModule? other) => other is not null && other.BaseModule == this;
 }
