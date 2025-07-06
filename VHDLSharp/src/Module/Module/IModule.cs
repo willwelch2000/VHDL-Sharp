@@ -110,4 +110,7 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// this should be a link to that module
     /// </summary>
     public IModule BaseModule => this;
+
+    /// <inheritdoc/>
+    bool IEquatable<IModule>.Equals(IModule? other) => other is not null && other.BaseModule == BaseModule;
 }

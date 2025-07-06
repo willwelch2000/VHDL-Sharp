@@ -97,5 +97,5 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public override int GetHashCode() => BaseModule.GetHashCode();
 
     /// <inheritdoc/>
-    public bool Equals(IModule? other) => other is not null && other.BaseModule.Equals(BaseModule.BaseModule);
+    public bool Equals(IModule? other) => ((IModule)this).Equals(other);
 }

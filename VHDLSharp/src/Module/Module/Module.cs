@@ -525,5 +525,5 @@ public class Module : IModule, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public bool Equals(IModule? other) => other is not null && other.BaseModule == this;
+    public bool Equals(IModule? other) => ((IModule)this).Equals(other);
 }

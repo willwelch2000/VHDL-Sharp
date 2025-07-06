@@ -20,6 +20,10 @@ public static class Program
     public static void Main(string[] args)
     {
         TestDff();
+        // IModule dff1 = new DFlipFlop(new());
+        // IModule dff2 = new DFlipFlop(new() { NegativeEdgeTriggered = true });
+        // IModule dff3 = new DFlipFlop(new());
+        // bool a = dff1.Equals(dff3);
         // TestDynamicSpice();
     }
 
@@ -420,10 +424,10 @@ public static class Program
         Port clk = module1.AddNewPort("CLK", PortDirection.Input);
         Port d = module1.AddNewPort("D", PortDirection.Input);
         Port q = module1.AddNewPort("Q", PortDirection.Output);
-        // Instantiation dff = module1.AddNewInstantiation(dffMod, "DFF");
-        // dff.PortMapping.SetPort("CLK", clk.Signal);
-        // dff.PortMapping.SetPort("D", d.Signal);
-        // dff.PortMapping.SetPort("Q", q.Signal);
+        Instantiation dff = module1.AddNewInstantiation(dffMod, "DFF");
+        dff.PortMapping.SetPort("CLK", clk.Signal);
+        dff.PortMapping.SetPort("D", d.Signal);
+        dff.PortMapping.SetPort("Q", q.Signal);
 
         RuleBasedSimulation setup = new(module1, new DefaultTimeStepGenerator())
         {
