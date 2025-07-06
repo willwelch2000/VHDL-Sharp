@@ -211,7 +211,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public Port AddNewPort(INamedSignal signal, PortDirection direction)
     {
-        if (!Equals(signal.ParentModule))
+        if (!((IModule)this).Equals(signal.ParentModule))
             throw new ArgumentException("Signal must have this module as parent");
         
         Port result = new(signal, direction);
@@ -396,7 +396,7 @@ public class Module : IModule, IValidityManagedEntity
             throw new IncompleteException($"Module not yet complete: {reason}");
         if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid())
             throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule");
-        if (!Equals(subcircuit.FinalModule))
+        if (!((IModule)this).Equals(subcircuit.FinalModule))
             throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
 
         // Behaviors
@@ -488,9 +488,9 @@ public class Module : IModule, IValidityManagedEntity
         // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            if (!Equals(outputSignal.ParentModule))
+            if (!((IModule)this).Equals(outputSignal.ParentModule))
                 exception = new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
-            if (behavior.ParentModule is not null && !Equals(behavior.ParentModule))
+            if (behavior.ParentModule is not null && !((IModule)this).Equals(behavior.ParentModule))
                 exception = new Exception($"Behavior must have this module as parent");
             if (!behavior.IsCompatible(outputSignal))
                 exception = new Exception($"Behavior must be compatible with output signal");
@@ -512,7 +512,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Don't allow ports with the same signal or with wrong parent module
         HashSet<ISignal> portSignals = [];
-        if (!Ports.All(p => portSignals.Add(p.Signal) && Equals(p.Signal.ParentModule)))
+        if (!Ports.All(p => portSignals.Add(p.Signal) && ((IModule)this).Equals(p.Signal.ParentModule)))
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
@@ -523,7 +523,4 @@ public class Module : IModule, IValidityManagedEntity
 
         return exception is null;
     }
-
-    /// <inheritdoc/>
-    public bool Equals(IModule? other) => ((IModule)this).Equals(other);
 }
