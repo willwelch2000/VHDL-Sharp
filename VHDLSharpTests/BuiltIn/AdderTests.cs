@@ -1,7 +1,5 @@
-using SpiceSharp.Simulations;
 using VHDLSharp.BuiltIn;
 using VHDLSharp.Modules;
-using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 
 namespace VHDLSharpTests;
@@ -45,41 +43,71 @@ public class AdderTests
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout.Signal));
         ISimulationResult[] results = [.. simulation.Simulate()];
-        ISimulationResult yResult = results[3];
-        ISimulationResult coutResult = results[4];
+        TestResults(results, 1);
+    }
 
-        // Check y results
-        for (int i = 0; i < yResult.TimeSteps.Length; i++)
+    [TestMethod]
+    public void Adder2BitTest()
+    {
+        Module module = new("module");
+        IModule adder = new Adder(2);
+
+        Port a = module.AddNewPort("A", 2, PortDirection.Input);
+        Port b = module.AddNewPort("B", 2, PortDirection.Input);
+        Port cin = module.AddNewPort("CIn", PortDirection.Input);
+        Port y = module.AddNewPort("Y", 2, PortDirection.Output);
+        Port cout = module.AddNewPort("Cout", PortDirection.Output);
+
+        Instantiation inst = module.AddNewInstantiation(adder, "Adder");
+        inst.PortMapping.SetPort("A", a.Signal);
+        inst.PortMapping.SetPort("B", b.Signal);
+        inst.PortMapping.SetPort("CIn", cin.Signal);
+        inst.PortMapping.SetPort("Y", y.Signal);
+        inst.PortMapping.SetPort("COut", cout.Signal);
+
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
         {
-            int? expectedResult = yResult.TimeSteps[i] switch
-            {
-                >        timeBuffer and < 1e-5 - timeBuffer => 0,
-                > 1e-5 + timeBuffer and < 3e-5 - timeBuffer => 1,
-                > 3e-5 + timeBuffer and < 4e-5 - timeBuffer => 0,
-                > 4e-5 + timeBuffer and < 5e-5 - timeBuffer => 1,
-                > 5e-5 + timeBuffer and < 7e-5 - timeBuffer => 0,
-                > 7e-5 + timeBuffer and < 8e-5 - timeBuffer => 1,
-                _ => null,
-            };
+            Length = 32e-5,
+        };
+        simulation.StimulusMapping[a] = new MultiDimensionalStimulus([
+            new PulseStimulus(1e-5, 1e-5, 2e-5),
+            new PulseStimulus(2e-5, 2e-5, 4e-5),
+        ]);
+        simulation.StimulusMapping[b] = new MultiDimensionalStimulus([
+            new PulseStimulus(4e-5, 4e-5, 8e-5),
+            new PulseStimulus(8e-5, 8e-5, 16e-5),
+        ]);
+        simulation.StimulusMapping[cin] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
-            if (expectedResult is not null)
-                Assert.AreEqual(expectedResult, yResult.Values[i]);
-        }
-        
-        // Check cout results
-        for (int i = 0; i < coutResult.TimeSteps.Length; i++)
+        SubcircuitReference moduleRef = new(module, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cin.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout.Signal));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+        TestResults(results, 2);
+    }
+
+    private static void TestResults(ISimulationResult[] results, int bits)
+    {
+        ISimulationResult aResults = results[0];
+        ISimulationResult bResults = results[1];
+        ISimulationResult cinResults = results[2];
+        ISimulationResult yResults = results[3];
+        ISimulationResult coutResults = results[4];
+
+        // Check results--all timesteps should be the same
+        for (int i = 0; i < yResults.TimeSteps.Length; i++)
         {
-            int? expectedResult = coutResult.TimeSteps[i] switch
-            {
-                >        timeBuffer and < 3e-5 - timeBuffer => 0,
-                > 3e-5 + timeBuffer and < 4e-5 - timeBuffer => 1,
-                > 4e-5 + timeBuffer and < 5e-5 - timeBuffer => 0,
-                > 5e-5 + timeBuffer and < 8e-5 - timeBuffer => 1,
-                _ => null,
-            };
+            double timeStep = yResults.TimeSteps[i];
+            if (Math.Abs(timeStep - 1e-5*Math.Round(timeStep / 1e-5, 0)) < timeBuffer)
+                continue;
 
-            if (expectedResult is not null)
-                Assert.AreEqual(expectedResult, coutResult.Values[i]);
+            int expectedY = (aResults.Values[i] + bResults.Values[i] + cinResults.Values[i]) % (1<<bits);
+            int expectedCout = (aResults.Values[i] + bResults.Values[i] + cinResults.Values[i]) / (1<<bits);
+            Assert.AreEqual(expectedY, yResults.Values[i]);
+            Assert.AreEqual(expectedCout, coutResults.Values[i]);
         }
     }
 }

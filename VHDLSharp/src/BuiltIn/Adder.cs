@@ -56,16 +56,16 @@ public class Adder(int bits) : ParameterizedModule<int>(bits)
 
             // Chain adders together
             IModule adder1Bit = new Adder(1);
-            Signal previousCin = cin;
+            Signal currentCarryBit = cin;
             for (int i = 0; i < bits; i++)
             {
                 Instantiation inst = module.AddNewInstantiation(adder1Bit, $"Adder{i}");
                 inst.PortMapping.SetPort("A", a[i]);
                 inst.PortMapping.SetPort("B", b[i]);
                 inst.PortMapping.SetPort("Y", y[i]);
-                inst.PortMapping.SetPort("CIn", previousCin);
-                Signal nextCout = (i == bits - 1) ? cout : module.GenerateSignal($"COut{i}");
-                inst.PortMapping.SetPort("COut", nextCout);
+                inst.PortMapping.SetPort("CIn", currentCarryBit);
+                currentCarryBit = (i == bits - 1) ? cout : module.GenerateSignal($"COut{i}");
+                inst.PortMapping.SetPort("COut", currentCarryBit);
             }
         }
 

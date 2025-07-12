@@ -457,12 +457,12 @@ public static class Program
     private static void TestAdder()
     {
         Module module = new("module");
-        IModule adder = new Adder(1);
+        IModule adder = new Adder(2);
 
-        Port a = module.AddNewPort("A", PortDirection.Input);
-        Port b = module.AddNewPort("B", PortDirection.Input);
+        Port a = module.AddNewPort("A", 2, PortDirection.Input);
+        Port b = module.AddNewPort("B", 2, PortDirection.Input);
         Port cin = module.AddNewPort("CIn", PortDirection.Input);
-        Port y = module.AddNewPort("Y", PortDirection.Output);
+        Port y = module.AddNewPort("Y", 2, PortDirection.Output);
         Port cout = module.AddNewPort("Cout", PortDirection.Output);
 
         Instantiation inst = module.AddNewInstantiation(adder, "Adder");
@@ -472,13 +472,19 @@ public static class Program
         inst.PortMapping.SetPort("Y", y.Signal);
         inst.PortMapping.SetPort("COut", cout.Signal);
 
-        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { })
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
         {
-            Length = 10e-5,
+            Length = 32e-5,
         };
-        simulation.StimulusMapping[a] = new PulseStimulus(1e-5, 1e-5, 2e-5);
-        simulation.StimulusMapping[b] = new PulseStimulus(2e-5, 2e-5, 4e-5);
-        simulation.StimulusMapping[cin] = new PulseStimulus(4e-5, 4e-5, 8e-5);
+        simulation.StimulusMapping[a] = new MultiDimensionalStimulus([
+            new PulseStimulus(1e-5, 1e-5, 2e-5),
+            new PulseStimulus(2e-5, 2e-5, 4e-5),
+        ]);
+        simulation.StimulusMapping[b] = new MultiDimensionalStimulus([
+            new PulseStimulus(4e-5, 4e-5, 8e-5),
+            new PulseStimulus(8e-5, 8e-5, 16e-5),
+        ]);
+        simulation.StimulusMapping[cin] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
         SubcircuitReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
