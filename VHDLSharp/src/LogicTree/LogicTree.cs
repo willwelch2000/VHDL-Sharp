@@ -1,6 +1,36 @@
 namespace VHDLSharp.LogicTree;
 
 /// <summary>
+/// Class that contains static logic functions
+/// </summary>
+public static class LogicFunctions
+{
+    /// <summary>
+    /// Generate an And with given inputs
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="inputs"></param>
+    /// <returns></returns>
+    public static And<T> And<T>(params ILogicallyCombinable<T>[] inputs) where T : ILogicallyCombinable<T> => new([.. inputs]);
+
+    /// <summary>
+    /// Generate an Or with given inputs
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="inputs"></param>
+    /// <returns></returns>
+    public static Or<T> Or<T>(params ILogicallyCombinable<T>[] inputs) where T : ILogicallyCombinable<T> => new([.. inputs]);
+
+    /// <summary>
+    /// Generate a Not with given input
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    public static Not<T> Not<T>(ILogicallyCombinable<T> input) where T : ILogicallyCombinable<T> => new(input);
+}
+
+/// <summary>
 /// Logic tree where the end result is type T
 /// For example OR(AND(T1, T2), NOT(T3))
 /// </summary>
@@ -55,7 +85,7 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
         // Otherwise, test the first base object with the others
         return first.CanCombine(others);
     }
-    
+
     /// <summary>
     /// Generate an And with this and another <see cref="ILogicallyCombinable{T}"/>
     /// </summary>
