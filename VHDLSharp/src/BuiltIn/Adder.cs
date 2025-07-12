@@ -59,13 +59,13 @@ public class Adder(int bits) : ParameterizedModule<int>(bits)
             Signal previousCin = cin;
             for (int i = 0; i < bits; i++)
             {
-                Instantiation instantiation = module.AddNewInstantiation(adder1Bit, $"Adder{i}");
-                instantiation.PortMapping.SetPort("A", a[i]);
-                instantiation.PortMapping.SetPort("B", b[i]);
-                instantiation.PortMapping.SetPort("Y", y[i]);
-                instantiation.PortMapping.SetPort("CIn", previousCin);
+                Instantiation inst = module.AddNewInstantiation(adder1Bit, $"Adder{i}");
+                inst.PortMapping.SetPort("A", a[i]);
+                inst.PortMapping.SetPort("B", b[i]);
+                inst.PortMapping.SetPort("Y", y[i]);
+                inst.PortMapping.SetPort("CIn", previousCin);
                 Signal nextCout = (i == bits - 1) ? cout : module.GenerateSignal($"COut{i}");
-                instantiation.PortMapping.SetPort("COut", nextCout);
+                inst.PortMapping.SetPort("COut", nextCout);
             }
         }
 

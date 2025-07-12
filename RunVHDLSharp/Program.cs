@@ -19,7 +19,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        TestDff();
+        TestAdder();
         // IModule dff1 = new DFlipFlop(new());
         // IModule dff2 = new DFlipFlop(new() { NegativeEdgeTriggered = true });
         // IModule dff3 = new DFlipFlop(new());
@@ -452,5 +452,55 @@ public static class Program
         plot.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Red);
         plot.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.LightBlue);
         plot.SavePng("results.png", 400, 300);
+    }
+
+    private static void TestAdder()
+    {
+        Module module = new("module");
+        IModule adder = new Adder(1);
+
+        Port a = module.AddNewPort("A", PortDirection.Input);
+        Port b = module.AddNewPort("B", PortDirection.Input);
+        Port cin = module.AddNewPort("CIn", PortDirection.Input);
+        Port y = module.AddNewPort("Y", PortDirection.Output);
+        Port cout = module.AddNewPort("Cout", PortDirection.Output);
+
+        Instantiation inst = module.AddNewInstantiation(adder, "Adder");
+        inst.PortMapping.SetPort("A", a.Signal);
+        inst.PortMapping.SetPort("B", b.Signal);
+        inst.PortMapping.SetPort("CIn", cin.Signal);
+        inst.PortMapping.SetPort("Y", y.Signal);
+        inst.PortMapping.SetPort("COut", cout.Signal);
+
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { })
+        {
+            Length = 10e-5,
+        };
+        simulation.StimulusMapping[a] = new PulseStimulus(1e-5, 1e-5, 2e-5);
+        simulation.StimulusMapping[b] = new PulseStimulus(2e-5, 2e-5, 4e-5);
+        simulation.StimulusMapping[cin] = new PulseStimulus(4e-5, 4e-5, 8e-5);
+
+        SubcircuitReference moduleRef = new(module, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cin.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout.Signal));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+
+        // Plot data
+        Multiplot plot = new();
+        plot.AddPlots(5);
+        Plot plot0 = plot.GetPlot(0);
+        Plot plot1 = plot.GetPlot(1);
+        Plot plot2 = plot.GetPlot(2);
+        Plot plot3 = plot.GetPlot(3);
+        Plot plot4 = plot.GetPlot(4);
+        plot0.Add.Scatter(results[0].TimeSteps, results[0].Values, Colors.Red);
+        plot1.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Blue);
+        plot2.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.Green);
+        plot3.Add.Scatter(results[3].TimeSteps, results[3].Values, Colors.Purple);
+        plot4.Add.Scatter(results[4].TimeSteps, results[4].Values, Colors.Orange);
+        plot.SavePng("results.png", 1000, 1000);
     }
 }
