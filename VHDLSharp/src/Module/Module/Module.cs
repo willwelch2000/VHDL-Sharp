@@ -197,7 +197,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public Port AddNewPort(string name, int dimension, PortDirection direction)
     {
-        NamedSignal signal = dimension == 1 ? new Signal(name, this) : new Vector(name, this, dimension);
+        ITopLevelNamedSignal signal = dimension == 1 ? new Signal(name, this) : new Vector(name, this, dimension);
         Port result = new(signal, direction);
         Ports.Add(result);
         return result;
@@ -209,7 +209,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <param name="signal"></param>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public Port AddNewPort(INamedSignal signal, PortDirection direction)
+    public Port AddNewPort(ITopLevelNamedSignal signal, PortDirection direction)
     {
         if (!((IModule)this).Equals(signal.ParentModule))
             throw new ArgumentException("Signal must have this module as parent");

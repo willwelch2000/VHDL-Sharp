@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Signal with multiple nodes inside of it (array)
 /// </summary>
-public class Vector : NamedSignal
+public class Vector : NamedSignal, ITopLevelNamedSignal
 {
     private readonly int dimension;
 
@@ -60,7 +60,7 @@ public class Vector : NamedSignal
     public override IEnumerable<VectorNode> ChildSignals => [.. vectorNodes];
     
     /// <summary>
-    /// Access individual node signals of vector
+    /// Access individual node signals of vector. 
     /// These can be used as single-node signals
     /// </summary>
     /// <param name="index"></param>

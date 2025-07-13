@@ -7,22 +7,15 @@ namespace VHDLSharp.Modules;
 /// </summary>
 /// <param name="signal"></param>
 /// <param name="direction"></param>
-public class Port(INamedSignal signal, PortDirection direction) : IPort
+public class Port(ITopLevelNamedSignal signal, PortDirection direction) : IPort
 {
-    /// <summary>
-    /// The signal object that this refers to
-    /// </summary>
-    public INamedSignal Signal { get; } = signal;
+    /// <inheritdoc/>
+    public ITopLevelNamedSignal Signal { get; } = signal;
 
-    /// <summary>
-    /// The direction that this port is with respect to the module
-    /// </summary>
+    /// <inheritdoc/>
     public PortDirection Direction { get; } = direction;
 
-    /// <summary>
-    /// Get port as VHDL port declaration that goes in an entity declaration
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc/>
     public string GetVhdlDeclaration() => $"{Signal.Name}\t: {DirectionToVhdl(Direction)}\t{Signal.VhdlType}";
 
     private static string DirectionToVhdl(PortDirection direction) =>
