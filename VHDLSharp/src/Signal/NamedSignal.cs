@@ -10,7 +10,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Single-node and vector signals that are contained in a module and have a name
 /// </summary>
-public abstract class NamedSignal : INamedSignal
+public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
 {
     /// <summary>
     /// Name of the module the signal is in
@@ -184,6 +184,16 @@ public abstract class NamedSignal : INamedSignal
 
     /// <inheritdoc/>
     public Equality EqualityWith(ISignal comparison) => new(this, comparison);
+
+    /// <inheritdoc/>
+    public bool Equals(INamedSignal? other)
+    {
+        if (other is null)
+            return false;
+        ISingleNodeNamedSignal[] children = [.. ToSingleNodeSignals];
+        ISingleNodeNamedSignal[] otherChildren = [.. other.ToSingleNodeSignals];
+        return children.Length == otherChildren.Length && children.Zip(otherChildren).All(pair => pair.First == pair.Second);
+    }
 
     /// <summary>Convert signal to <see cref="LogicBehavior"/></summary>
     /// <param name="signal">Signal to convert</param>

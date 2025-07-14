@@ -77,7 +77,7 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
     }
 
     /// <inheritdoc/>
-    public override INamedSignal this[Range range]
+    public override VectorSlice this[Range range]
     {
         get
         {

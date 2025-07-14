@@ -94,7 +94,7 @@ public class VectorSlice : NamedSignal
         if (base.IsPartOfPortMapping(mapping, out equivalentSignal))
             return true;
 
-        // Parent is a port
+        // Parent is a port--don't need to worry about larger VectorSlice being a port, bc this isn't allowed
         IPort? port = mapping.Keys.FirstOrDefault(p => p.Signal == ParentSignal);
         if (port is null)
             return false;
