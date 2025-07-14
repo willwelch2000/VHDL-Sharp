@@ -30,6 +30,11 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals => [this];
 
     /// <inheritdoc/>
+    public override INamedSignal this[Range range] =>
+        range.Start.GetOffset(1) == 0 && range.End.GetOffset(1) == 1 ? this :
+        throw new ArgumentOutOfRangeException(nameof(range), "The range for slicing a single-node signal must be 0");
+
+    /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a signal with a parent, check that one--otherwise, get the first available

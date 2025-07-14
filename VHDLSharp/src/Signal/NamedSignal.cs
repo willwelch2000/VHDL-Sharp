@@ -93,6 +93,9 @@ public abstract class NamedSignal : INamedSignal
         }
     }
 
+    /// <inheritdoc/>
+    public abstract INamedSignal this[Range range] { get; }
+
     ISingleNodeSignal ISignal.this[int index] => this[index];
 
     /// <inheritdoc/>

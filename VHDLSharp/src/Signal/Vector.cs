@@ -77,6 +77,19 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
     }
 
     /// <inheritdoc/>
+    public override INamedSignal this[Range range]
+    {
+        get
+        {
+            int start = range.Start.GetOffset(dimension);
+            int end = range.End.GetOffset(dimension);
+            if (start > end || start < 0 || end > dimension)
+                throw new ArgumentOutOfRangeException(nameof(range), "Specified range doesn't work for this vector");
+            return new VectorSlice(this, start, end);
+        }
+    }
+
+    /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
     {
         // If there's a named signal (with a parent), check that one--otherwise, get the first available
