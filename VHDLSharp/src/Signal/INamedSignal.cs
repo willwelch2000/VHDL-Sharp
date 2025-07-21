@@ -40,6 +40,13 @@ public interface INamedSignal : ISignal
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     /// <summary>
+    /// Get a slice of this signal
+    /// </summary>
+    /// <param name="range"></param>
+    /// <returns></returns>
+    public INamedSignal this[Range range] { get; }
+
+    /// <summary>
     /// If this is the top level, it returns this. 
     /// Otherwise, it goes up in hierarchy as much as possible
     /// </summary>
