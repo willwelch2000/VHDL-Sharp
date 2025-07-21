@@ -231,17 +231,18 @@ public class Module : IModule, IValidityManagedEntity
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason)
     {
-        // If any output signal hasn't been assigned
-        INamedSignal[] instantiationOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)];
+        // Set of all assigned output signals, broken into their single-node components
+        HashSet<ISingleNodeNamedSignal> allAssignedOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)
+            .Concat(SignalBehaviors.Keys).SelectMany(s => s.ToSingleNodeSignals)];
+
+        // Check that every single-node signal in every port has been assigned
+        // This strategy should work for a Vector assigned as multiple VectorSlices
         foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
-        {
-            if (SignalBehaviors.ContainsKey(port.Signal) || instantiationOutputSignals.Contains(port.Signal)) // Assigned as itself
-                continue;
-            if (port.Signal.ToSingleNodeSignals.All(SignalBehaviors.ContainsKey) || port.Signal.ToSingleNodeSignals.All(instantiationOutputSignals.Contains)) // Assigned as all children
-                continue;
-            reason = $"Port {port} has not been assigned";
-            return false;
-        }
+            if (!port.Signal.ToSingleNodeSignals.All(allAssignedOutputSignals.Contains))
+            {
+                reason = $"Port {port} has not been assigned";
+                return false;
+            }
 
         reason = null;
         return true;
