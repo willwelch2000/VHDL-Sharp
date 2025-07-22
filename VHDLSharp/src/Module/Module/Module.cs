@@ -227,6 +227,25 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public Instantiation AddNewInstantiation(IModule module, string name) => Instantiations.Add(module, name);
 
+    /// <summary>
+    /// Add new instantiation automatically using this module as parent module. 
+    /// Connections are also provided and assigned to the instantiation's ports in the same order
+    /// </summary>
+    /// <param name="module">Module to be instantiated in this</param>
+    /// <param name="name">Name of instantiation</param>
+    /// <param name="connections">Signals to be assigned to the module's ports</param>
+    /// <returns></returns>
+    public Instantiation AddNewInstantiation(IModule module, string name, params INamedSignal[] connections)
+    {
+        Instantiation inst = AddNewInstantiation(module, name);
+        IPort[] ports = [.. module.Ports];
+        if (ports.Length != connections.Length)
+            throw new Exception($"Wrong number of ports. Must have {ports.Length}.");
+        for (int i = 0; i < ports.Length; i++)
+            inst.PortMapping[ports[i]] = connections[i];
+        return inst;
+    }
+
     // TODO if I keep this structure where a signal can have > 2 levels of hierarchy, needs to be changed
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason)
