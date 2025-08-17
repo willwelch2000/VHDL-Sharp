@@ -7,13 +7,8 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Interface for any signal that has a name and belongs to a <see cref="IModule"/>
 /// </summary>
-public interface INamedSignal : ISignal
+public interface INamedSignal : ISignalWithAssignedModule
 {
-    /// <summary>
-    /// Name of the module the signal is in
-    /// </summary>
-    public IModule ParentModule { get; }
-
     /// <summary>
     /// Name of the signal
     /// </summary>

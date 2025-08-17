@@ -1,4 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.Dimensions;
+using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp.Signals;
 
@@ -7,17 +11,12 @@ namespace VHDLSharp.Signals;
 /// to assign a value to a signal. A <see cref="LinkedSignal"/> should be assigned the value determined
 /// by the relevant logic. 
 /// </summary>
-public interface IDerivedSignal : ISignal
+public interface IDerivedSignal : ISignalWithAssignedModule
 {
-    // /// <summary>
-    // /// Name of derived signal. 
-    // /// If no name is provided, one will be temporarily assigned when needed by the module
-    // /// </summary>
-    // public string? Name { get; set; }
-
     /// <summary>
     /// The named signal whose value will be determined by this derived signal.
-    /// If unassigned, a temporary signal will be created and assigned by the <see cref="IModule"/>. 
+    /// If unassigned, a temporary signal will be created for necessary functions.
+    /// The module might also set this if unassigned before necessary module functions, to avoid duplicate names.  
     /// The module and dimension of the linked signal must match this. 
     /// </summary>
     public INamedSignal? LinkedSignal { get; set; }
@@ -33,11 +32,99 @@ public interface IDerivedSignal : ISignal
     public IInstantiation Compile(string moduleName, string instanceName);
 }
 
-public abstract class DerivedSignal : IDerivedSignal
+/// <summary>
+/// Abstract base class implementation of <see cref="IDerivedSignal"/>
+/// </summary>
+public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
 {
-    // /// <inheritdoc/>
-    // public string? Name { get; set; } = null;
+    private EventHandler? updated;
+
+    /// <summary>
+    /// Constructor given parent module
+    /// </summary>
+    /// <param name="parentModule"></param>
+    public DerivedSignal(IModule parentModule)
+    {
+        ValidityManager = new ValidityManager<object>(this, [], []);
+        ParentModule = parentModule;
+    }
+
+    /// <summary>Module to which this signal belongs</summary>
+    public IModule ParentModule { get; }
 
     /// <inheritdoc/>
     public INamedSignal? LinkedSignal { get; set; }
+
+    /// <inheritdoc/>
+    public IInstantiation Compile(string moduleName, string instanceName) => ValidityManager.IsValid() ?
+        CompileWithoutCheck(moduleName, instanceName) :
+        throw new Exception("Derived signal must be valid to compile", ValidityManager.Issues().First().Exception);
+
+    /// <summary>
+    /// Compile instantiation without checking for validity first
+    /// </summary>
+    /// <param name="moduleName">Name for a new module, if needed</param>
+    /// <param name="instanceName">Name for the returned instantiation</param>
+    /// <returns></returns>
+    protected abstract IInstantiation CompileWithoutCheck(string moduleName, string instanceName);
+
+    /// <inheritdoc/>
+    public abstract DefiniteDimension Dimension { get; }
+
+    /// <inheritdoc/>
+    public ISignal? ParentSignal => null;
+
+    /// <inheritdoc/>
+    public ISingleNodeSignal this[int index] => index < Dimension.NonNullValue && index >= 0 ?
+        new DerivedSignalNode(this, index) :
+        throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+
+    /// <inheritdoc/>
+    public IEnumerable<ISignal> ChildSignals => Enumerable.Range(0, Dimension.NonNullValue)
+        .Select(i => new DerivedSignalNode(this, i));
+
+    /// <inheritdoc/>
+    public string GetVhdlName() => LinkedSignal is null ?
+        throw new Exception("Must have a linked assigned signal to get the VHDL name") : LinkedSignal.GetVhdlName();
+
+    /// <inheritdoc/>
+    public bool CanCombine(ILogicallyCombinable<ISignal> other) => ISignal.CanCombineSignals(this, other);
+
+    /// <inheritdoc/>
+    public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
+
+    /// <inheritdoc/>
+    public string ToLogicString() => LinkedSignal is null ?
+        throw new Exception("Must have a linked assigned signal to get the logic string") : LinkedSignal.ToLogicString();
+
+    /// <inheritdoc/>
+    public string ToLogicString(LogicStringOptions options) => LinkedSignal is null ?
+        throw new Exception("Must have a linked assigned signal to get the logic string") : LinkedSignal.ToLogicString(options);
+
+    /// <inheritdoc/>
+    public ValidityManager ValidityManager { get; }
+
+    /// <inheritdoc/>
+    public event EventHandler? Updated
+    {
+        add
+        {
+            updated -= value; // remove if already present
+            updated += value;
+        }
+        remove => updated -= value;
+    }
+
+    /// <inheritdoc/>
+    public abstract bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception);
+
+    /// <summary>
+    /// Call to raise updated event
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected void InvokeUpdated(object? sender, EventArgs e)
+    {
+        updated?.Invoke(sender, e);
+    }
 }

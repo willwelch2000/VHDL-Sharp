@@ -2,6 +2,7 @@ using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Modules;
 using VHDLSharp.Simulations;
 using VHDLSharp.Utility;
 
@@ -9,13 +10,16 @@ namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Interface for any type of signal that can be used in an expression.
-/// It is assumed that parent-child relationships, as well as the parent module, are not changed after construction.
+/// It is assumed that parent-child relationships, the parent module, and the dimension are not changed after construction.
 /// An implementation that breaks this rule could cause validation issues.
 /// Classes should not directly implement this. 
 /// Instead, they should implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, which extend this.
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>
 {
+    // /// <summary>Module that this belongs to, if applicable</summary>
+    // public IModule? ParentModule { get; }
+
     /// <summary>
     /// Object explaining how many nodes are part of this signal (1 for normal signal)
     /// </summary> 
@@ -108,12 +112,12 @@ public interface ISignal : ILogicallyCombinable<ISignal>
         if (baseSignals.Count() < 2)
             return true;
 
-        // Find named signal, if it exists
-        INamedSignal? namedSignal = baseSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal;
+        // Find signal with assigned module, if it exists
+        ISignalWithAssignedModule? namedSignal = baseSignals.FirstOrDefault(s => s is ISignalWithAssignedModule) as ISignalWithAssignedModule;
         if (namedSignal is not null)
         {
             // If any signal has another parent
-            if (baseSignals.Any(s => s is INamedSignal namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
+            if (baseSignals.Any(s => s is ISignalWithAssignedModule namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
                 return false;
         }
 
@@ -123,6 +127,16 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             return false;
 
         return true;
+    }
+
+    internal static bool CanCombineSignals(ISignalWithAssignedModule signalWithModule, ILogicallyCombinable<ISignal> other)
+    {
+        // If there's a signal with a parent module, check that one--otherwise, get the first available
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is ISignalWithAssignedModule) ?? other.BaseObjects.FirstOrDefault();
+        if (signal is null)
+            return true;
+        // Fine if dimension is compatible and parent is nonexistent or compatible
+        return signalWithModule.Dimension.Compatible(signal.Dimension) && (signal is not ISignalWithAssignedModule namedSignal || signalWithModule.ParentModule.Equals(namedSignal.ParentModule));
     }
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
