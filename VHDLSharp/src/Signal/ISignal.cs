@@ -26,7 +26,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     public DefiniteDimension Dimension { get; }
 
     /// <summary>
-    /// Indexer for multi-dimensional signals
+    /// Indexer for multi-dimensional signals. 
     /// A single-dimensional signal will just return itself for the first item
     /// </summary>
     /// <param name="index"></param>

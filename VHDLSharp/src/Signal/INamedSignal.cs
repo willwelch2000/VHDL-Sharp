@@ -42,6 +42,15 @@ public interface INamedSignal : ISignalWithAssignedModule
     public INamedSignal this[Range range] { get; }
 
     /// <summary>
+    /// Indexer for multi-dimensional signals, with type specified as <see cref="ISingleNodeNamedSignal"/>
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public new ISingleNodeNamedSignal this[int index] { get; }
+
+    ISingleNodeSignal ISignal.this[int index] => this[index];
+
+    /// <summary>
     /// If this is the top level, it returns this. 
     /// Otherwise, it goes up in hierarchy as much as possible
     /// </summary>

@@ -1,3 +1,5 @@
+using VHDLSharp.Dimensions;
+
 namespace VHDLSharp.Signals;
 
 /// <summary>
@@ -11,4 +13,13 @@ public interface ISingleNodeSignal : ISignal
     /// </summary>
     /// <returns></returns>
     public string GetSpiceName();
+
+    DefiniteDimension ISignal.Dimension => new(1);
+
+    ISingleNodeSignal ISignal.this[int index] => index == 0 ? this :
+        throw new ArgumentOutOfRangeException(nameof(index), $"Must be 0 for single node signal");
+
+    IEnumerable<ISignal> ISignal.ChildSignals => [];
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 }
