@@ -30,6 +30,11 @@ public interface IDerivedSignal : ISignalWithAssignedModule
     /// <param name="instanceName">Name for the returned instantiation</param>
     /// <returns></returns>
     public IInstantiation Compile(string moduleName, string instanceName);
+
+    /// <summary>
+    /// Get all the named signals that are used (maybe recursively) by this, so that they can be included. 
+    /// </summary>
+    public IEnumerable<INamedSignal> NamedInputSignals { get; }
 }
 
 /// <summary>
@@ -67,6 +72,33 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     /// <param name="instanceName">Name for the returned instantiation</param>
     /// <returns></returns>
     protected abstract IInstantiation CompileWithoutCheck(string moduleName, string instanceName);
+
+    /// <inheritdoc/>
+    public IEnumerable<INamedSignal> NamedInputSignals
+    {
+        get
+        {
+            HashSet<ISignalWithAssignedModule> foundSignals = [];
+            foreach (ISignalWithAssignedModule signal in InputSignalsWithAssignedModule)
+            {
+                if (foundSignals.Contains(signal))
+                    continue;
+                if (signal is INamedSignal namedSignal)
+                    yield return namedSignal;
+                else if (signal is IDerivedSignal derivedSignal)
+                    foreach (INamedSignal subNamedSignal in derivedSignal.NamedInputSignals)
+                        if (!foundSignals.Contains(subNamedSignal))
+                            yield return subNamedSignal;
+                foundSignals.Add(signal);
+            }
+        }
+    }
+
+    /// <summary>
+    /// All the input signals that implement <see cref="ISignalWithAssignedModule"/>. 
+    /// Used to generate the <see cref="NamedInputSignals"/> list.
+    /// </summary>
+    protected abstract IEnumerable<ISignalWithAssignedModule> InputSignalsWithAssignedModule { get; }
 
     /// <inheritdoc/>
     public abstract DefiniteDimension Dimension { get; }

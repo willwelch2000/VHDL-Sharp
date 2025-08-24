@@ -4,13 +4,24 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Signals;
 
 /// <summary>
+/// Interface for a node of a derived signal. 
+/// These signals are handled differently because their parent <see cref="DerivedSignal"/> must be compiled.
+/// Additionally, the parent must be considered when recursively finding all signals used. 
+/// </summary>
+public interface IDerivedSignalNode : ISingleNodeSignal, ISignalWithAssignedModule
+{
+    /// <summary>Parent <see cref="IDerivedSignal"/> that this belongs to</summary>
+    public IDerivedSignal DerivedSignal { get; }
+}
+
+/// <summary>
 /// Single node in a <see cref="IDerivedSignal"/>
 /// </summary>
 /// <param name="derivedSignal">Parent derived signal</param>
 /// <param name="node">Index in the parent</param>
-public class DerivedSignalNode(IDerivedSignal derivedSignal, int node) : ISingleNodeSignal, ISignalWithAssignedModule, IEquatable<DerivedSignalNode>
+public class DerivedSignalNode(IDerivedSignal derivedSignal, int node) : IDerivedSignalNode, IEquatable<DerivedSignalNode>
 {
-    /// <summary>Parent <see cref="IDerivedSignal"/> that this belongs to</summary>
+    /// <inheritdoc/>
     public IDerivedSignal DerivedSignal { get; } = derivedSignal;
 
     /// <summary>The index in the <see cref="DerivedSignal"/></summary>

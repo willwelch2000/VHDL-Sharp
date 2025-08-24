@@ -13,7 +13,7 @@ namespace VHDLSharp.Signals;
 /// It is assumed that parent-child relationships, the parent module, and the dimension are not changed after construction.
 /// An implementation that breaks this rule could cause validation issues.
 /// Classes should not directly implement this. 
-/// Instead, they should implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, which extend this.
+/// Instead, they should implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>, which extend this.
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>
 {
