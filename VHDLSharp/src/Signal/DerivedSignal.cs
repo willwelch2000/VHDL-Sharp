@@ -114,7 +114,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public abstract DefiniteDimension Dimension { get; }
 
     /// <inheritdoc/>
-    public ISignal? ParentSignal => null;
+    public IModuleSpecificSignal? ParentSignal => null;
 
     /// <inheritdoc/>
     public ISingleNodeSignal this[int index] => index < Dimension.NonNullValue && index >= 0 ?

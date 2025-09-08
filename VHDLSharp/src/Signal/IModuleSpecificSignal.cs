@@ -25,7 +25,23 @@ public interface IModuleSpecificSignal : ISignal
     /// If this is the top level, it returns this. 
     /// Otherwise, it goes up in hierarchy as much as possible
     /// </summary>
-    public new IModuleSpecificSignal TopLevelSignal { get; }
+    public new IModuleSpecificSignal TopLevelSignal
+    {
+        get
+        {
+            IModuleSpecificSignal signal = this;
+            while (signal.ParentSignal is not null)
+                signal = signal.ParentSignal;
+            return signal;
+        }
+    }
 
     ISignal ISignal.TopLevelSignal => TopLevelSignal;
+    
+    /// <summary>
+    /// If this is part of a larger group (e.g. vector node), get the parent signal (one layer up)
+    /// </summary>
+    public new IModuleSpecificSignal? ParentSignal { get; }
+
+    ISignal? ISignal.ParentSignal => ParentSignal;
 }

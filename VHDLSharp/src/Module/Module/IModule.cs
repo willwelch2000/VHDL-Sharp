@@ -34,12 +34,12 @@ public interface IModule : IEquatable<IModule>, ICompletable
     public InstantiationCollection Instantiations { get; }
 
     /// <summary>
-    /// Get all named signals used in this module. 
-    /// Signals can come from ports, behavior input signals, or output signals. 
-    /// If all of a multi-dimensional signal's children are used, then only the top-level signal should be included. 
-    /// Otherwise, only the children should be returned. 
+    /// Get all signals used in this module that belong to it. 
+    /// Signals can come from ports, behavior input signals, assigned output signals, instantiations, or derived signals. 
+    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
+    /// Otherwise, only the used children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -97,7 +97,7 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(INamedSignal signal);
+    public bool ContainsSignal(IModuleSpecificSignal signal);
 
     /// <summary>
     /// Get VHDL component declaration for the module

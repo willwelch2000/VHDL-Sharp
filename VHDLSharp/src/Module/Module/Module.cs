@@ -117,12 +117,7 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     public InstantiationCollection Instantiations { get; }
 
-    /// <summary>
-    /// Get all signals used in this module that belong to it. 
-    /// Signals can come from ports, behavior input signals, assigned output signals, instantiations, or derived signals. 
-    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
-    /// Otherwise, only the used children are returned. 
-    /// </summary>
+    /// <inheritdoc/>
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals
     {
         get
