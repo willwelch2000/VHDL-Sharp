@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Interface for any signal that has a name and belongs to a <see cref="IModule"/>
 /// </summary>
-public interface INamedSignal : ISignalWithAssignedModule
+public interface INamedSignal : IModuleSpecificSignal
 {
     /// <summary>
     /// Name of the signal
@@ -27,12 +27,13 @@ public interface INamedSignal : ISignalWithAssignedModule
 
     /// <summary>
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1. 
-    /// If it is dimension 1, then return itself
+    /// If this is a single-node signal, then return itself
     /// TODO should this be made into a list because it is assumed to be ordered consistently?
     /// </summary>
     public new IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+    IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     /// <summary>
     /// Get a slice of this signal

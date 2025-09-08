@@ -8,10 +8,14 @@ namespace VHDLSharp.Signals;
 /// These signals are handled differently because their parent <see cref="DerivedSignal"/> must be compiled.
 /// Additionally, the parent must be considered when recursively finding all signals used. 
 /// </summary>
-public interface IDerivedSignalNode : ISingleNodeSignal, ISignalWithAssignedModule
+public interface IDerivedSignalNode : ISingleNodeModuleSpecificSignal
 {
     /// <summary>Parent <see cref="IDerivedSignal"/> that this belongs to</summary>
     public IDerivedSignal DerivedSignal { get; }
+
+    IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => [];
+
+    IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 }
 
 /// <summary>

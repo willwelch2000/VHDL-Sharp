@@ -118,21 +118,29 @@ public class Module : IModule, IValidityManagedEntity
     public InstantiationCollection Instantiations { get; }
 
     /// <summary>
-    /// Get all named signals used in this module. 
-    /// Signals can come from ports, behavior input signals, or output signals. 
+    /// Get all signals used in this module that belong to it. 
+    /// Signals can come from ports, behavior input signals, assigned output signals, instantiations, or derived signals. 
     /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
     /// Otherwise, only the children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals
     {
         get
         {
             // Get list of all single-node named signals used
-            HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
+            // TODO consider using ISingleNodeSignalWithAssignedModule for type
+            HashSet<IModuleSpecificSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
                 .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
                 .Union(SignalBehaviors.Keys)
                 .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-                .SelectMany(s => s.ToSingleNodeSignals)];
+                .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
+                {
+                    IDerivedSignal derivedSignal => [s, derivedSignal.ChildSignals],
+                    _ => [s],
+                })
+                .Where(s => s.ParentModule == this)
+                .SelectMany(s => s.ToSingleNodeSignals)
+                .OfType<IModuleSpecificSignal>()];
 
             HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
             HashSet<INamedSignal> allNamedSignals = [];

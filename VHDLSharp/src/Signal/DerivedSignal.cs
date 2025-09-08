@@ -10,8 +10,9 @@ namespace VHDLSharp.Signals;
 /// Interface for a signal that uses more complicated logic (in the form of an <see cref="IInstantiation"/>)
 /// to assign a value to a signal. A <see cref="LinkedSignal"/> should be assigned the value determined
 /// by the relevant logic. 
+/// This is treated
 /// </summary>
-public interface IDerivedSignal : ISignalWithAssignedModule
+public interface IDerivedSignal : IModuleSpecificSignal
 {
     /// <summary>
     /// The named signal whose value will be determined by this derived signal.
@@ -32,9 +33,17 @@ public interface IDerivedSignal : ISignalWithAssignedModule
     public IInstantiation Compile(string moduleName, string instanceName);
 
     /// <summary>
-    /// Get all the named signals that are used (maybe recursively) by this, so that they can be included. 
+    /// Get all the module-specific signals that are used (recursively) by this, 
+    /// so that they can be included in the module
     /// </summary>
-    public IEnumerable<INamedSignal> NamedInputSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals { get; }
+
+    /// <summary>
+    /// Convert to single-node signals, as type <see cref="IDerivedSignalNode"/>
+    /// </summary>
+    public new IEnumerable<IDerivedSignalNode> ToSingleNodeSignals { get; }
+
+    IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => ToSingleNodeSignals;
 }
 
 /// <summary>
@@ -74,31 +83,32 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     protected abstract IInstantiation CompileWithoutCheck(string moduleName, string instanceName);
 
     /// <inheritdoc/>
-    public IEnumerable<INamedSignal> NamedInputSignals
+    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals
     {
         get
         {
-            HashSet<ISignalWithAssignedModule> foundSignals = [];
-            foreach (ISignalWithAssignedModule signal in InputSignalsWithAssignedModule)
+            HashSet<IModuleSpecificSignal> foundSignals = [];
+            foreach (IModuleSpecificSignal signal in InputSignalsWithAssignedModule)
             {
-                if (foundSignals.Contains(signal))
+                if (foundSignals.Contains(signal)) // Skip if already found
                     continue;
-                if (signal is INamedSignal namedSignal)
-                    yield return namedSignal;
-                else if (signal is IDerivedSignal derivedSignal)
-                    foreach (INamedSignal subNamedSignal in derivedSignal.NamedInputSignals)
+                yield return signal; // Return the signal itself
+                // If it's a derived signal, return all its used signals recursively as well
+                if (signal is IDerivedSignal derivedSignal)
+                    foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.UsedModuleSpecificSignals)
                         if (!foundSignals.Contains(subNamedSignal))
                             yield return subNamedSignal;
+                // Remember signal to avoid returning it again
                 foundSignals.Add(signal);
             }
         }
     }
 
     /// <summary>
-    /// All the input signals that implement <see cref="ISignalWithAssignedModule"/>. 
-    /// Used to generate the <see cref="NamedInputSignals"/> list.
+    /// All the input signals that implement <see cref="IModuleSpecificSignal"/>. 
+    /// Used to generate the <see cref="UsedModuleSpecificSignals"/> list.
     /// </summary>
-    protected abstract IEnumerable<ISignalWithAssignedModule> InputSignalsWithAssignedModule { get; }
+    protected abstract IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule { get; }
 
     /// <inheritdoc/>
     public abstract DefiniteDimension Dimension { get; }
@@ -112,7 +122,10 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
         throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
 
     /// <inheritdoc/>
-    public IEnumerable<ISignal> ChildSignals => Enumerable.Range(0, Dimension.NonNullValue)
+    public IEnumerable<ISignal> ChildSignals => ToSingleNodeSignals;
+
+    /// <inheritdoc/>
+    public IEnumerable<IDerivedSignalNode> ToSingleNodeSignals => Enumerable.Range(0, Dimension.NonNullValue)
         .Select(i => new DerivedSignalNode(this, i));
 
     /// <inheritdoc/>

@@ -113,11 +113,11 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             return true;
 
         // Find signal with assigned module, if it exists
-        ISignalWithAssignedModule? namedSignal = baseSignals.FirstOrDefault(s => s is ISignalWithAssignedModule) as ISignalWithAssignedModule;
+        IModuleSpecificSignal? namedSignal = baseSignals.FirstOrDefault(s => s is IModuleSpecificSignal) as IModuleSpecificSignal;
         if (namedSignal is not null)
         {
             // If any signal has another parent
-            if (baseSignals.Any(s => s is ISignalWithAssignedModule namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
+            if (baseSignals.Any(s => s is IModuleSpecificSignal namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
                 return false;
         }
 
@@ -129,14 +129,14 @@ public interface ISignal : ILogicallyCombinable<ISignal>
         return true;
     }
 
-    internal static bool CanCombineSignals(ISignalWithAssignedModule signalWithModule, ILogicallyCombinable<ISignal> other)
+    internal static bool CanCombineSignals(IModuleSpecificSignal signalWithModule, ILogicallyCombinable<ISignal> other)
     {
         // If there's a signal with a parent module, check that one--otherwise, get the first available
-        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is ISignalWithAssignedModule) ?? other.BaseObjects.FirstOrDefault();
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is IModuleSpecificSignal) ?? other.BaseObjects.FirstOrDefault();
         if (signal is null)
             return true;
         // Fine if dimension is compatible and parent is nonexistent or compatible
-        return signalWithModule.Dimension.Compatible(signal.Dimension) && (signal is not ISignalWithAssignedModule namedSignal || signalWithModule.ParentModule.Equals(namedSignal.ParentModule));
+        return signalWithModule.Dimension.Compatible(signal.Dimension) && (signal is not IModuleSpecificSignal namedSignal || signalWithModule.ParentModule.Equals(namedSignal.ParentModule));
     }
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;
