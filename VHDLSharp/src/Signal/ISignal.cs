@@ -2,7 +2,6 @@ using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
-using VHDLSharp.Modules;
 using VHDLSharp.Simulations;
 using VHDLSharp.Utility;
 

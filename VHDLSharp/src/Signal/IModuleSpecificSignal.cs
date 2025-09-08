@@ -19,4 +19,13 @@ public interface IModuleSpecificSignal : ISignal
     public new IEnumerable<ISingleNodeModuleSpecificSignal> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Top-level signal, as type <see cref="IModuleSpecificSignal"/>.
+    /// If this is the top level, it returns this. 
+    /// Otherwise, it goes up in hierarchy as much as possible
+    /// </summary>
+    public new IModuleSpecificSignal TopLevelSignal { get; }
+
+    ISignal ISignal.TopLevelSignal => TopLevelSignal;
 }
