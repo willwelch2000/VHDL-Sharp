@@ -29,8 +29,6 @@ public static class Program
         /* TODO
         1. In module, check that there are no signal name collisions, including derived signals
         2. Modify behaviors to include derived signals in the input signals list
-        3. Modify NamedInputSignals field in DerivedSignal to get all module-specific signals
-        4. Add IDerivedSignal ChildSignals to Module ChildSignals--unpack derived signals and derived signal nodes
         5. PortMapping, instantiations, and signal-behavior dictionary should be allowed to used derived signals--ModuleSpecificSignals
         */
     }

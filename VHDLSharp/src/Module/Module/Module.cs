@@ -137,6 +137,7 @@ public class Module : IModule, IValidityManagedEntity
                 .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
                 {
                     IDerivedSignal derivedSignal => [s, .. derivedSignal.UsedModuleSpecificSignals],
+                    IDerivedSignalNode derivedSignalNode => [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
                     _ => [s],
                 })
                 .Where(s => s.ParentModule == this) // Should be true for all, but double check
@@ -448,16 +449,14 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(INamedSignal signal)
+    public bool ContainsSignal(IModuleSpecificSignal signal)
     {
-        INamedSignal[] namedSignals = [.. NamedSignals];
+        IModuleSpecificSignal[] namedSignals = [.. AllModuleSignals];
         // True if directly contained
         if (namedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
-        if (signal is ISingleNodeNamedSignal)
-            return namedSignals.Contains(signal.TopLevelSignal);
-        return false;
+        return signal is ISingleNodeModuleSpecificSignal && namedSignals.Contains(signal.TopLevelSignal);
     }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
