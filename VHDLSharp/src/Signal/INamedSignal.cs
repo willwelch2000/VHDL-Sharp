@@ -64,7 +64,7 @@ public interface INamedSignal : IModuleSpecificSignal
     /// </summary>
     public new INamedSignal? ParentSignal { get; }
 
-    ISignal? ISignal.ParentSignal => ParentSignal;
+    IModuleSpecificSignal? IModuleSpecificSignal.ParentSignal => ParentSignal;
 
     /// <summary>
     /// Tests if this signal is part of a port in a port mapping, since it can't be directly keyed. 

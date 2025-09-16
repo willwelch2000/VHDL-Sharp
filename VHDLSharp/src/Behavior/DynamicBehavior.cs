@@ -53,7 +53,7 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).OfType<INamedSignal>())).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).OfType<IModuleSpecificSignal>())).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension
@@ -74,7 +74,7 @@ public class DynamicBehavior : Behavior
             throw new Exception("Must have at least one condition mapping");
 
         StringBuilder sb = new();
-        sb.AppendLine($"process({string.Join(", ", NamedInputSignals.Select(s => s.Name))}) is");
+        sb.AppendLine($"process({string.Join(", ", InputModuleSignals.Select(s => s.GetVhdlName()))}) is");
         sb.AppendLine("begin");
 
         // First condition

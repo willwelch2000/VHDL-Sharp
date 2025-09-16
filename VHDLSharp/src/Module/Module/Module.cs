@@ -337,7 +337,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine();
         sb.AppendLine($"architecture rtl of {Name} is");
 
-        // Signals
+        // Signals--TODO will need to generate temporary named signals
         foreach(INamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
         {
             sb.AppendLine(signal.GetVhdlDeclaration().AddIndentation(1));

@@ -28,7 +28,7 @@ public static class Program
 
         /* TODO
         1. In module, check that there are no signal name collisions, including derived signals
-        2. Modify behaviors to include derived signals in the input signals list
+        3. Generate temporary named signals when generating VHDL or other stuff
         5. PortMapping, instantiations, and signal-behavior dictionary should be allowed to used derived signals--ModuleSpecificSignals
         */
     }

@@ -32,10 +32,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
         validityManager = new ValidityManager<object>(this, childEntities);
     }
     
-    /// <summary>
-    /// Get all of the named input signals used in this behavior
-    /// </summary>
-    public abstract IEnumerable<INamedSignal> NamedInputSignals { get; }
+    /// <inheritdoc/>
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object
@@ -59,7 +57,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public IModule? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
+    public IModule? ParentModule => InputModuleSignals.FirstOrDefault()?.ParentModule;
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals. 
@@ -69,7 +67,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
-        var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
+        var modules = InputModuleSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
             exception = new Exception("Input signals should all come from the same module");
         return exception is null;

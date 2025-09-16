@@ -19,9 +19,9 @@ public class LogicBehavior(ILogicallyCombinable<ISignal> logicExpression) : Beha
     public LogicExpression LogicExpression { get; } = LogicExpression.ToLogicExpression(logicExpression);
 
     /// <summary>
-    /// The named input signals used in this behavior. Gotten from logic expression's base objects
+    /// The module-specific input signals used in this behavior. Gotten from logic expression's base objects
     /// </summary>
-    public override IEnumerable<INamedSignal> NamedInputSignals => LogicExpression.BaseObjects.OfType<INamedSignal>().Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => LogicExpression.BaseObjects.OfType<IModuleSpecificSignal>().Distinct();
 
     /// <summary>
     /// Works by getting dimension from first internal signal--they should all have the same dimension
