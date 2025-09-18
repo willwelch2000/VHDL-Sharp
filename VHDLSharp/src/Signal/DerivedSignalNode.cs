@@ -35,7 +35,7 @@ public class DerivedSignalNode(IDerivedSignal derivedSignal, int node) : IDerive
     public ISingleNodeNamedSignal? LinkedSignal => DerivedSignal.LinkedSignal is INamedSignal namedSignal ? namedSignal[Node] : null;
 
     /// <inheritdoc/>
-    public ISignal? ParentSignal => DerivedSignal;
+    public IModuleSpecificSignal? ParentSignal => DerivedSignal;
 
     /// <inheritdoc/>
     public IModule ParentModule => DerivedSignal.ParentModule;

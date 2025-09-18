@@ -27,9 +27,9 @@ public static class Program
         // TestDynamicSpice();
 
         /* TODO
-        1. In module, check that there are no signal name collisions, including derived signals
-        3. Generate temporary named signals when generating VHDL or other stuff
-        5. PortMapping, instantiations, and signal-behavior dictionary should be allowed to used derived signals--ModuleSpecificSignals
+        1. In module, check that there are no signal assignment collisions, including derived signals' linked signals
+        2. Generate temporary named signals when generating VHDL or other stuff
+        3. Include derived signals' linked signals in modulesignals list
         */
     }
 

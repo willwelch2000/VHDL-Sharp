@@ -125,14 +125,16 @@ public class Module : IModule, IValidityManagedEntity
             // Get list of all single-node named signals used
             HashSet<ISingleNodeModuleSpecificSignal> allSingleNodeSignals =
                 [.. Ports.Select(p => p.Signal) // Port signals
-                .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals)) // Behaviors' input signals
+                .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
                 .Union(SignalBehaviors.Keys) // Assigned signals
                 .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
-                // From all included signals, get themselves and any used signals, if it's a derived signal
+                // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
                 .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
                 {
-                    IDerivedSignal derivedSignal => [s, .. derivedSignal.UsedModuleSpecificSignals],
-                    IDerivedSignalNode derivedSignalNode => [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
+                    IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                        [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
+                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                        [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
                     _ => [s],
                 })
                 .Where(s => s.ParentModule == this) // Should be true for all, but double check
