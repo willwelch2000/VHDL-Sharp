@@ -27,9 +27,7 @@ public static class Program
         // TestDynamicSpice();
 
         /* TODO
-        1. In module, check that there are no signal assignment collisions, including derived signals' linked signals
-        2. Generate temporary named signals when generating VHDL or other stuff
-        3. Include derived signals' linked signals in modulesignals list
+        1. Generate temporary named signals when generating VHDL or other stuff
         */
     }
 

@@ -161,7 +161,12 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
-    public abstract bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception);
+    public bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
+    {
+        exception = LinkedSignal is INamedSignal namedLinkedSignal && !namedLinkedSignal.ParentModule.Equals(ParentModule) ?
+            new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") : null;
+        return exception is null;
+    }
 
     /// <summary>
     /// Call to raise updated event

@@ -339,8 +339,12 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine();
         sb.AppendLine($"architecture rtl of {Name} is");
 
-        // Signals--TODO will need to generate temporary named signals
-        foreach(INamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
+        // Signals
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        foreach (INamedSignal signal in moduleSignals.OfType<INamedSignal>()
+            .Union(moduleSignals.OfType<IDerivedSignal>().Select(d => d.LinkedSignal ??
+                throw new Exception("Derived signal must be linked to named signal before getting VHDL")))
+            .Except(Ports.Select(p => p.Signal)))
         {
             sb.AppendLine(signal.GetVhdlDeclaration().AddIndentation(1));
         }
@@ -509,21 +513,43 @@ public class Module : IModule, IValidityManagedEntity
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
-        // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
+
+        // Check that all module signals have this module as parent
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
+            if (!((IModule)this).Equals(moduleSignal.ParentModule))
+                exception = moduleSignal is INamedSignal namedModSignal ?
+                    new Exception($"Signal {namedModSignal.Name} must have this module ({Name}) as parent") :
+                    new Exception($"Signals must have this module ({Name}) as parent");
+
+        // Check that behaviors have correct dimension and that output signal isn't input port
+        INamedSignal[] inputPortSignals = [.. Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal)];
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            if (!((IModule)this).Equals(outputSignal.ParentModule))
-                exception = new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.ParentModule is not null && !((IModule)this).Equals(behavior.ParentModule))
                 exception = new Exception($"Behavior must have this module as parent");
             if (!behavior.IsCompatible(outputSignal))
                 exception = new Exception($"Behavior must be compatible with output signal");
-            if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
+            if (inputPortSignals.Contains(outputSignal))
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
-        // Throw error if a signal has two assignments--either from behavior mapping or as output port of instantiation
-        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals), .. Instantiations.SelectMany(i => i.GetSignals(PortDirection.Output).SelectMany(s => s.ToSingleNodeSignals))];
+        // This list removes duplicate derived signals (from when a node references a parent),
+        // but keeps duplicate linked signals that come from different derived signals--not allowed, checked below
+        INamedSignal[] linkedSignals = [.. moduleSignals.OfType<IDerivedSignal>()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))
+            .Select(s => s.LinkedSignal).OfType<INamedSignal>()];
+
+        // Check that derived signals' linked signals aren't input ports
+        foreach (INamedSignal linkedSignal in linkedSignals)
+            if (inputPortSignals.Contains(linkedSignal))
+                exception = new Exception($"Output signal ({linkedSignal}) must not be an input port");
+
+        // Throw error if a signal has two or more assignments--either from behavior mapping, output port of instantiation, or derived signal linked signal
+        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.Keys
+            .Concat(Instantiations.SelectMany(i => i.GetSignals(PortDirection.Output)))
+            .Concat(linkedSignals)
+            .SelectMany(s => s.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
         {
             ISingleNodeNamedSignal child = allSingleNodeOutputSignals.First(s => allSingleNodeOutputSignals.Count(s2 => s2 == s) > 1);
@@ -531,18 +557,16 @@ public class Module : IModule, IValidityManagedEntity
             if (parent is not null)
                 exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
             else
-                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior or instantiation output");
+                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior, instantiation output, or as a used derived signal's linked signal");
         }
 
-        // Don't allow ports with the same signal or with wrong parent module
+        // Don't allow ports with the same signal
         HashSet<ISignal> portSignals = [];
-        if (!Ports.All(p => portSignals.Add(p.Signal) && ((IModule)this).Equals(p.Signal.ParentModule)))
+        if (!Ports.All(p => portSignals.Add(p.Signal)))
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
                 exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
-            else
-                exception = new Exception("Port signals must have this module as parent");
         }
 
         return exception is null;
