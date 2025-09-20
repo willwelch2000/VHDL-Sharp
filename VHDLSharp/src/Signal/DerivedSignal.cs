@@ -26,6 +26,8 @@ public interface IDerivedSignal : IModuleSpecificSignal
     /// Generate an instantation object that assigns this derived signal to the <see cref="LinkedSignal"/>. 
     /// The instantiation should have the given <paramref name="instanceName"/>. 
     /// <paramref name="moduleName"/> can be used if creating a new module to avoid repeats. 
+    /// The <see cref="LinkedSignal"/> must be assigned before compiling. 
+    /// It is assigned as an output port of the generated <see cref="IInstantiation"/>
     /// </summary>
     /// <param name="moduleName">Name for a new module, if needed</param>
     /// <param name="instanceName">Name for the returned instantiation</param>

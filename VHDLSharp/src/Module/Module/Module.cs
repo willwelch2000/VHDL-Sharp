@@ -30,6 +30,13 @@ public class Module : IModule, IValidityManagedEntity
     private EventHandler? updated;
 
     /// <summary>
+    /// Instantiations that exist from compiling derived signals.
+    /// Null if none
+    /// TODO Add list of derived signals that need to have their linked signals removed
+    /// </summary>
+    private (List<IInstantiation> instantiations, List<IDerivedSignal> signalsToUnlink)? derivedSignalCompilation = null;
+
+    /// <summary>
     /// Default constructor
     /// </summary>
     public Module()
@@ -75,7 +82,7 @@ public class Module : IModule, IValidityManagedEntity
         foreach ((string portName, PortDirection direction) in ports)
             AddNewPort(portName, direction);
     }
-    
+
     /// <summary>
     /// Event called when a property of this module (not a child) is changed 
     /// that could affect other objects, such as port mapping
@@ -163,7 +170,7 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
-        
+
     private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
 
     /// <summary>
@@ -219,7 +226,7 @@ public class Module : IModule, IValidityManagedEntity
     {
         if (!((IModule)this).Equals(signal.ParentModule))
             throw new ArgumentException("Signal must have this module as parent");
-        
+
         Port result = new(signal, direction);
         Ports.Add(result);
         return result;
@@ -325,6 +332,8 @@ public class Module : IModule, IValidityManagedEntity
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
 
+        CompileDerivedSignals();
+
         StringBuilder sb = new();
 
         // Entity statement
@@ -368,6 +377,8 @@ public class Module : IModule, IValidityManagedEntity
         // End
         sb.AppendLine("end rtl;");
 
+        UndoDerivedSignalCompilation();
+
         return sb.ToString();
     }
 
@@ -382,6 +393,8 @@ public class Module : IModule, IValidityManagedEntity
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
+
+        CompileDerivedSignals();
 
         string[] pins = [.. PortsToSpice()];
 
@@ -400,7 +413,7 @@ public class Module : IModule, IValidityManagedEntity
         int i = 0;
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
             circuits.Add(behavior.GetSpice(signal, i++.ToString()));
-        
+
         // Add large resistors from output/bidirectional ports to ground
         // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
         foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
@@ -411,7 +424,10 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         circuits.Add(new(additionalEntities));
-        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
+        SpiceSubcircuit subcircuit = SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
+
+        UndoDerivedSignalCompilation();
+        return subcircuit;
     }
 
     /// <inheritdoc/>
@@ -429,6 +445,8 @@ public class Module : IModule, IValidityManagedEntity
         if (!((IModule)this).Equals(subcircuit.FinalModule))
             throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
 
+        CompileDerivedSignals();
+
         // Behaviors
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
             yield return behavior.GetSimulationRule(subcircuit.GetChildSignalReference(signal));
@@ -436,6 +454,8 @@ public class Module : IModule, IValidityManagedEntity
         // Instantiations
         foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
             yield return rule;
+
+        UndoDerivedSignalCompilation();
     }
 
     /// <summary>
@@ -467,7 +487,7 @@ public class Module : IModule, IValidityManagedEntity
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                     childrenEntities.Add(kvp.Value);
-        
+
         // If something has been removed, remove behavior from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
@@ -484,7 +504,7 @@ public class Module : IModule, IValidityManagedEntity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 childrenEntities.Add(newItem);
-        
+
         // If something has been removed, remove from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
@@ -574,4 +594,51 @@ public class Module : IModule, IValidityManagedEntity
 
     /// <inheritdoc/>
     public bool Equals(IModule? other) => other is not null && other.BaseModule == this;
+
+    /// <summary>
+    /// Generate instantiations and linked signals for derived signals
+    /// </summary>
+    private void CompileDerivedSignals()
+    {
+        if (derivedSignalCompilation is not null)
+            return;
+
+        List<IInstantiation> compiledInstantiations = [];
+        List<IDerivedSignal> signalsToUnlink = [];
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        int i = 0;
+
+        // Loop through all used derived signals and the derived signals whose nodes are used
+        foreach (IDerivedSignal derivedSignal in moduleSignals.OfType<IDerivedSignal>().Distinct()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+        {
+            // Link a new named signal and store the derived signal for unlinking later
+            if (derivedSignal.LinkedSignal is null)
+            {
+                derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
+                {
+                    1 => new Signal($"DerivedSignal{i}", this),
+                    _ => new Vector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
+                };
+                signalsToUnlink.Add(derivedSignal);
+            }
+            // Add the compiled instantiation
+            IInstantiation instantiation = derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}");
+            compiledInstantiations.Add(instantiation);
+            Instantiations.Add(instantiation);
+        }
+
+        derivedSignalCompilation = (compiledInstantiations, signalsToUnlink);
+    }
+
+    private void UndoDerivedSignalCompilation()
+    {
+        if (derivedSignalCompilation is not (List<IInstantiation> compiledInstantiations, List<IDerivedSignal> signalsToUnlink))
+            return;
+        foreach (IInstantiation instantiation in compiledInstantiations)
+            Instantiations.Remove(instantiation);
+        foreach (IDerivedSignal derivedSignal in signalsToUnlink)
+            derivedSignal.LinkedSignal = null;
+        derivedSignalCompilation = null;
+    }
 }

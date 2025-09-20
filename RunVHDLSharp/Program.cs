@@ -27,7 +27,6 @@ public static class Program
         // TestDynamicSpice();
 
         /* TODO
-        1. Generate temporary named signals when generating VHDL or other stuff
         */
     }
 
