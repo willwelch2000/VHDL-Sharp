@@ -20,7 +20,7 @@ public class ValueBehaviorTests
         Assert.AreEqual(1, behavior.Value);
         Assert.AreEqual(new Dimension(1, null), behavior.Dimension);
         Assert.IsNull(behavior.ParentModule);
-        Assert.IsFalse(behavior.NamedInputSignals.Any());
+        Assert.IsFalse(behavior.InputModuleSignals.Any());
 
         // Compatibility
         Assert.IsTrue(behavior.IsCompatible(s1));
@@ -75,8 +75,8 @@ public class ValueBehaviorTests
         Assert.AreEqual(new Dimension(3, null), behavior2.Dimension);
         Assert.IsNull(behavior1.ParentModule);
         Assert.IsNull(behavior2.ParentModule);
-        Assert.IsFalse(behavior1.NamedInputSignals.Any());
-        Assert.IsFalse(behavior2.NamedInputSignals.Any());
+        Assert.IsFalse(behavior1.InputModuleSignals.Any());
+        Assert.IsFalse(behavior2.InputModuleSignals.Any());
 
         // Compatibility
         Assert.IsFalse(behavior1.IsCompatible(s1));

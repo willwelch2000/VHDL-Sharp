@@ -124,46 +124,51 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     public InstantiationCollection Instantiations { get; }
 
-    /// <inheritdoc/>
-    public IEnumerable<IModuleSpecificSignal> AllModuleSignals
+    /// <summary>
+    /// Get all module-specific signals used here, potentially even those that belong to another module.
+    /// This only happens if there's an error, so it is used to check if they were assigned by error
+    /// </summary>
+    /// <param name="includeIncorrectlyAssignedSignals">If true, includes module-specific signals used here even if they belong to another module</param>
+    /// <returns></returns>
+    private IEnumerable<IModuleSpecificSignal> GetAllModuleSignals(bool includeIncorrectlyAssignedSignals)
     {
-        get
-        {
-            // Get list of all single-node named signals used
-            HashSet<ISingleNodeModuleSpecificSignal> allSingleNodeSignals =
-                [.. Ports.Select(p => p.Signal) // Port signals
-                .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
-                .Union(SignalBehaviors.Keys) // Assigned signals
-                .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
-                // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
-                .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
-                {
-                    IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                        [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
-                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                        [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
-                    _ => [s],
-                })
-                .Where(s => s.ParentModule == this) // Should be true for all, but double check
-                .SelectMany(s => s.ToSingleNodeSignals)]; // Convert to the single-node signals
-
-            HashSet<IModuleSpecificSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-            HashSet<IModuleSpecificSignal> allModuleSignals = [];
-
-            foreach (IModuleSpecificSignal topLevelSignal in topLevelSignals)
+        // Get list of all single-node named signals used
+        HashSet<ISingleNodeModuleSpecificSignal> allSingleNodeSignals =
+            [.. Ports.Select(p => p.Signal) // Port signals
+            .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
+            .Union(SignalBehaviors.Keys) // Assigned signals
+            .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
+            // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
+            .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
             {
-                // If all child signals are present, add top level one
-                if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                    allModuleSignals.Add(topLevelSignal);
-                else
-                    // Otherwise, add single-node signals that are present
-                    foreach (ISingleNodeModuleSpecificSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                        allModuleSignals.Add(singleNodeSignal);
-            }
+                IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                    [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
+                IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                    [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
+                _ => [s],
+            })
+            .Where(s => s.ParentModule == this || includeIncorrectlyAssignedSignals) // Should be true for all, but double check
+            .SelectMany(s => s.ToSingleNodeSignals)]; // Convert to the single-node signals
 
-            return allModuleSignals;
+        HashSet<IModuleSpecificSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+        HashSet<IModuleSpecificSignal> allModuleSignals = [];
+
+        foreach (IModuleSpecificSignal topLevelSignal in topLevelSignals)
+        {
+            // If all child signals are present, add top level one
+            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                allModuleSignals.Add(topLevelSignal);
+            else
+                // Otherwise, add single-node signals that are present
+                foreach (ISingleNodeModuleSpecificSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                    allModuleSignals.Add(singleNodeSignal);
         }
+
+        return allModuleSignals;
     }
+
+    /// <inheritdoc/>
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
 
     /// <summary>
     /// Get all modules (recursive) used by this module as instantiations
@@ -535,7 +540,7 @@ public class Module : IModule, IValidityManagedEntity
         exception = null;
 
         // Check that all module signals have this module as parent
-        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
         foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
             if (!((IModule)this).Equals(moduleSignal.ParentModule))
                 exception = moduleSignal is INamedSignal namedModSignal ?

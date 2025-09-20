@@ -43,7 +43,7 @@ public class CaseBehaviorTests
         Assert.AreEqual(l1, behavior.DefaultExpression?.InnerExpression);
 
         // Input signals--only selector
-        INamedSignal[] inputs = [.. behavior.NamedInputSignals];
+        IModuleSpecificSignal[] inputs = [.. behavior.InputModuleSignals];
         Assert.AreEqual(1, inputs.Length);
         Assert.AreEqual(selector, inputs[0]);
         Assert.AreEqual(selector, behavior.Selector);
