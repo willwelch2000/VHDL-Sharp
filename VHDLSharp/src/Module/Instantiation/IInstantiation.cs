@@ -8,7 +8,7 @@ namespace VHDLSharp.Modules;
 /// Interface for an instantiation of one module inside of another (parent).
 /// It is assumed that the parent module and instantiated module won't change
 /// </summary>
-public interface IInstantiation : IValidityManagedEntity
+public interface IInstantiation : IValidityManagedEntity, ICompletable
 {
     /// <summary>
     /// Module that is instantiated

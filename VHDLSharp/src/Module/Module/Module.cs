@@ -281,6 +281,10 @@ public class Module : IModule, IValidityManagedEntity
                 return false;
             }
 
+        // Check that instantiation collection is complete
+        if (!Instantiations.IsComplete(out reason))
+            return false;
+
         reason = null;
         return true;
     }

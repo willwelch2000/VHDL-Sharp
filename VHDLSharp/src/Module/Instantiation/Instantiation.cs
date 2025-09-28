@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Exceptions;
@@ -103,4 +104,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 
     /// <inheritdoc/>
     public override string ToString() => $"{InstantiatedModule} in {ParentModule}";
+
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason) => PortMapping.IsComplete(out reason);
 }

@@ -13,7 +13,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Collection of instantiations that simplifies Spice and Spice# conversion for groups of instantiations
 /// </summary>
-public class InstantiationCollection : ICollection<IInstantiation>, IValidityManagedEntity
+public class InstantiationCollection : ICollection<IInstantiation>, IValidityManagedEntity, ICompletable
 {
     private readonly ObservableCollection<IInstantiation> instantiations;
 
@@ -181,5 +181,15 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         updated?.Invoke(this, e);
+    }
+
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        foreach (IInstantiation inst in this)
+            if (!inst.IsComplete(out reason))
+                return false;
+        reason = null;
+        return true;
     }
 }

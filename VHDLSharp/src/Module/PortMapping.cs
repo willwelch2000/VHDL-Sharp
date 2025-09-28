@@ -110,9 +110,9 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
                 exception = new PortMappingException("Output port cannot be assigned to parent module's input port");
         }
 
-        // Check that all ports are assigned
-        if (InstantiatedModule.Ports.Any(p => !ContainsKey(p)))
-            exception = new PortMappingException($"All ports must be assigned. {InstantiatedModule.Ports.First(p => !ContainsKey(p))} not assigned");
+        // // Check that all ports are assigned
+        // if (InstantiatedModule.Ports.Any(p => !ContainsKey(p)))
+        //     exception = new PortMappingException($"All ports must be assigned. {InstantiatedModule.Ports.First(p => !ContainsKey(p))} not assigned");
 
         return exception is null;
     }
