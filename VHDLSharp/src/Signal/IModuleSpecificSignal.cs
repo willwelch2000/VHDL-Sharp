@@ -3,7 +3,9 @@ using VHDLSharp.Modules;
 namespace VHDLSharp.Signals;
 
 /// <summary>
-/// Interface for any signal that is assigned to a specific <see cref="IModule"/>
+/// Interface for any signal that is assigned to a specific <see cref="IModule"/>. 
+/// It is assumed that the parent module is not changed after construction. 
+/// It is crucial that this is upheld for validity-checking purposes. 
 /// </summary>
 public interface IModuleSpecificSignal : ISignal
 {
@@ -37,11 +39,17 @@ public interface IModuleSpecificSignal : ISignal
     }
 
     ISignal ISignal.TopLevelSignal => TopLevelSignal;
-    
+
     /// <summary>
     /// If this is part of a larger group (e.g. vector node), get the parent signal (one layer up)
     /// </summary>
     public new IModuleSpecificSignal? ParentSignal { get; }
 
     ISignal? ISignal.ParentSignal => ParentSignal;
+
+    /// <summary>
+    /// Get this as an <see cref="INamedSignal"/>, potentially accessing the linked signal if it's an <see cref="IDerivedSignal"/>
+    /// </summary>
+    /// <returns></returns>
+    public INamedSignal AsNamedSignal();
 }

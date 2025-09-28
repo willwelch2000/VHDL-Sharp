@@ -23,6 +23,15 @@ public interface IDerivedSignal : IModuleSpecificSignal
     public INamedSignal? LinkedSignal { get; set; }
 
     /// <summary>
+    /// Get the <see cref="LinkedSignal"/> if it exists, throwing an exception if it doesn't
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="UnlinkedDerivedSignalException"></exception>
+    public INamedSignal GetLinkedSignal(string? errorMessage = null);
+
+    INamedSignal IModuleSpecificSignal.AsNamedSignal() => GetLinkedSignal();
+
+    /// <summary>
     /// Generate an instantation object that assigns this derived signal to the <see cref="LinkedSignal"/>. 
     /// The instantiation should have the given <paramref name="instanceName"/>. 
     /// <paramref name="moduleName"/> can be used if creating a new module to avoid repeats. 
@@ -74,7 +83,11 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     /// <inheritdoc/>
     public IInstantiation Compile(string moduleName, string instanceName) => ValidityManager.IsValid() ?
         CompileWithoutCheck(moduleName, instanceName) :
-        throw new Exception("Derived signal must be valid to compile", ValidityManager.Issues().First().Exception);
+        throw new InvalidException("Derived signal must be valid to compile", ValidityManager.Issues().First().Exception);
+
+    /// <inheritdoc/>
+    public INamedSignal GetLinkedSignal(string? errorMessage = null) => LinkedSignal ??
+        throw (errorMessage is null ? new UnlinkedDerivedSignalException() : new UnlinkedDerivedSignalException(errorMessage));
 
     /// <summary>
     /// Compile instantiation without checking for validity first
@@ -166,7 +179,8 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = LinkedSignal is INamedSignal namedLinkedSignal && !namedLinkedSignal.ParentModule.Equals(ParentModule) ?
-            new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") : null;
+            new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") :
+            UsedModuleSpecificSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
         return exception is null;
     }
 

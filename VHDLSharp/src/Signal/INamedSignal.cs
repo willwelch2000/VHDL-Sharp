@@ -66,6 +66,8 @@ public interface INamedSignal : IModuleSpecificSignal
 
     IModuleSpecificSignal? IModuleSpecificSignal.ParentSignal => ParentSignal;
 
+    INamedSignal IModuleSpecificSignal.AsNamedSignal() => this;
+
     /// <summary>
     /// Tests if this signal is part of a port in a port mapping, since it can't be directly keyed. 
     /// For example, if this is a vector node in a vector that is a port. 

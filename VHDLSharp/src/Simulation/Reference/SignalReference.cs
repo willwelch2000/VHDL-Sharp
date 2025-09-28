@@ -33,7 +33,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     }
 
     ValidityManager IValidityManagedEntity.ValidityManager => manager;
-    
+
     event EventHandler? IValidityManagedEntity.Updated
     {
         add
@@ -79,16 +79,16 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     /// <param name="reference1"></param>
     /// <param name="reference2"></param>
     /// <returns></returns>
-    public static bool operator==(SignalReference reference1, SignalReference reference2) => reference1.Equals(reference2);
-    
+    public static bool operator ==(SignalReference reference1, SignalReference reference2) => reference1.Equals(reference2);
+
     /// <summary>
     /// Returns true if two references are not equal
     /// </summary>
     /// <param name="reference1"></param>
     /// <param name="reference2"></param>
     /// <returns></returns>
-    public static bool operator!=(SignalReference reference1, SignalReference reference2) => !reference1.Equals(reference2);
-    
+    public static bool operator !=(SignalReference reference1, SignalReference reference2) => !reference1.Equals(reference2);
+
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Subcircuit, Signal);
 
@@ -113,7 +113,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         // No higher-level module
         if (Path.Count == 0)
             return this;
-            
+
         IInstantiation lastInstantiation = Path.Last();
         SubcircuitReference ascendedSubcircuit = new(TopLevelModule, Path.SkipLast(1));
 
@@ -124,7 +124,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             SignalReference singleAscend = new(ascendedSubcircuit, connection);
             return singleAscend.Ascend();
         }
-        
+
         // This isn't port
         return this;
     }
@@ -147,5 +147,16 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         if (!Signal.ParentModule.Equals(lastModule))
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
+    }
+
+    public override string ToString()
+    {
+        string a = "";
+        foreach (IInstantiation inst in Path)
+        {
+            a += inst.Name + " ";
+        }
+        a += Signal.Name;
+        return a;
     }
 }

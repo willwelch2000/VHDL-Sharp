@@ -13,9 +13,21 @@ public interface IDerivedSignalNode : ISingleNodeModuleSpecificSignal
     /// <summary>Parent <see cref="IDerivedSignal"/> that this belongs to</summary>
     public IDerivedSignal DerivedSignal { get; }
 
+    /// <summary>Linked signal, derived by getting the node of the parent <see cref="DerivedSignal"/>'s linked signal</summary>
+    public ISingleNodeNamedSignal? LinkedSignal { get; }
+
     IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => [];
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Get the <see cref="LinkedSignal"/> if it exists, throwing an exception if it doesn't
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="UnlinkedDerivedSignalException"></exception>
+    public INamedSignal GetLinkedSignal(string? errorMessage = null);
+
+    INamedSignal IModuleSpecificSignal.AsNamedSignal() => GetLinkedSignal();
 }
 
 /// <summary>
@@ -39,6 +51,10 @@ public class DerivedSignalNode(IDerivedSignal derivedSignal, int node) : IDerive
 
     /// <inheritdoc/>
     public IModule ParentModule => DerivedSignal.ParentModule;
+
+    /// <inheritdoc/>
+    public INamedSignal GetLinkedSignal(string? errorMessage = null) => LinkedSignal ??
+        throw (errorMessage is null ? new UnlinkedDerivedSignalException() : new UnlinkedDerivedSignalException(errorMessage));
 
     /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<ISignal> other) => ISignal.CanCombineSignals(this, other);

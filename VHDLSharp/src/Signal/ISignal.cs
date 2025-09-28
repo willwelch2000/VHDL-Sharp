@@ -9,16 +9,13 @@ namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Interface for any type of signal that can be used in an expression.
-/// It is assumed that parent-child relationships, the parent module, and the dimension are not changed after construction.
+/// It is assumed that parent-child relationships and the dimension are not changed after construction.
 /// An implementation that breaks this rule could cause validation issues.
 /// Classes should not directly implement this. 
 /// Instead, they should implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>, which extend this.
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>
 {
-    // /// <summary>Module that this belongs to, if applicable</summary>
-    // public IModule? ParentModule { get; }
-
     /// <summary>
     /// Object explaining how many nodes are part of this signal (1 for normal signal)
     /// </summary> 
