@@ -120,8 +120,7 @@ public class Adder : ParameterizedModule<AdderParams>
                 if (currentCarryBit is not null) // True if CarryIn is true, or if we're past first bit
                     inst.PortMapping.SetPort("CIn", currentCarryBit);
                 currentCarryBit = (lastBit && cout is not null) ? cout : module.GenerateSignal($"COut{i}");
-                // if (options.CarryOut || !lastBit)
-                if (options.CarryOut && lastBit)
+                if (options.CarryOut || !lastBit)
                     inst.PortMapping.SetPort("COut", currentCarryBit);
             }
         }
