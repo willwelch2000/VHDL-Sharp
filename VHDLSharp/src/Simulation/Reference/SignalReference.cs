@@ -98,7 +98,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
         if (!manager.IsValid())
-            throw new InvalidException("Signal reference is invalid");
+            throw new InvalidException("Signal reference is invalid", manager.Issues().First().Exception);
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
@@ -147,5 +147,15 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         if (!Signal.ParentModule.Equals(lastModule))
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
+    }
+
+    /// <inheritdoc/>
+    public override string ToString()
+    {
+        string s = "";
+        foreach (IInstantiation inst in Path)
+            s += inst.Name + " ";
+        s += Signal.Name;
+        return s;
     }
 }

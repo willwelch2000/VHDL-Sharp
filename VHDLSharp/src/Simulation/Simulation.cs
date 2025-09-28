@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Validation;
 
@@ -100,9 +101,9 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity, IComplet
     public IEnumerable<ISimulationResult> Simulate()
     {
         if (!manager.IsValid())
-            throw new Exception("Simulation setup must be valid to simulate");
+            throw new InvalidException("Simulation setup must be valid to simulate", manager.Issues().First().Exception);
         if (!IsComplete(out string? reason))
-            throw new Exception($"Simulation setup must be complete to simulate: {reason}");
+            throw new IncompleteException($"Simulation setup must be complete to simulate: {reason}");
         return SimulateWithoutCheck();
     }
 

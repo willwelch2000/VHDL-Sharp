@@ -298,7 +298,7 @@ public class Module : IModule, IValidityManagedEntity
     public string GetVhdl()
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
@@ -332,7 +332,7 @@ public class Module : IModule, IValidityManagedEntity
     public string GetVhdlNoSubmodules()
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
@@ -394,7 +394,7 @@ public class Module : IModule, IValidityManagedEntity
     public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
