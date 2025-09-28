@@ -32,8 +32,8 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     /// <returns></returns>
     public IEnumerable<SimulationRule> GetSimulationRules()
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit", ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit", issue);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Simulation setup must be complete to convert to circuit: {reason}");
 

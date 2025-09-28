@@ -97,8 +97,8 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     /// <returns></returns>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation collection is invalid", validityManager.Issues().First().Exception);
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation collection is invalid", issue);
 
         // Add subcircuit definitions to the set for all distinct modules unless they've been made already
         HashSet<IModuleLinkedSubcircuitDefinition> moduleSubcircuitDefinitions = [.. existingModuleLinkedSubcircuits];

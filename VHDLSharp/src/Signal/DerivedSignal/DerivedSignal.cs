@@ -81,9 +81,9 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public INamedSignal? LinkedSignal { get; set; }
 
     /// <inheritdoc/>
-    public IInstantiation Compile(string moduleName, string instanceName) => ValidityManager.IsValid() ?
+    public IInstantiation Compile(string moduleName, string instanceName) => ValidityManager.IsValid(out Exception? issue) ?
         CompileWithoutCheck(moduleName, instanceName) :
-        throw new InvalidException("Derived signal must be valid to compile", ValidityManager.Issues().First().Exception);
+        throw new InvalidException("Derived signal must be valid to compile", issue);
 
     /// <inheritdoc/>
     public INamedSignal GetLinkedSignal(string? errorMessage = null) => LinkedSignal ??

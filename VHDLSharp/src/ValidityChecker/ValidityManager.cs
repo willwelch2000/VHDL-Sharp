@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Validation;
 
@@ -82,16 +83,28 @@ public abstract class ValidityManager
     /// </summary>
     protected abstract IEnumerable<IValidityManagedEntity> ChildrenEntities { get; }
 
+
     /// <summary>
     /// Checks if this entity, and its recursive children, are valid
     /// </summary>
+    /// <param name="issue">Exception to throw explaining why it's invalid</param>
     /// <returns>True if valid, false if not</returns>
-    public bool IsValid()
+    public bool IsValid([MaybeNullWhen(true)] out Exception issue)
     {
+        issue = null;
         // If we are checking validity after changes and the validity-check Guid matches the throwing-exceptions Guid, then it is still valid
         if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException && throwingExceptionGuid == guidAtLastValidityCheck)
             return true;
-        return entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
+        if (!entity.CheckTopLevelValidity(out issue))
+            return false;
+        foreach (IValidityManagedEntity child in ChildrenEntities)
+            if (!child.ValidityManager.IsValid(out Exception? innerIssue))
+            {
+                // TODO consider forcing IValidityManagedEntity to have a name property that can be used here
+                issue = new InvalidException("Issue with child", innerIssue);
+                return false;
+            }
+        return true;
     }
 
     /// <summary>

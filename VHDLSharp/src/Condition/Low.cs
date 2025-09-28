@@ -25,7 +25,7 @@ public class Low(ISingleNodeNamedSignal signal) : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) =>
-        !((IValidityManagedEntity)context).ValidityManager.IsValid() ? throw new InvalidException("Subcircuit context must be valid to evluate condition", ((IValidityManagedEntity)context).ValidityManager.Issues().First().Exception) :
+        !((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         Signal.GetLastOutputValue(state, context) == 0;
 

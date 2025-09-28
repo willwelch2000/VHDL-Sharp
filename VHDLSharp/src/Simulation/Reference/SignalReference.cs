@@ -97,8 +97,8 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     /// </summary>
     public IEnumerable<Reference> GetSpiceSharpReferences()
     {
-        if (!manager.IsValid())
-            throw new InvalidException("Signal reference is invalid", manager.Issues().First().Exception);
+        if (!manager.IsValid(out Exception? issue))
+            throw new InvalidException("Signal reference is invalid", issue);
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
             yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }

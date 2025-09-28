@@ -27,8 +27,8 @@ public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDriven
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context)
     {
-        if (!((IValidityManagedEntity)context).ValidityManager.IsValid())
-            throw new InvalidException("Subcircuit context must be valid to evluate condition", ((IValidityManagedEntity)context).ValidityManager.Issues().First().Exception);
+        if (!((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Subcircuit context must be valid to evluate condition", issue);
         SignalReference signalReference = context.GetChildSignalReference(Signal);
         bool[] values = [.. state.GetSingleNodeSignalValues(signalReference)];
         return values.Length > 1 && !values[^2] && values[^1];

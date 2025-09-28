@@ -66,8 +66,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdlStatement()
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation is invalid", validityManager.Issues().First().Exception);
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation is invalid", issue);
 
         if (!PortMapping.IsComplete(out string? reason))
             throw new IncompleteException($"Instantiation not yet complete: {reason}");
@@ -87,8 +87,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation is invalid", validityManager.Issues().First().Exception);
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation is invalid", issue);
 
         if (!PortMapping.IsComplete(out string? reason))
             throw new IncompleteException($"Instantiation not yet complete: {reason}");

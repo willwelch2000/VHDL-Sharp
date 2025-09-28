@@ -81,8 +81,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public string GetVhdlStatement(INamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Behavior must be valid to convert to VHDL", ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Behavior must be valid to convert to VHDL", issue);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetVhdlStatementWithoutCheck(outputSignal);
@@ -91,8 +91,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Behavior must be valid to convert to Spice circuit", ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Behavior must be valid to convert to Spice circuit", issue);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetSpiceWithoutCheck(outputSignal, uniqueId);
@@ -101,10 +101,10 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public SimulationRule GetSimulationRule(SignalReference outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", ValidityManager.Issues().First().Exception);
-        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
-            throw new InvalidException("Output signal must be valid to use to get simulation rule", ((IValidityManagedEntity)outputSignal).ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", issue);
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid(out issue))
+            throw new InvalidException("Output signal must be valid to use to get simulation rule", issue);
         if (!IsCompatible(outputSignal.Signal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return new(outputSignal, (state) => GetOutputValueWithoutCheck(state, outputSignal));
@@ -128,10 +128,10 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public int GetOutputValue(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", ValidityManager.Issues().First().Exception);
-        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
-            throw new InvalidException("Output signal must be valid to use to get output value", ((IValidityManagedEntity)outputSignal).ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", issue);
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid(out issue))
+            throw new InvalidException("Output signal must be valid to use to get output value", issue);
         if (!IsCompatible(outputSignal.Signal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetOutputValueWithoutCheck(state, outputSignal);

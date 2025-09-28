@@ -100,8 +100,8 @@ public abstract class Simulation : ISimulation, IValidityManagedEntity, IComplet
     /// <inheritdoc/>
     public IEnumerable<ISimulationResult> Simulate()
     {
-        if (!manager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to simulate", manager.Issues().First().Exception);
+        if (!manager.IsValid(out Exception? issue))
+            throw new InvalidException("Simulation setup must be valid to simulate", issue);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Simulation setup must be complete to simulate: {reason}");
         return SimulateWithoutCheck();

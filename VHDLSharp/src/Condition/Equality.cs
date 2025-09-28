@@ -45,14 +45,14 @@ public class Equality : Condition, IConstantCondition
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
-        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to evaluate", ValidityManager.Issues().First().Exception) : 
-        !((IValidityManagedEntity)context).ValidityManager.IsValid() ? throw new InvalidException("Subcircuit context must be valid to evluate condition", ((IValidityManagedEntity)context).ValidityManager.Issues().First().Exception) :
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to evaluate", issue) : 
+        !((IValidityManagedEntity)context).ValidityManager.IsValid(out issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
     public override string ToLogicString() => 
-        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to get string", ValidityManager.Issues().First().Exception) : 
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to get string", issue) : 
         $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
@@ -73,8 +73,8 @@ public class Equality : Condition, IConstantCondition
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Condition must be valid to get Spice representation", ValidityManager.Issues().First().Exception);
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Condition must be valid to get Spice representation", issue);
         if (!outputSignal.ParentModule.Equals(ParentModule))
             throw new IncompatibleSignalException("Output signal must have same parent module as condition");
 

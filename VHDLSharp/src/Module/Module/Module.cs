@@ -176,7 +176,7 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
 
-    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
+    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid(out _);
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -449,8 +449,8 @@ public class Module : IModule, IValidityManagedEntity
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
-        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid())
-            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule", ((IValidityManagedEntity)subcircuit).ValidityManager.Issues().First().Exception);
+        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule", issue);
         if (!((IModule)this).Equals(subcircuit.FinalModule))
             throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
 
