@@ -148,15 +148,4 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
     }
-
-    public override string ToString()
-    {
-        string a = "";
-        foreach (IInstantiation inst in Path)
-        {
-            a += inst.Name + " ";
-        }
-        a += Signal.Name;
-        return a;
-    }
 }
