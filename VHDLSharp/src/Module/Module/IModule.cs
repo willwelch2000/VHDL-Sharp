@@ -62,8 +62,14 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// Get the VHDL for this module without submodules or 
     /// stuff that goes at the beginning of the file
     /// </summary>
+    /// <param name="modulesToInclude">
+    /// Modules that need to be declared, since they are not here. 
+    /// Should include modules made by derived signal compilation. 
+    /// The main <see cref="GetVhdl"/> function needs these to know what all to include. 
+    /// Recursion in finding modules is not required. 
+    /// </param>
     /// <returns></returns>
-    public string GetVhdlNoSubmodules();
+    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude);
 
     /// <summary>
     /// Convert module to Spice circuit

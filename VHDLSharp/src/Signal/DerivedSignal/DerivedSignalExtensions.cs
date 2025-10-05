@@ -5,5 +5,11 @@ namespace VHDLSharp.Signals;
 /// </summary>
 public static class DerivedSignalExtensions
 {
-
+    /// <summary>
+    /// Add another signal to this signal
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static AddedSignal Plus(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => new(signal, other);
 }

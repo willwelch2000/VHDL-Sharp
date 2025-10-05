@@ -313,27 +313,35 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("library ieee");
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
+        // Main module
+        sb.AppendLine(GetVhdlNoSubmodules(out List<IModule> modulesToInclude));
+        ignoreValidity = false;
+
+        // Create set of modules we have already included
+        HashSet<IModule> includedSubmodules = [];
+
         // Submodules
         ignoreValidity = true; // Subcircuits and this already checked
-        foreach (var module in ModulesUsed)
+        while (modulesToInclude.Count != 0)
         {
-            sb.AppendLine(module.GetVhdlNoSubmodules());
-            sb.AppendLine();
+            List<IModule> nextModulesToInclude = [];
+            foreach (var module in modulesToInclude)
+            {
+                if (includedSubmodules.Contains(module))
+                    continue;
+                sb.AppendLine(module.GetVhdlNoSubmodules(out List<IModule> moreModulesToInclude));
+                sb.AppendLine();
+                nextModulesToInclude.AddRange(moreModulesToInclude);
+                includedSubmodules.Add(module);
+            }
+            modulesToInclude = nextModulesToInclude;
         }
-
-        // Main module
-        sb.AppendLine(GetVhdlNoSubmodules());
-        ignoreValidity = false;
 
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Get the VHDL for this module without submodules or 
-    /// stuff that goes at the beginning of the file
-    /// </summary>
-    /// <returns></returns>
-    public string GetVhdlNoSubmodules()
+    /// <inheritdoc/>
+    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude)
     {
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
@@ -341,7 +349,9 @@ public class Module : IModule, IValidityManagedEntity
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
 
+        // Compile and output the modules that must be included by the main GetVhdl function
         CompileDerivedSignals();
+        modulesToInclude = [.. Instantiations.Select(i => i.InstantiatedModule)];
 
         StringBuilder sb = new();
 

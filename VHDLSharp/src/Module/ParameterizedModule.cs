@@ -88,7 +88,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public string GetVhdlComponentDeclaration() => BaseModule.GetVhdlComponentDeclaration();
 
     /// <inheritdoc/>
-    public string GetVhdlNoSubmodules() => BaseModule.GetVhdlNoSubmodules();
+    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude) => BaseModule.GetVhdlNoSubmodules(out modulesToInclude);
 
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason) => BaseModule.IsComplete(out reason);
