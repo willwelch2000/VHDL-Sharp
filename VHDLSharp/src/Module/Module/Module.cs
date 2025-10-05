@@ -30,9 +30,9 @@ public class Module : IModule, IValidityManagedEntity
     private EventHandler? updated;
 
     /// <summary>
-    /// Instantiations that exist from compiling derived signals.
+    /// Instantiations that exist from compiling derived signals, and 
+    /// derived signals that need to have their linked signals removed.
     /// Null if none
-    /// TODO Add list of derived signals that need to have their linked signals removed
     /// </summary>
     private (List<IInstantiation> instantiations, List<IDerivedSignal> signalsToUnlink)? derivedSignalCompilation = null;
 
@@ -170,9 +170,7 @@ public class Module : IModule, IValidityManagedEntity
     /// <inheritdoc/>
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
 
-    /// <summary>
-    /// Get all modules (recursive) used by this module as instantiations
-    /// </summary>
+    /// <inheritdoc/>
     public IEnumerable<IModule> ModulesUsed =>
         Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
 
@@ -322,6 +320,8 @@ public class Module : IModule, IValidityManagedEntity
 
         // Submodules
         ignoreValidity = true; // Subcircuits and this already checked
+        // TODO potentially replace this system with one that recursively finds modules INCLUDING ones from derived signals
+        // If doing this, just loop through all of those instead of doing the recursive thing
         while (modulesToInclude.Count != 0)
         {
             List<IModule> nextModulesToInclude = [];
