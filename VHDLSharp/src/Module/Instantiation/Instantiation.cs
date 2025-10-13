@@ -79,7 +79,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
             kvp => $"{kvp.Key.Signal.GetVhdlDeclaration()} => {kvp.Value.GetVhdlDeclaration()}".AddIndentation(2)
         ));
         sb.AppendLine();
-        sb.AppendLine(");".AddIndentation(1));
+        sb.Append(");".AddIndentation(1));
 
         return sb.ToString();
     }

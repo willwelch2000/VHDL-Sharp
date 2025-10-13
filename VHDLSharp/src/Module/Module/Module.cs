@@ -386,7 +386,11 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("begin");
 
         // Add all instantiations
-        sb.Append(Instantiations.GetVhdl().AddIndentation(1));
+        if (Instantiations.Count != 0)
+        {
+            sb.Append(Instantiations.GetVhdl().AddIndentation(1));
+            sb.AppendLine();
+        }
 
         // Behaviors
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)

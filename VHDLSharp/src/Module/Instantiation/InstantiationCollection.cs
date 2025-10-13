@@ -138,9 +138,14 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
             return "";
         
         StringBuilder sb = new();
+        bool firstLoop = true;
         foreach (IInstantiation instantiation in instantiations)
+        {
+            if (!firstLoop)
+                sb.AppendLine();
             sb.AppendLine(instantiation.GetVhdlStatement());
-        sb.AppendLine();
+            firstLoop = false;
+        }
 
         return sb.ToString();
     }
