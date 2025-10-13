@@ -171,8 +171,23 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
 
     /// <inheritdoc/>
-    public IEnumerable<IModule> ModulesUsed =>
-        Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals)
+    {
+        HashSet<IModule> modulesUsed = [];
+        bool uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
+        foreach (IModule module in Instantiations.Select(i => i.InstantiatedModule))
+        {
+            if (!modulesUsed.Add(module))
+                continue;
+            // Add module's used modules if recursive and we haven't already added this module
+            if (recursive)
+                foreach (IModule submodule in module.GetModulesUsed(recursive, compileDerivedSignals))
+                    modulesUsed.Add(submodule);
+        }
+        if (uncompile)
+            UndoDerivedSignalCompilation();
+        return modulesUsed;
+    }
 
     private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid(out _);
 
@@ -311,37 +326,25 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("library ieee");
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
+        // Subcircuits and this already checked
+        ignoreValidity = true;
+
         // Main module
-        sb.AppendLine(GetVhdlNoSubmodules(out List<IModule> modulesToInclude));
-        ignoreValidity = false;
+        sb.AppendLine(GetVhdlNoSubmodules());
 
-        // Create set of modules we have already included
-        HashSet<IModule> includedSubmodules = [];
-
-        // Submodules
-        ignoreValidity = true; // Subcircuits and this already checked
-        // TODO potentially replace this system with one that recursively finds modules INCLUDING ones from derived signals
-        // If doing this, just loop through all of those instead of doing the recursive thing
-        while (modulesToInclude.Count != 0)
+        // Submodules--need to do all modules recursively
+        foreach (IModule module in GetModulesUsed(true, true))
         {
-            List<IModule> nextModulesToInclude = [];
-            foreach (var module in modulesToInclude)
-            {
-                if (includedSubmodules.Contains(module))
-                    continue;
-                sb.AppendLine(module.GetVhdlNoSubmodules(out List<IModule> moreModulesToInclude));
-                sb.AppendLine();
-                nextModulesToInclude.AddRange(moreModulesToInclude);
-                includedSubmodules.Add(module);
-            }
-            modulesToInclude = nextModulesToInclude;
+            sb.AppendLine(module.GetVhdlNoSubmodules());
+            sb.AppendLine();
         }
 
+        ignoreValidity = false;
         return sb.ToString();
     }
 
     /// <inheritdoc/>
-    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude)
+    public string GetVhdlNoSubmodules()
     {
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
@@ -349,9 +352,7 @@ public class Module : IModule, IValidityManagedEntity
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
 
-        // Compile and output the modules that must be included by the main GetVhdl function
         CompileDerivedSignals();
-        modulesToInclude = [.. Instantiations.Select(i => i.InstantiatedModule)];
 
         StringBuilder sb = new();
 
@@ -377,8 +378,8 @@ public class Module : IModule, IValidityManagedEntity
             sb.AppendLine(signal.GetVhdlDeclaration().AddIndentation(1));
         }
 
-        // Component declarations
-        foreach (IModule module in ModulesUsed)
+        // Component declarations--don't need recursive because it should just declare the ones it directly uses
+        foreach (IModule module in GetModulesUsed(false, false))
             sb.AppendLine(module.GetVhdlComponentDeclaration());
 
         // Begin
@@ -617,10 +618,12 @@ public class Module : IModule, IValidityManagedEntity
     /// <summary>
     /// Generate instantiations and linked signals for derived signals
     /// </summary>
-    private void CompileDerivedSignals()
+    /// <returns>True if compilation is performed, false if not necessary because it already has been compiled</returns>
+    private bool CompileDerivedSignals()
     {
+        // Already compiled
         if (derivedSignalCompilation is not null)
-            return;
+            return false;
 
         List<IInstantiation> compiledInstantiations = [];
         List<IDerivedSignal> signalsToUnlink = [];
@@ -648,6 +651,7 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         derivedSignalCompilation = (compiledInstantiations, signalsToUnlink);
+        return true;
     }
 
     private void UndoDerivedSignalCompilation()

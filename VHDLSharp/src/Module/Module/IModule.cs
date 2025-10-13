@@ -42,9 +42,12 @@ public interface IModule : IEquatable<IModule>, ICompletable
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
 
     /// <summary>
-    /// Get all modules (recursive) used by this module as instantiations
+    /// Get all modules used by this module as instantiations
     /// </summary>
-    public IEnumerable<IModule> ModulesUsed { get; }
+    /// <param name="recursive">If true, returns modules used by used modules, etc.</param>
+    /// <param name="compileDerivedSignals">If true, compiles derived signals into instantiations before including modules (and undoes it)</param>
+    /// <returns></returns>
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals);
 
     /// <summary>
     /// Convert to string
@@ -62,14 +65,8 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// Get the VHDL for this module without submodules or 
     /// stuff that goes at the beginning of the file
     /// </summary>
-    /// <param name="modulesToInclude">
-    /// Modules that need to be declared, since they are not here. 
-    /// Should include modules made by derived signal compilation. 
-    /// The main <see cref="GetVhdl"/> function needs these to know what all to include. 
-    /// Recursion in finding modules is not required. 
-    /// </param>
     /// <returns></returns>
-    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude);
+    public string GetVhdlNoSubmodules();
 
     /// <summary>
     /// Convert module to Spice circuit

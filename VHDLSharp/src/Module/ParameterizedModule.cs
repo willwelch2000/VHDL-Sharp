@@ -61,7 +61,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => BaseModule.AllModuleSignals;
 
     /// <inheritdoc/>
-    public IEnumerable<IModule> ModulesUsed => BaseModule.ModulesUsed;
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals) => BaseModule.GetModulesUsed(recursive, compileDerivedSignals);
 
     /// <inheritdoc/>
     public bool ContainsSignal(IModuleSpecificSignal signal) => BaseModule.ContainsSignal(signal);
@@ -88,7 +88,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public string GetVhdlComponentDeclaration() => BaseModule.GetVhdlComponentDeclaration();
 
     /// <inheritdoc/>
-    public string GetVhdlNoSubmodules(out List<IModule> modulesToInclude) => BaseModule.GetVhdlNoSubmodules(out modulesToInclude);
+    public string GetVhdlNoSubmodules() => BaseModule.GetVhdlNoSubmodules();
 
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason) => BaseModule.IsComplete(out reason);
