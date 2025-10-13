@@ -333,14 +333,19 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine(GetVhdlNoSubmodules());
 
         // Submodules--need to do all modules recursively
+        bool firstLoop = true;
         foreach (IModule module in GetModulesUsed(true, true))
         {
+            if (!firstLoop)
+            {
+                firstLoop = false;
+                sb.AppendLine();
+            }
             sb.AppendLine(module.GetVhdlNoSubmodules());
-            sb.AppendLine();
         }
 
         ignoreValidity = false;
-        return sb.ToString();
+        return sb.ToString().TrimEnd();
     }
 
     /// <inheritdoc/>

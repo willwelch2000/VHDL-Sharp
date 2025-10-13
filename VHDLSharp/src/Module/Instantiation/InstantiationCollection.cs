@@ -142,9 +142,11 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
         foreach (IInstantiation instantiation in instantiations)
         {
             if (!firstLoop)
+            {
+                firstLoop = false;
                 sb.AppendLine();
+            }
             sb.AppendLine(instantiation.GetVhdlStatement());
-            firstLoop = false;
         }
 
         return sb.ToString();
