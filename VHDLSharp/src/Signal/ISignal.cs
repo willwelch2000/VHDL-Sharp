@@ -82,18 +82,33 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <param name="context"></param>
     /// <param name="lastIndex"></param>
     /// <returns>Value if possible</returns>
-    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, 
+    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>
     /// or if it doesn't have a value in the state yet</exception>
-    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null) => this switch
+    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null)
     {
-        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal)) switch
+        switch (this)
         {
-            List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
-            _ => throw new Exception("Values list not long enough")
-        },
-        ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
-        _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
-    };
+            case ISignalWithKnownValue signalWithKnownValue:
+                return signalWithKnownValue.Value;
+            case INamedSignal or IDerivedSignal or IDerivedSignalNode:
+                // Get the signal itself or the linked signal, if derived
+                INamedSignal signalToUse = this switch
+                {
+                    INamedSignal namedSignal => namedSignal,
+                    IDerivedSignal derivedSignal => derivedSignal.LinkedSignal ?? throw new Exception("No linked signal on derived signal"),
+                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.LinkedSignal ?? throw new Exception("No linked signal on derived signal"),
+                    _ => throw new("Impossible"),
+                };
+                // Find most-recent value of the signal
+                return state.GetSignalValues(context.GetChildSignalReference(signalToUse)) switch
+                {
+                    List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
+                    _ => throw new Exception("Values list not long enough"),
+                };
+            default:
+                throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue");
+        }
+    }
 
     /// <summary>
     /// Given several signals, returns true if they can be combined together

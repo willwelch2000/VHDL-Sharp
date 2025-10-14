@@ -1,5 +1,6 @@
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
@@ -124,5 +125,39 @@ public class AddedSignalTests
         Rn1x0_floating s3 0 1000000000
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check rules
+        SimulationRule[] rules = [.. module.GetSimulationRules()];
+        SubcircuitReference modRef = new(module, []);
+        Assert.AreEqual(2, rules.Length); // One for s3, one for derived signal
+        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == modRef.GetChildSignalReference(s3)));
+    }
+
+    [TestMethod]
+    public void SimTest1bit()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+        Module module = new("mod1");
+        Signal a = module.GenerateSignal("A");
+        Signal b = module.GenerateSignal("B");
+        Signal y = module.GenerateSignal("Y");
+        y.AssignBehavior(a.Plus(b));
+        Port pa = module.AddNewPort(a, PortDirection.Input);
+        Port pb = module.AddNewPort(b, PortDirection.Input);
+        module.AddNewPort(y, PortDirection.Output);
+
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
+        {
+            Length = 4e-5
+        };
+        simulation.StimulusMapping[pa] = new PulseStimulus(1e-5, 1e-5, 2e-5);
+        simulation.StimulusMapping[pb] = new PulseStimulus(2e-5, 2e-5, 4e-5);
+
+        SubcircuitReference moduleRef = new(module, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+        AdderTests.TestResults(results, 1, false, false);
     }
 }

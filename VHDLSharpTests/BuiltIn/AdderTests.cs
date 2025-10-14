@@ -110,7 +110,7 @@ public class AdderTests
         }
     }
 
-    private static void TestResults(ISimulationResult[] results, int bits, bool carryIn, bool carryOut)
+    public static void TestResults(ISimulationResult[] results, int bits, bool carryIn, bool carryOut)
     {
         ISimulationResult aResults = results[0];
         ISimulationResult bResults = results[1];
