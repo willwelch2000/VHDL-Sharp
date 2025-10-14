@@ -130,7 +130,7 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     /// <param name="includeIncorrectlyAssignedSignals">If true, includes module-specific signals used here even if they belong to another module</param>
     /// <returns></returns>
-    private IEnumerable<IModuleSpecificSignal> GetAllModuleSignals(bool includeIncorrectlyAssignedSignals)
+    private HashSet<IModuleSpecificSignal> GetAllModuleSignals(bool includeIncorrectlyAssignedSignals)
     {
         // Get list of all single-node named signals used
         HashSet<ISingleNodeModuleSpecificSignal> allSingleNodeSignals =
@@ -584,9 +584,12 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         // This list removes duplicate derived signals (from when a node references a parent),
+        // and avoids adding derived signals that have just been linked due to compilation 
+        // (TODO this can be changed to just undo the compilation at the beginning of this function and redo it later),
         // but keeps duplicate linked signals that come from different derived signals--not allowed, checked below
         INamedSignal[] linkedSignals = [.. moduleSignals.OfType<IDerivedSignal>()
             .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))
+            .Except(derivedSignalCompilation?.signalsToUnlink ?? []) // These don't count
             .Select(s => s.LinkedSignal).OfType<INamedSignal>()];
 
         // Check that derived signals' linked signals aren't input ports
@@ -636,6 +639,8 @@ public class Module : IModule, IValidityManagedEntity
 
         List<IInstantiation> compiledInstantiations = [];
         List<IDerivedSignal> signalsToUnlink = [];
+        // These must stay up to date in case validation is triggered--it needs to know which signals need to be unlinked
+        derivedSignalCompilation = (compiledInstantiations, signalsToUnlink);
         IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
         int i = 0;
 
@@ -659,7 +664,6 @@ public class Module : IModule, IValidityManagedEntity
             Instantiations.Add(instantiation);
         }
 
-        derivedSignalCompilation = (compiledInstantiations, signalsToUnlink);
         return true;
     }
 
