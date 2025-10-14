@@ -96,7 +96,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                 {
                     INamedSignal namedSignal => namedSignal,
                     IDerivedSignal derivedSignal => derivedSignal.LinkedSignal ?? throw new Exception("No linked signal on derived signal"),
-                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.LinkedSignal ?? throw new Exception("No linked signal on derived signal"),
+                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.LinkedSignal ?? throw new Exception("No linked signal on derived signal node"),
                     _ => throw new("Impossible"),
                 };
                 // Find most-recent value of the signal

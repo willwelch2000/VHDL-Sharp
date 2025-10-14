@@ -30,11 +30,11 @@ public class Module : IModule, IValidityManagedEntity
     private EventHandler? updated;
 
     /// <summary>
-    /// Instantiations that exist from compiling derived signals, and 
-    /// derived signals that need to have their linked signals removed.
-    /// Null if none
+    /// compiled: true if compilation has been performed (instantiations have been added)\
+    /// instantiations: all instantiations added due to compilation
+    /// autoLinkedSignals: all derived signals that have been linked due to compilation
     /// </summary>
-    private (List<IInstantiation> instantiations, List<IDerivedSignal> signalsToUnlink)? derivedSignalCompilation = null;
+    private (bool compiled, List<IInstantiation> instantiations, HashSet<IDerivedSignal> autoLinkedSignals) derivedSignalCompilation = (false, [], []);
 
     /// <summary>
     /// Default constructor
@@ -589,7 +589,7 @@ public class Module : IModule, IValidityManagedEntity
         // but keeps duplicate linked signals that come from different derived signals--not allowed, checked below
         INamedSignal[] linkedSignals = [.. moduleSignals.OfType<IDerivedSignal>()
             .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))
-            .Except(derivedSignalCompilation?.signalsToUnlink ?? []) // These don't count
+            .Except(derivedSignalCompilation.autoLinkedSignals ?? []) // These don't count
             .Select(s => s.LinkedSignal).OfType<INamedSignal>()];
 
         // Check that derived signals' linked signals aren't input ports
@@ -634,13 +634,12 @@ public class Module : IModule, IValidityManagedEntity
     private bool CompileDerivedSignals()
     {
         // Already compiled
-        if (derivedSignalCompilation is not null)
+        if (derivedSignalCompilation.compiled)
             return false;
 
-        List<IInstantiation> compiledInstantiations = [];
-        List<IDerivedSignal> signalsToUnlink = [];
         // These must stay up to date in case validation is triggered--it needs to know which signals need to be unlinked
-        derivedSignalCompilation = (compiledInstantiations, signalsToUnlink);
+        List<IInstantiation> compiledInstantiations = derivedSignalCompilation.instantiations;
+        HashSet<IDerivedSignal> autoLinkedSignals = derivedSignalCompilation.autoLinkedSignals;
         IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
         int i = 0;
 
@@ -648,33 +647,38 @@ public class Module : IModule, IValidityManagedEntity
         foreach (IDerivedSignal derivedSignal in moduleSignals.OfType<IDerivedSignal>().Distinct()
             .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
         {
-            // Link a new named signal and store the derived signal for unlinking later
-            if (derivedSignal.LinkedSignal is null)
+            // If the signal is unlinked, or has been previously auto-linked
+            // Link a new named signal and store the derived signal for unlinking at next compilation
+            if (derivedSignal.LinkedSignal is null || derivedSignalCompilation.autoLinkedSignals.Contains(derivedSignal))
             {
                 derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
                 {
                     1 => new Signal($"DerivedSignal{i}", this),
                     _ => new Vector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
                 };
-                signalsToUnlink.Add(derivedSignal);
+                autoLinkedSignals.Add(derivedSignal);
             }
+
             // Add the compiled instantiation
             IInstantiation instantiation = derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}");
             compiledInstantiations.Add(instantiation);
             Instantiations.Add(instantiation);
         }
 
+        derivedSignalCompilation.compiled = true;
         return true;
     }
 
     private void UndoDerivedSignalCompilation()
     {
-        if (derivedSignalCompilation is not (List<IInstantiation> compiledInstantiations, List<IDerivedSignal> signalsToUnlink))
+        // Nothing to do
+        if (!derivedSignalCompilation.compiled)
             return;
-        foreach (IInstantiation instantiation in compiledInstantiations)
+        // Remove all instantiations--they're only needed to produce simulation rules
+        // But keep auto-linked signals--they're needed for simulation
+        foreach (IInstantiation instantiation in derivedSignalCompilation.instantiations)
             Instantiations.Remove(instantiation);
-        foreach (IDerivedSignal derivedSignal in signalsToUnlink)
-            derivedSignal.LinkedSignal = null;
-        derivedSignalCompilation = null;
+        derivedSignalCompilation.compiled = false;
+        derivedSignalCompilation.instantiations.Clear();
     }
 }
