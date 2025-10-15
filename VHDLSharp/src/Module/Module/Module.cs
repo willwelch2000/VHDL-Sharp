@@ -645,7 +645,7 @@ public class Module : IModule, IValidityManagedEntity
                 while (disallowedSignalNames.Contains($"DerivedSignal{i}"))
                     i++;
 
-            // If the signal is unlinked, link a new named signal--make sure the name doesn't collide
+            // If the signal is unlinked, link a new named signal
             derivedSignal.LinkedSignal ??= derivedSignal.Dimension.NonNullValue switch
             {
                 1 => new Signal($"DerivedSignal{i}", this),

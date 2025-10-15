@@ -160,4 +160,39 @@ public class AddedSignalTests
         ISimulationResult[] results = [.. simulation.Simulate()];
         AdderTests.TestResults(results, 1, false, false);
     }
+
+    [TestMethod]
+    public void AutoLinkThenManuallyLinkTest()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+        Module module = new("mod1");
+        Signal s1 = module.GenerateSignal("s1");
+        Signal s2 = module.GenerateSignal("s2");
+        Signal s3 = module.GenerateSignal("s3");
+        AddedSignal derivedSignal = s1.Plus(s2);
+        s3.AssignBehavior(derivedSignal);
+        module.AddNewPort(s1, PortDirection.Input);
+        module.AddNewPort(s2, PortDirection.Input);
+        module.AddNewPort(s3, PortDirection.Output);
+
+        // Load VHDL, triggering compilation
+        Assert.IsNull(derivedSignal.LinkedSignal);
+        module.GetVhdl();
+        // It should have auto-linked a signal
+        Assert.IsNotNull(derivedSignal.LinkedSignal);
+        INamedSignal autoLinkedSignal = derivedSignal.LinkedSignal;
+
+        // Manually assign and recompile
+        Signal newLinkedSignal = module.GenerateSignal("linked");
+        derivedSignal.LinkedSignal = newLinkedSignal;
+        module.GetVhdl();
+        Assert.AreEqual(newLinkedSignal, derivedSignal.LinkedSignal);
+
+        // Set to null and recompile
+        derivedSignal.LinkedSignal = null;
+        module.GetVhdl();
+        Assert.IsNotNull(derivedSignal.LinkedSignal);
+        Assert.AreNotEqual(newLinkedSignal, derivedSignal.LinkedSignal);
+        Assert.AreNotEqual(autoLinkedSignal, derivedSignal.LinkedSignal);
+    }
 }
