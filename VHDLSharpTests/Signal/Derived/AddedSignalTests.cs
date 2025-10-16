@@ -181,6 +181,9 @@ public class AddedSignalTests
         // It should have auto-linked a signal
         Assert.IsNotNull(derivedSignal.LinkedSignal);
         INamedSignal autoLinkedSignal = derivedSignal.LinkedSignal;
+        // Recompile and confirm it's the same
+        module.GetVhdl();
+        Assert.AreEqual(autoLinkedSignal, derivedSignal.LinkedSignal);
 
         // Manually assign and recompile
         Signal newLinkedSignal = module.GenerateSignal("linked");

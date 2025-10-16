@@ -14,11 +14,13 @@ public class AddedSignal : DerivedSignal
     /// </summary>
     /// <param name="signal1">First signal</param>
     /// <param name="signal2">Second signal</param>
+    /// <param name="includeCarryOut">If true, the signal has an additional bit that comes from the carry-out of the addition</param>
     /// <exception cref="Exception">If signals are not compatible</exception>
-    public AddedSignal(IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) : base(signal1.ParentModule)
+    public AddedSignal(IModuleSpecificSignal signal1, IModuleSpecificSignal signal2, bool includeCarryOut=false) : base(signal1.ParentModule)
     {
         Signal1 = signal1;
         Signal2 = signal2;
+        IncludeCarryOut = includeCarryOut;
         // Go ahead and throw exception if not compatible--no need to check validity later, bc dimension and parent modules won't change
         if (!signal1.CanCombine(signal2))
             throw new Exception($"Input signals to addition must be compatible");
@@ -30,8 +32,11 @@ public class AddedSignal : DerivedSignal
     /// <summary>Second signal to add</summary>
     public IModuleSpecificSignal Signal2 { get; }
 
+    /// <summary>If true, the signal has an additional bit that comes from the carry-out of the addition</summary>
+    public bool IncludeCarryOut { get; }
+
     /// <inheritdoc/>
-    public override DefiniteDimension Dimension => Signal1.Dimension;
+    public override DefiniteDimension Dimension => IncludeCarryOut ? new(Signal1.Dimension.NonNullValue + 1) : Signal1.Dimension;
 
     /// <inheritdoc/>
     protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [Signal1, Signal2];
@@ -39,11 +44,14 @@ public class AddedSignal : DerivedSignal
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)
     {
-        IModule adder = new Adder(Dimension.NonNullValue, false, false);
+        IModule adder = new Adder(Dimension.NonNullValue, false, IncludeCarryOut);
         Instantiation inst = new(adder, ParentModule, instanceName);
+        INamedSignal linkedSignal = ((IDerivedSignal)this).GetLinkedSignal();
         inst.PortMapping.SetPort("A", Signal1.AsNamedSignal());
         inst.PortMapping.SetPort("B", Signal2.AsNamedSignal());
-        inst.PortMapping.SetPort("Y", ((IDerivedSignal)this).GetLinkedSignal());
+        inst.PortMapping.SetPort("Y", IncludeCarryOut ? linkedSignal[0..^1] : linkedSignal);
+        if (IncludeCarryOut)
+            inst.PortMapping.SetPort("COut", linkedSignal);
         return inst;
     }
 }
