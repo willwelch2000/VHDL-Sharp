@@ -15,7 +15,7 @@ public class VectorSlice : NamedSignal
     /// </summary>
     /// <param name="vector">Linked vector</param>
     /// <param name="startNode">Starting node, inclusive</param>
-    /// <param name="endNode">Ending node, exclusive</param>
+    /// <param name="endNode">Ending node, inclusive</param>
     internal VectorSlice(Vector vector, int startNode, int endNode)
     {
         Vector = vector;
@@ -39,7 +39,7 @@ public class VectorSlice : NamedSignal
     /// <summary>Starting node for the slice, inclusive</summary>
     public int StartNode { get; }
 
-    /// <summary>Ending node for the slice, exclusive</summary>
+    /// <summary>Ending node for the slice, inclusive</summary>
     public int EndNode { get; }
 
     /// <inheritdoc/>
@@ -58,14 +58,14 @@ public class VectorSlice : NamedSignal
     public override string VhdlType => $"std_logic_vector({EndNode} downto {StartNode})";
 
     /// <inheritdoc/>
-    public override DefiniteDimension Dimension => new(EndNode - StartNode);
+    public override DefiniteDimension Dimension => new(EndNode - StartNode + 1);
 
     /// <inheritdoc/>
     public override IEnumerable<INamedSignal> ChildSignals => ToSingleNodeSignals;
 
     /// <inheritdoc/>
     public override IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals =>
-        Enumerable.Range(StartNode, EndNode - StartNode).Select(i => Vector[i]);
+        Enumerable.Range(StartNode, EndNode - StartNode + 1).Select(i => Vector[i]);
 
     /// <inheritdoc/>
     public override bool CanCombine(ILogicallyCombinable<ISignal> other)
@@ -79,7 +79,7 @@ public class VectorSlice : NamedSignal
     }
 
     /// <inheritdoc/>
-    public override string GetVhdlName() => Vector.Name + $"({EndNode - 1} downto {StartNode})";
+    public override string GetVhdlName() => Vector.Name + $"({EndNode} downto {StartNode})";
 
     /// <inheritdoc/>
     public override string ToLogicString() => Name;
@@ -98,7 +98,7 @@ public class VectorSlice : NamedSignal
         IPort? port = mapping.Keys.FirstOrDefault(p => p.Signal == ParentSignal);
         if (port is null)
             return false;
-        equivalentSignal = mapping[port][StartNode..EndNode];
+        equivalentSignal = mapping[port][StartNode..(EndNode+1)];
         return true;
     }
 }

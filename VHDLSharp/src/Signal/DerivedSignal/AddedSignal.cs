@@ -44,14 +44,15 @@ public class AddedSignal : DerivedSignal
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)
     {
-        IModule adder = new Adder(Dimension.NonNullValue, false, IncludeCarryOut);
+        IModule adder = new Adder(Signal1.Dimension.NonNullValue, false, IncludeCarryOut);
         Instantiation inst = new(adder, ParentModule, instanceName);
         INamedSignal linkedSignal = ((IDerivedSignal)this).GetLinkedSignal();
         inst.PortMapping.SetPort("A", Signal1.AsNamedSignal());
         inst.PortMapping.SetPort("B", Signal2.AsNamedSignal());
-        inst.PortMapping.SetPort("Y", IncludeCarryOut ? linkedSignal[0..^1] : linkedSignal);
+        // Y is either (all but the last bit of linked signal, if there's a carry-out bit included) or the full linked signal
+        inst.PortMapping.SetPort("Y", IncludeCarryOut ? (Dimension.NonNullValue == 2 ? linkedSignal[0] : linkedSignal[0..^1]) : linkedSignal);
         if (IncludeCarryOut)
-            inst.PortMapping.SetPort("COut", linkedSignal);
+            inst.PortMapping.SetPort("COut", linkedSignal[linkedSignal.Dimension.NonNullValue-1]);
         return inst;
     }
 }

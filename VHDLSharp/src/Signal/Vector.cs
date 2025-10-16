@@ -75,10 +75,10 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
         get
         {
             int start = range.Start.GetOffset(dimension);
-            int end = range.End.GetOffset(dimension);
+            int end = range.End.GetOffset(dimension); // exclusive end of range
             if (start > end || start < 0 || end > dimension)
                 throw new ArgumentOutOfRangeException(nameof(range), "Specified range doesn't work for this vector");
-            return new VectorSlice(this, start, end);
+            return new VectorSlice(this, start, end-1);
         }
     }
 
