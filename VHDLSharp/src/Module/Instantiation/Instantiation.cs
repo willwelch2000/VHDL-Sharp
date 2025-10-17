@@ -76,7 +76,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
         sb.AppendLine("port map (".AddIndentation(1));
         sb.AppendJoin(",\n", PortMapping.Select(
-            kvp => $"{kvp.Key.Signal.GetVhdlDeclaration()} => {kvp.Value.GetVhdlDeclaration()}".AddIndentation(2)
+            kvp => $"{kvp.Key.Signal.GetVhdlName()} => {kvp.Value.GetVhdlName()}".AddIndentation(2)
         ));
         sb.AppendLine();
         sb.Append(");".AddIndentation(1));
