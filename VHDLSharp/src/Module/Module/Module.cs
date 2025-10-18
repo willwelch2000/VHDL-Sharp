@@ -29,8 +29,9 @@ public class Module : IModule, IValidityManagedEntity
 
     private EventHandler? updated;
 
-    /// <summary>Instantiations that have been added due to derived signal compilation--null if not compiled</summary>
-    private HashSet<IInstantiation>? compiledInstantiations = null;
+    // Used as validity checker, so it should be set false before control leaves the module
+    // It is possible for there to be compiled objects even if this is false
+    private bool compiled;
 
     /// <summary>Default constructor</summary>
     public Module()
@@ -179,7 +180,7 @@ public class Module : IModule, IValidityManagedEntity
                     modulesUsed.Add(submodule);
         }
         if (uncompile)
-            UndoDerivedSignalCompilation();
+            compiled = false;
         return modulesUsed;
     }
 
@@ -408,8 +409,7 @@ public class Module : IModule, IValidityManagedEntity
         // End
         sb.AppendLine("end rtl;");
 
-        UndoDerivedSignalCompilation();
-
+        compiled = false;
         return sb.ToString();
     }
 
@@ -457,7 +457,7 @@ public class Module : IModule, IValidityManagedEntity
         circuits.Add(new(additionalEntities));
         SpiceSubcircuit subcircuit = SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
 
-        UndoDerivedSignalCompilation();
+        compiled = false;
         return subcircuit;
     }
 
@@ -486,7 +486,7 @@ public class Module : IModule, IValidityManagedEntity
         foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
             yield return rule;
 
-        UndoDerivedSignalCompilation();
+        compiled = false;
     }
 
     /// <summary>
@@ -587,18 +587,26 @@ public class Module : IModule, IValidityManagedEntity
 
         // This list removes duplicate derived signals (from when a node references a parent),
         // but keeps duplicate linked signals that come from different derived signals--not allowed, checked below
-        INamedSignal[] linkedSignals = [.. moduleSignals.OfType<IDerivedSignal>()
-            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))
-            .Select(s => s.LinkedSignal).OfType<INamedSignal>()];
+        List<INamedSignal> linkedSignals = [];
 
-        // Check that derived signals' linked signals aren't input ports
-        foreach (INamedSignal linkedSignal in linkedSignals)
-            if (inputPortSignals.Contains(linkedSignal))
-                exception = new Exception($"Output signal ({linkedSignal}) must not be an input port");
+        // Check that linked signals have the right dimension and aren't input ports
+        foreach (IDerivedSignal derivedSignal in moduleSignals.OfType<IDerivedSignal>()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+        {
+            if (derivedSignal.LinkedSignal is not null)
+            {
+                INamedSignal linkedSignal = derivedSignal.LinkedSignal;
+                linkedSignals.Add(linkedSignal);
+                if (!derivedSignal.Dimension.Compatible(linkedSignal.Dimension))
+                    exception = new Exception($"Linked signal ({linkedSignal}) must have the same dimension as the derived signal it's linked to");
+                if (inputPortSignals.Contains(linkedSignal))
+                    exception = new Exception($"Linked signal ({linkedSignal}) must not be an input port");
+            }
+        }
 
         // Throw error if a signal has two or more assignments--either from behavior mapping, output port of (non-compiled) instantiation, or derived signal linked signal
         List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.Keys
-            .Concat(Instantiations.Where(i => !(compiledInstantiations?.Contains(i) ?? false)) // Ignore instantiations added due to compilation
+            .Concat(Instantiations.Where(i => i is not ICompiledObject) // Ignore instantiations added due to compilation
                 .SelectMany(i => i.GetSignals(PortDirection.Output)))
             .Concat(linkedSignals)
             .SelectMany(s => s.ToSingleNodeSignals)];
@@ -633,52 +641,45 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns>True if compilation is performed, false if not necessary because it already has been compiled</returns>
     private bool CompileDerivedSignals()
     {
-        // Already compiled
-        if (compiledInstantiations is not null)
+        if (compiled)
             return false;
 
-        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
-        int i = 0;
-
-        // Gather already-linked names
-        HashSet<string> disallowedSignalNames = [.. moduleSignals.OfType<IDerivedSignal>().Select(ds => ds.LinkedSignal).OfType<INamedSignal>().Select(s => s.Name)];
+        // Remove all compiled instantiations--signals are removed in the section below
+        foreach (CompiledInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>().ToArray())
+            Instantiations.Remove(instantiation);
 
         // Loop through all used derived signals and the derived signals whose nodes are used
-        compiledInstantiations = [];
-        foreach (IDerivedSignal derivedSignal in moduleSignals.OfType<IDerivedSignal>().Distinct()
-            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        IDerivedSignal[] usedDerivedSignals = [.. moduleSignals.OfType<IDerivedSignal>().Distinct()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))];
+        foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
         {
-            // Make sure the index doesn't collide if we need to add a linked signal--could collide with previously auto-linked signal
-            if (derivedSignal.LinkedSignal is null)
-                while (disallowedSignalNames.Contains($"DerivedSignal{i}"))
-                    i++;
+            // If the signal is unlinked or previously compiled, link a new named signal
+            if (derivedSignal.LinkedSignal is ICompiledObject or null)
+                derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
+                {
+                    1 => new CompiledSignal($"DerivedSignal{i}", this),
+                    _ => new CompiledVector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
+                };
 
-            // If the signal is unlinked, link a new named signal
-            derivedSignal.LinkedSignal ??= derivedSignal.Dimension.NonNullValue switch
-            {
-                1 => new Signal($"DerivedSignal{i}", this),
-                _ => new Vector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
-            };
-
-            // Add the compiled instantiation
-            IInstantiation instantiation = derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}");
-            compiledInstantiations.Add(instantiation);
+            // Add the compiled instantiation, converting to a CompiledInstantiation instance
+            CompiledInstantiation instantiation = new(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}"));
             Instantiations.Add(instantiation);
-            i++;
         }
 
+        compiled = true;
         return true;
     }
 
-    private void UndoDerivedSignalCompilation()
+    /// <inheritdoc/>
+    public void UndoDerivedSignalCompilation()
     {
-        // Nothing to do
-        if (compiledInstantiations is null)
-            return;
-        // Remove all instantiations--they're only needed to produce simulation rules
-        // But keep auto-linked signals--they're needed for simulation
-        foreach (IInstantiation instantiation in compiledInstantiations)
+        // Remove all instantiations
+        foreach (IInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>())
             Instantiations.Remove(instantiation);
-        compiledInstantiations = null;
+        // Remove all auto-linked signals
+        foreach (IDerivedSignal derivedSignal in AllModuleSignals.OfType<IDerivedSignal>().Where(s => s.LinkedSignal is ICompiledObject))
+            derivedSignal.LinkedSignal = null;
+        compiled = false;
     }
 }

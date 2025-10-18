@@ -113,4 +113,10 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// this should be a link to that module
     /// </summary>
     public IModule BaseModule => this;
+
+    /// <summary>
+    /// Removes instantiations and linked signals that were added during compilation,
+    /// which happens whenever a code-production or simulation function is run
+    /// </summary>
+    public void UndoDerivedSignalCompilation();
 }

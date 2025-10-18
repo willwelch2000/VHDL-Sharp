@@ -198,9 +198,8 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         {
             if (!instantiation.ParentModule.Equals(module))
                 exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
-            // TODO is this the right move? Alternative is to only uncompile after the simulation somehow
-            // if (!module.Instantiations.Contains(instantiation))
-            //     exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
+            if (!module.Instantiations.Contains(instantiation))
+                exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
             module = instantiation.InstantiatedModule;
         }
         return exception is null;

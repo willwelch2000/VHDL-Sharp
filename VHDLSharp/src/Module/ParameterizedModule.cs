@@ -98,4 +98,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public bool Equals(IModule? other) => other is not null && other.BaseModule == BaseModule;
+
+    /// <inheritdoc/>
+    public void UndoDerivedSignalCompilation() => BaseModule.UndoDerivedSignalCompilation();
 }
