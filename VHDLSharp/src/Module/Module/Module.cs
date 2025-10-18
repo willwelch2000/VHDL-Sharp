@@ -378,8 +378,16 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         // Component declarations--don't need recursive because it should just declare the ones it directly uses
+        bool firstLoop = true;
         foreach (IModule module in GetModulesUsed(false, false))
-            sb.AppendLine(module.GetVhdlComponentDeclaration());
+        {
+            if (firstLoop)
+            {
+                firstLoop = false;
+                sb.AppendLine();
+            }
+            sb.AppendLine(module.GetVhdlComponentDeclaration().AddIndentation(1));
+        }
 
         // Begin
         sb.AppendLine("begin");
