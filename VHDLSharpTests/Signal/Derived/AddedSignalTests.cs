@@ -594,9 +594,10 @@ public class AddedSignalTests
         // It should have auto-linked a signal
         Assert.IsNotNull(derivedSignal.LinkedSignal);
         INamedSignal autoLinkedSignal = derivedSignal.LinkedSignal;
-        // Recompile and confirm it's the same
+        // Recompile and confirm it makes a new one
         module.GetVhdl();
-        Assert.AreEqual(autoLinkedSignal, derivedSignal.LinkedSignal);
+
+        Assert.AreNotEqual(autoLinkedSignal, derivedSignal.LinkedSignal);
 
         // Manually assign and recompile
         Signal newLinkedSignal = module.GenerateSignal("linked");
@@ -610,5 +611,10 @@ public class AddedSignalTests
         Assert.IsNotNull(derivedSignal.LinkedSignal);
         Assert.AreNotEqual(newLinkedSignal, derivedSignal.LinkedSignal);
         Assert.AreNotEqual(autoLinkedSignal, derivedSignal.LinkedSignal);
+
+        // Check that it causes an error to assign a linked signal with the wrong dimension
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        Assert.ThrowsException<Exception>(() => derivedSignal.LinkedSignal = new Vector("v1", module, 2));
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
     }
 }

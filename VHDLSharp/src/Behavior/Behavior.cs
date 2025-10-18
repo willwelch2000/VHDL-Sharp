@@ -20,7 +20,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     private readonly ValidityManager validityManager;
     
     // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
-    // It also doesn't track the signals, because they are not supposed to change their parent module
+    // It also doesn't track the signals--except for derived signals--because they are not supposed to change their parent module
+    // Derived signals are more complicated since they can have child signals and more complicated
     private readonly ObservableCollection<object> childEntities;
 
     /// <summary>
@@ -175,4 +176,15 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// </summary>
     /// <param name="entity"></param>
     protected void RemoveChildEntity(object entity) => childEntities.Remove(entity);
+
+    /// <summary>
+    /// Should be called by child classes whenever new signals are added. 
+    /// Finds the derived signals and tracks them
+    /// </summary>
+    /// <param name="newSignals"></param>
+    protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
+    {
+        foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Add(derivedSignal);
+    }
 }

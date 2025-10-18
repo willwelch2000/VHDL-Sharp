@@ -16,6 +16,8 @@ namespace VHDLSharp.Conditions;
 /// </summary>
 public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrivenCondition
 {
+    // No need to add child entities because signal is not a derived signal
+    
     /// <summary>
     /// Signal used for the condition
     /// </summary>

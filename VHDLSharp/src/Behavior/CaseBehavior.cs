@@ -205,6 +205,8 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
             if (expression is not null && !(expression.CanCombine(logicExpression) && logicExpression.CanCombine(expression)))
                 throw new IncompatibleSignalException($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
+
+        ManageNewSignals(logicExpression.BaseObjects);
     }
 
     /// <inheritdoc/>

@@ -25,6 +25,8 @@ public class Equality : Condition, IConstantCondition
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
+        // Add comparison if it's a derived signal
+        ManageNewSignals([comparison]);
         // Check after construction
         if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
             throw exception;

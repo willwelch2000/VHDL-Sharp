@@ -17,6 +17,8 @@ namespace VHDLSharp.Conditions;
 /// <param name="signal">Input signal to test</param>
 public class Low(ISingleNodeNamedSignal signal) : Condition, IConstantCondition
 {
+    // No need to add child entities because signal is not a derived signal
+    
     /// <summary>Signal that gets evaluated</summary>
     public ISingleNodeNamedSignal Signal { get; } = signal;
 

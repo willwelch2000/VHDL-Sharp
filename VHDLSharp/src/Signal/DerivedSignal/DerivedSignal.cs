@@ -77,8 +77,19 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     /// <summary>Module to which this signal belongs</summary>
     public IModule ParentModule { get; }
 
+    private INamedSignal? linkedSignal;
     /// <inheritdoc/>
-    public INamedSignal? LinkedSignal { get; set; }
+    public INamedSignal? LinkedSignal
+    {
+        get => linkedSignal;
+        set
+        {
+            if (value is not null && !value.CanCombine(this))
+                throw new Exception($"Linked signal ({value}) is not compatible");
+            linkedSignal = value;
+            updated?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     /// <inheritdoc/>
     public IInstantiation Compile(string moduleName, string instanceName) => ValidityManager.IsValid(out Exception? issue) ?
@@ -178,6 +189,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     /// <inheritdoc/>
     public bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        // TODO parent-module check might be redundant with check in LinkedSignal setter
         exception = LinkedSignal is INamedSignal namedLinkedSignal && !namedLinkedSignal.ParentModule.Equals(ParentModule) ?
             new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") :
             UsedModuleSpecificSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
