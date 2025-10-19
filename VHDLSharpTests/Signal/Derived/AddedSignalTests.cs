@@ -575,6 +575,7 @@ public class AddedSignalTests
     }
 
     [TestMethod]
+    // Checks functionality of auto-linking a derived signal and then manually linking it
     public void AutoLinkThenManuallyLinkTest()
     {
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
@@ -616,5 +617,49 @@ public class AddedSignalTests
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
         Assert.ThrowsException<Exception>(() => derivedSignal.LinkedSignal = new Vector("v1", module, 2));
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+    }
+
+    [TestMethod]
+    // Confirms that a derived signal works when it is inside an instantiation--checks simulation
+    public void InstanceUsingDerivedSignalTest()
+    {
+        // Set up child module--1-bit adder
+        Module childMod = new("childMod");
+        Signal s1 = childMod.GenerateSignal("s1");
+        Signal s2 = childMod.GenerateSignal("s2");
+        Signal s3 = childMod.GenerateSignal("s3");
+        AddedSignal derivedSignal = s1.Plus(s2);
+        s3.AssignBehavior(derivedSignal);
+        Port p1 = childMod.AddNewPort(s1, PortDirection.Input);
+        Port p2 = childMod.AddNewPort(s2, PortDirection.Input);
+        Port p3 = childMod.AddNewPort(s3, PortDirection.Output);
+
+        // Set up top module to use child
+        Module mainMod = new("mainMod");
+        Signal topS1 = mainMod.GenerateSignal("topS1");
+        Signal topS2 = mainMod.GenerateSignal("topS2");
+        Signal topS3 = mainMod.GenerateSignal("topS3");
+        Port topP1 = mainMod.AddNewPort(topS1, PortDirection.Input);
+        Port topP2 = mainMod.AddNewPort(topS2, PortDirection.Input);
+        Port topP3 = mainMod.AddNewPort(topS3, PortDirection.Output);
+        Instantiation inst = mainMod.AddNewInstantiation(childMod, "Inst");
+        inst.PortMapping[p1] = topS1;
+        inst.PortMapping[p2] = topS2;
+        inst.PortMapping[p3] = topS3;
+
+        // Run simulation
+        RuleBasedSimulation simulation = new(mainMod, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
+        {
+            Length = 4e-5
+        };
+        simulation.StimulusMapping[topP1] = new PulseStimulus(1e-5, 1e-5, 2e-5);
+        simulation.StimulusMapping[topP2] = new PulseStimulus(2e-5, 2e-5, 4e-5);
+
+        SubcircuitReference moduleRef = new(mainMod, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS1));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS2));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS3));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+        AdderTests.TestResults(results, 1, false, false);
     }
 }
