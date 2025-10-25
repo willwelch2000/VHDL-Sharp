@@ -21,12 +21,12 @@ public class Equality : Condition, IConstantCondition
     /// </summary>
     /// <param name="mainSignal"></param>
     /// <param name="comparison">Signal to compare against</param>
-    public Equality(INamedSignal mainSignal, ISignal comparison)
+    public Equality(IModuleSpecificSignal mainSignal, ISignal comparison)
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
         // Add comparison if it's a derived signal
-        ManageNewSignals([comparison]);
+        ManageNewSignals([mainSignal, comparison]);
         // Check after construction
         if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
             throw exception;
@@ -35,7 +35,7 @@ public class Equality : Condition, IConstantCondition
     /// <summary>
     /// Main signal that gets evaluated
     /// </summary>
-    public INamedSignal MainSignal { get; }
+    public IModuleSpecificSignal MainSignal { get; }
 
     /// <summary>
     /// The main signal is compared against this
@@ -43,7 +43,7 @@ public class Equality : Condition, IConstantCondition
     public ISignal ComparisonSignal { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> InputSignals => ComparisonSignal is INamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ComparisonSignal is IModuleSpecificSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
@@ -55,7 +55,7 @@ public class Equality : Condition, IConstantCondition
     /// <inheritdoc/>
     public override string ToLogicString() => 
         !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to get string", issue) : 
-        $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
+        $"{MainSignal.ToLogicString()} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();

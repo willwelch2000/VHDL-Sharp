@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Exceptions;
@@ -14,16 +13,23 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that is true if this signal is high
 /// </summary>
-/// <param name="signal">Input signal to test</param>
-public class High(ISingleNodeNamedSignal signal) : Condition, IConstantCondition
+public class High : Condition, IConstantCondition
 {
-    // No need to add child entities because signal is not a derived signal
+    /// <summary>
+    /// Constructor given trigger signal
+    /// </summary>
+    /// <param name="signal">Signal that is tested high or low</param>
+    public High(ISingleNodeModuleSpecificSignal signal)
+    {
+        Signal = signal;
+        ManageNewSignals([signal]);
+    }
     
     /// <summary>Signal that gets evaluated</summary>
-    public ISingleNodeNamedSignal Signal { get; } = signal;
+    public ISingleNodeModuleSpecificSignal Signal { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> InputSignals => [Signal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [Signal];
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) =>
@@ -32,7 +38,7 @@ public class High(ISingleNodeNamedSignal signal) : Condition, IConstantCondition
         Signal.GetLastOutputValue(state, context) == 1;
 
     /// <inheritdoc/>
-    public override string ToLogicString() => $"{Signal.Name} is high";
+    public override string ToLogicString() => $"{Signal.ToLogicString()} is high";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();

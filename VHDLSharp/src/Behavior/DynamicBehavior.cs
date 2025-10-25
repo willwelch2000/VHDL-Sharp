@@ -53,7 +53,7 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).OfType<IModuleSpecificSignal>())).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension

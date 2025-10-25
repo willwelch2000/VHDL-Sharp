@@ -47,12 +47,10 @@ public abstract class Condition : ICondition, IValidityManagedEntity
     /// <summary>
     /// Get parent module based on named input signals
     /// </summary>
-    public IModule? ParentModule => (InputSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal)?.ParentModule;
+    public IModule? ParentModule => InputModuleSignals.FirstOrDefault()?.ParentModule;
 
-    /// <summary>
-    /// Input signals to condition
-    /// </summary>
-    public abstract IEnumerable<ISignal> InputSignals { get; }
+    /// <inheritdoc/>
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <inheritdoc/>
     public virtual ValidityManager ValidityManager { get; }
@@ -60,7 +58,7 @@ public abstract class Condition : ICondition, IValidityManagedEntity
     /// <inheritdoc/>
     public virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
-        if (InputSignals.OfType<INamedSignal>().Select(s => s.ParentModule).Distinct().Count() > 1)
+        if (InputModuleSignals.Select(s => s.ParentModule).Distinct().Count() > 1)
         {
             exception = new Exception("Input signals come from multiple modules");
             return false;
