@@ -1,8 +1,8 @@
-using SpiceSharp.Components;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 using VHDLSharp.Validation;
+using VHDLSharp.Signals.Derived;
 
 namespace VHDLSharpTests;
 

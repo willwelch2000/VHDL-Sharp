@@ -2,7 +2,7 @@ using VHDLSharp.BuiltIn;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Modules;
 
-namespace VHDLSharp.Signals;
+namespace VHDLSharp.Signals.Derived;
 
 /// <summary>
 /// Derived signal that adds together two input signals
