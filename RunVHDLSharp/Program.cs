@@ -12,6 +12,7 @@ using VHDLSharp.SpiceCircuits;
 using ScottPlot;
 using VHDLSharp.BuiltIn;
 using VHDLSharp.Validation;
+using VHDLSharp.Signals.Derived;
 
 namespace VHDLSharp;
 
@@ -20,10 +21,19 @@ public static class Program
     public static void Main(string[] args)
     {
         // Console.WriteLine("Start");
-        AddedSignalTest();
+        GenerateAddedSignalVhdl();
         /* TODO
         1. Do derived signals' modules need to be validity-checked?
             Or do we assume it's ok? The class extended from DerivedSignal would have to be invalid for it to be invalid
+            A. Could somehow check at compile time
+            B. Or could check a generated instance in CheckTopLevelValidity
+        2. Implement derived signals shown in extensions class
+        3. Conditions should allow module-specific signals instead of named signals
+            A. Add test of this?
+        4. Add GreaterThan and LessThan conditions
+        5. Add a ConditionBehavior that allows an ordered set of condition/ICombinationalBehavior pairs
+            A. Very similar to DynamicBehavior but no flip flop, just a mux basically
+            B. Only IConstantConditions allowed
         */
     }
 
@@ -561,20 +571,22 @@ public static class Program
         }
     }
 
-    public static void AddedSignalTest()
+    public static void GenerateAddedSignalVhdl()
     {
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
         Module module = new("mod1");
-        Signal s1 = module.GenerateSignal("s1");
-        Signal s2 = module.GenerateSignal("s2");
-        Signal s3 = module.GenerateSignal("s3");
+        Vector s1 = module.GenerateVector("s1", 2);
+        Vector s2 = module.GenerateVector("s2", 2);
+        Vector s3 = module.GenerateVector("s3", 2);
         s3.AssignBehavior(s1.Plus(s2));
-        module.AddNewPort(s1, PortDirection.Input);
-        module.AddNewPort(s2, PortDirection.Input);
+        Port s1p = module.AddNewPort(s1, PortDirection.Input);
+        Port s2p = module.AddNewPort(s2, PortDirection.Input);
         module.AddNewPort(s3, PortDirection.Output);
 
-        // Check VHDL
         string vhdl = module.GetVhdl();
-        File.WriteAllText("AddedSignalVhdl.txt", vhdl);
+        string spice = module.GetSpice().AsString();
+
+        File.WriteAllText("AddedSignalVHDL.txt", vhdl);
+        File.WriteAllText("AddedSignalSpice.txt", spice);
     }
 }
