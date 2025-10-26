@@ -41,7 +41,7 @@ public class PortMappingException : Exception
 /// Mapping of ports of a module to the signals it's connected to in an instantiation.
 /// Changes are rejected if they cause a validation error (or an exception in anything linked to IValidityManagedEntity.Updated)
 /// </summary>
-public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity
+public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityManagedEntity, ICompletable
 {
     private readonly ValidityManager manager;
 
@@ -100,23 +100,34 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
         {
             if (!port.Signal.Dimension.Compatible(signal.Dimension))
                 exception = new PortMappingException($"Port {port} and signal {signal} must have the same dimension");
-            if (port.Signal.ParentModule != InstantiatedModule)
+            if (!port.Signal.ParentModule.Equals(InstantiatedModule))
                 exception = new PortMappingException($"Ports must have the specified module ({InstantiatedModule}) as parent");
             if (!InstantiatedModule.Ports.Contains(port))
                 exception = new PortMappingException($"Port {port} must be in the list of ports of specified module {InstantiatedModule}");
-            if (signal.ParentModule != ParentModule)
+            if (!signal.ParentModule.Equals(ParentModule))
                 exception = new PortMappingException($"Signal must have module {ParentModule} as parent");
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
                 exception = new PortMappingException("Output port cannot be assigned to parent module's input port");
         }
+
         return exception is null;
     }
 
     /// <summary>
     /// True if port mapping is complete (all ports are assigned)
     /// </summary>
+    /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete() => InstantiatedModule.Ports.All(ContainsKey);
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        if (InstantiatedModule.Ports.All(ContainsKey))
+        {
+            reason = null;
+            return true;
+        }
+        reason = InstantiatedModule.Ports.First(p => !ContainsKey(p)).ToString() + " has not been assigned";
+        return false;
+    }
 
     /// <summary>
     /// Assign ports given names

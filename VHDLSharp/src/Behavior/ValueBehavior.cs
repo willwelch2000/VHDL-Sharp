@@ -39,7 +39,7 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     public int Value { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals { get; } = [];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; } = [];
 
     /// <inheritdoc/>
     public override Dimension Dimension { get; }

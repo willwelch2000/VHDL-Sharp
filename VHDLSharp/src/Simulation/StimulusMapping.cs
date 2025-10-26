@@ -40,7 +40,7 @@ public class StimulusMappingException : Exception
 /// <summary>
 /// Mapping of ports of a module to stimuli set for a simulation
 /// </summary>
-public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity
+public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValidityManagedEntity, ICompletable
 {
     private readonly ValidityManager manager;
 
@@ -92,7 +92,7 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
                 exception = new StimulusMappingException($"Port {port} must be input or bidirectional");
             if (!port.Signal.Dimension.Compatible(stimulus.Dimension))
                 exception = new StimulusMappingException($"Port {port} and signal {stimulus} must have the same dimension");
-            if (port.Signal.ParentModule != module)
+            if (!port.Signal.ParentModule.Equals(module))
                 exception = new StimulusMappingException($"Ports must have the specified module {module} as parent");
             if (!module.Ports.Contains(port))
                 exception = new StimulusMappingException($"Port {port} must be in the list of ports of specified module {module}");
@@ -104,8 +104,18 @@ public class StimulusMapping : ObservableDictionary<IPort, IStimulusSet>, IValid
     /// <summary>
     /// True if port mapping is complete (all input ports are assigned)
     /// </summary>
+    /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete() => module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey);
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        if (module.Ports.Where(p => p.Direction == PortDirection.Input).All(ContainsKey))
+        {
+            reason = null;
+            return true;
+        }
+        reason = module.Ports.First(p => p.Direction == PortDirection.Input).ToString() + " has not been assigned";
+        return false;
+    }
     
     private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {

@@ -7,13 +7,8 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Interface for any signal that has a name and belongs to a <see cref="IModule"/>
 /// </summary>
-public interface INamedSignal : ISignal
+public interface INamedSignal : IModuleSpecificSignal
 {
-    /// <summary>
-    /// Name of the module the signal is in
-    /// </summary>
-    public IModule ParentModule { get; }
-
     /// <summary>
     /// Name of the signal
     /// </summary>
@@ -32,12 +27,29 @@ public interface INamedSignal : ISignal
 
     /// <summary>
     /// If this has a dimension > 1, convert to a list of named signals with dimension 1. 
-    /// If it is dimension 1, then return itself
+    /// If this is a single-node signal, then return itself
     /// TODO should this be made into a list because it is assumed to be ordered consistently?
     /// </summary>
     public new IEnumerable<ISingleNodeNamedSignal> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
+    IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Get a slice of this signal
+    /// </summary>
+    /// <param name="range"></param>
+    /// <returns></returns>
+    public INamedSignal this[Range range] { get; }
+
+    /// <summary>
+    /// Indexer for multi-dimensional signals, with type specified as <see cref="ISingleNodeNamedSignal"/>
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public new ISingleNodeNamedSignal this[int index] { get; }
+
+    ISingleNodeSignal ISignal.this[int index] => this[index];
 
     /// <summary>
     /// If this is the top level, it returns this. 
@@ -52,7 +64,9 @@ public interface INamedSignal : ISignal
     /// </summary>
     public new INamedSignal? ParentSignal { get; }
 
-    ISignal? ISignal.ParentSignal => ParentSignal;
+    IModuleSpecificSignal? IModuleSpecificSignal.ParentSignal => ParentSignal;
+
+    INamedSignal IModuleSpecificSignal.AsNamedSignal() => this;
 
     /// <summary>
     /// Tests if this signal is part of a port in a port mapping, since it can't be directly keyed. 

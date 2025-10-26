@@ -14,7 +14,7 @@ namespace VHDLSharp.Behaviors;
 /// A behavior where an output signal is set based on a selector signal's value
 /// </summary>
 /// <param name="selector"></param>
-public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehavior
+public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinationalBehavior, ICompletable
 {
     private readonly LogicExpression?[] caseExpressions = new LogicExpression[1 << selector.Dimension.NonNullValue];
 
@@ -23,7 +23,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     /// <summary>
     /// Selector signal
     /// </summary>
-    public INamedSignal Selector { get; } = selector;
+    public IModuleSpecificSignal Selector { get; } = selector;
 
     /// <summary>
     /// Expression for default case
@@ -35,7 +35,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<INamedSignal>()).Append(Selector).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<IModuleSpecificSignal>()).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
@@ -46,13 +46,14 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to VHDL");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Case behavior must be complete to convert to VHDL: {reason}");
 
         StringBuilder sb = new();
-        sb.AppendLine($"process({string.Join(", ", NamedInputSignals.Select(s => s.Name))}) is");
+        // TODO check that VHDL name works here with vectors, nodes, and slices
+        sb.AppendLine($"process({string.Join(", ", InputModuleSignals.Select(s => s.GetVhdlName()))}) is");
         sb.AppendLine("begin");
-        sb.AppendLine($"\tcase {Selector.Name} is");
+        sb.AppendLine($"\tcase {Selector.GetVhdlName()} is");
 
         // Cases
         for (int i = 0; i < caseExpressions.Length; i++)
@@ -174,8 +175,18 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     /// <summary>
     /// Is the behavior ready to be used
     /// </summary>
+    /// <param name="reason">Explanation for why it's not complete</param>
     /// <returns></returns>
-    public bool IsComplete() => caseExpressions.All(c => c is not null) || defaultExpression is not null;
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        if (caseExpressions.All(c => c is not null) || defaultExpression is not null)
+        {
+            reason = null;
+            return true;
+        }
+        reason = "Not all case expressions are complete, and the default expression is not complete";
+        return false;
+    }
 
     /// <summary>
     /// Checks if new (nullable) logic expression is compatible with the current state, given the expressions that have already been assigned
@@ -194,13 +205,15 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
             if (expression is not null && !(expression.CanCombine(logicExpression) && logicExpression.CanCombine(expression)))
                 throw new IncompatibleSignalException($"Given expression is incompatible with pre-existing expression (must have parent {ParentModule} and dimension must be {Dimension?.ToString() ?? "N/A"})");
         }
+
+        ManageNewSignals(logicExpression.BaseObjects);
     }
 
     /// <inheritdoc/>
     protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to convert to Spice circuit");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Case behavior must be complete to convert to Spice circuit: {reason}");
         return SpiceCircuit.Combine(ToLogicBehaviors(outputSignal, uniqueId).Select(behaviorObj => behaviorObj.behavior.GetSpice(behaviorObj.outputSignal, behaviorObj.uniqueId))).WithCommonEntities();
     }
 
@@ -227,7 +240,7 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
         }
 
         // The individual nodes of the selector signal and output signal
-        ISingleNodeNamedSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
+        ISingleNodeModuleSpecificSignal[] selectorSingleNodeSignals = [.. Selector.ToSingleNodeSignals];
         ISingleNodeNamedSignal[] outputSignalSingleNodes = [.. outputSignal.ToSingleNodeSignals];
 
         // Here, do MUX for each dimension
@@ -265,8 +278,8 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        if (!IsComplete())
-            throw new IncompleteException("Case behavior must be complete to get simulation rule");
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Case behavior must be complete to get simulation rule: {reason}");
 
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)
@@ -274,7 +287,15 @@ public class CaseBehavior(INamedSignal selector) : Behavior, ICombinationalBehav
 
         // Get selector value as int
         SubcircuitReference context = outputSignal.Subcircuit;
-        SignalReference selectorReference = context.GetChildSignalReference(Selector);
+        // TODO is this reasonable
+        INamedSignal selectorNamedSignal = Selector switch
+        {
+            INamedSignal namedSelector => namedSelector,
+            IDerivedSignal { LinkedSignal: INamedSignal linkedSignal } => linkedSignal,
+            IDerivedSignal => throw new Exception("Selector signal must have a linked signal during simulation"),
+            _ => throw new Exception($"Selector must implement {nameof(INamedSignal)} or {nameof(IDerivedSignal)}"),
+        };
+        SignalReference selectorReference = context.GetChildSignalReference(selectorNamedSignal);
         int lastSelectorValue = state.GetSignalValues(selectorReference)[lastIndex];
 
         // If case expression is filled in for that, return that value

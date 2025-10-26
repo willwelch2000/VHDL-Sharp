@@ -10,7 +10,8 @@ using SpiceSharp.Entities;
 using VHDLSharp.Conditions;
 using VHDLSharp.SpiceCircuits;
 using ScottPlot;
-using VHDLSharp.Utility;
+using VHDLSharp.BuiltIn;
+using VHDLSharp.Validation;
 
 namespace VHDLSharp;
 
@@ -18,7 +19,12 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        TestDynamicSpice();
+        // Console.WriteLine("Start");
+        AddedSignalTest();
+        /* TODO
+        1. Do derived signals' modules need to be validity-checked?
+            Or do we assume it's ok? The class extended from DerivedSignal would have to be invalid for it to be invalid
+        */
     }
 
     public static void MainTest()
@@ -80,10 +86,10 @@ public static class Program
         ISimulationResult[] results = [.. setup.Simulate()];
 
         // Plot data
-        ScottPlot.Plot plot = new();
-        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, ScottPlot.Color.FromHex("#CCCCFF"));
-        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, ScottPlot.Colors.Red);
-        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, ScottPlot.Colors.LightBlue);
+        Plot plot = new();
+        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, Color.FromHex("#CCCCFF"));
+        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Red);
+        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.LightBlue);
         plot.SavePng("results.png", 400, 300);
     }
 
@@ -408,5 +414,167 @@ public static class Program
         behavior.ConditionMappings.Add((load.RisingEdge(), new LogicBehavior(pIn.Signal)));
         outSig.AssignBehavior(behavior);
         File.WriteAllText("OutputSpice.txt", flipFlopModule.GetSpice().AsString());
+    }
+
+    private static void TestDff()
+    {
+        IModule dffMod = new DFlipFlop(new());
+
+        Module module1 = new("module1");
+        Port clk = module1.AddNewPort("CLK", PortDirection.Input);
+        Port d = module1.AddNewPort("D", PortDirection.Input);
+        Port q = module1.AddNewPort("Q", PortDirection.Output);
+        Instantiation dff = module1.AddNewInstantiation(dffMod, "DFF");
+        dff.PortMapping.SetPort("CLK", clk.Signal);
+        dff.PortMapping.SetPort("D", d.Signal);
+        dff.PortMapping.SetPort("Q", q.Signal);
+
+        RuleBasedSimulation setup = new(module1, new DefaultTimeStepGenerator())
+        {
+            Length = 10e-5,
+        };
+        SubcircuitReference subcircuit = new(module1, []);
+        SignalReference clkRef = subcircuit.GetChildSignalReference(clk.Signal);
+        SignalReference dRef = subcircuit.GetChildSignalReference(d.Signal);
+        SignalReference qRef = subcircuit.GetChildSignalReference(q.Signal);
+        setup.SignalsToMonitor.Add(clkRef);
+        setup.SignalsToMonitor.Add(dRef);
+        setup.SignalsToMonitor.Add(qRef);
+
+        setup.AssignStimulus(clk, new PulseStimulus(1e-5, 1e-5, 2e-5));
+        setup.AssignStimulus(d, new PulseStimulus(2e-5, 2e-5, 4e-5));
+        var issues = ((IValidityManagedEntity)setup).ValidityManager.Issues().ToArray();
+        ISimulationResult[] results = [.. setup.Simulate()];
+
+        // Plot data
+        Plot plot = new();
+        plot.Add.Scatter(results[0].TimeSteps, results[0].Values, Color.FromHex("#CCCCFF"));
+        plot.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Red);
+        plot.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.LightBlue);
+        plot.SavePng("results.png", 400, 300);
+    }
+
+    private static void TestAdder()
+    {
+        Module module = new("module");
+        IModule adder = new Adder(2);
+
+        Port a = module.AddNewPort("A", 2, PortDirection.Input);
+        Port b = module.AddNewPort("B", 2, PortDirection.Input);
+        Port cin = module.AddNewPort("CIn", PortDirection.Input);
+        Port y = module.AddNewPort("Y", 2, PortDirection.Output);
+        Port cout = module.AddNewPort("Cout", PortDirection.Output);
+
+        Instantiation inst = module.AddNewInstantiation(adder, "Adder");
+        inst.PortMapping.SetPort("A", a.Signal);
+        inst.PortMapping.SetPort("B", b.Signal);
+        inst.PortMapping.SetPort("CIn", cin.Signal);
+        inst.PortMapping.SetPort("Y", y.Signal);
+        inst.PortMapping.SetPort("COut", cout.Signal);
+
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
+        {
+            Length = 32e-5,
+        };
+        simulation.StimulusMapping[a] = new MultiDimensionalStimulus([
+            new PulseStimulus(1e-5, 1e-5, 2e-5),
+            new PulseStimulus(2e-5, 2e-5, 4e-5),
+        ]);
+        simulation.StimulusMapping[b] = new MultiDimensionalStimulus([
+            new PulseStimulus(4e-5, 4e-5, 8e-5),
+            new PulseStimulus(8e-5, 8e-5, 16e-5),
+        ]);
+        simulation.StimulusMapping[cin] = new PulseStimulus(16e-5, 16e-5, 32e-5);
+
+        SubcircuitReference moduleRef = new(module, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cin.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout.Signal));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+
+        // Plot data
+        Multiplot plot = new();
+        plot.AddPlots(5);
+        Plot plot0 = plot.GetPlot(0);
+        Plot plot1 = plot.GetPlot(1);
+        Plot plot2 = plot.GetPlot(2);
+        Plot plot3 = plot.GetPlot(3);
+        Plot plot4 = plot.GetPlot(4);
+        plot0.Add.Scatter(results[0].TimeSteps, results[0].Values, Colors.Red);
+        plot1.Add.Scatter(results[1].TimeSteps, results[1].Values, Colors.Blue);
+        plot2.Add.Scatter(results[2].TimeSteps, results[2].Values, Colors.Green);
+        plot3.Add.Scatter(results[3].TimeSteps, results[3].Values, Colors.Purple);
+        plot4.Add.Scatter(results[4].TimeSteps, results[4].Values, Colors.Orange);
+        plot.SavePng("results.png", 1000, 1000);
+    }
+    public static void Adder2BitTest()
+    {
+        // All combinations of carry-in and carry-out
+        for (int i = 0; i < 4; i++)
+        {
+            bool carryIn = i > 2;
+            bool carryOut = i % 2 == 1;
+            Module module = new("module");
+            IModule adder = new Adder(2, carryIn, carryOut);
+
+            Port a = module.AddNewPort("A", 2, PortDirection.Input);
+            Port b = module.AddNewPort("B", 2, PortDirection.Input);
+            Port? cin = carryIn ? module.AddNewPort("CIn", PortDirection.Input) : null;
+            Port y = module.AddNewPort("Y", 2, PortDirection.Output);
+            Port? cout = carryOut ? module.AddNewPort("Cout", PortDirection.Output) : null;
+
+            Instantiation inst = module.AddNewInstantiation(adder, "Adder");
+            inst.PortMapping.SetPort("A", a.Signal);
+            inst.PortMapping.SetPort("B", b.Signal);
+            if (carryIn)
+                inst.PortMapping.SetPort("CIn", cin!.Signal);
+            inst.PortMapping.SetPort("Y", y.Signal);
+            if (carryOut)
+                inst.PortMapping.SetPort("COut", cout!.Signal);
+
+            RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator() { MaxTimeStep = 1e-6 })
+            {
+                Length = 32e-5,
+            };
+            simulation.StimulusMapping[a] = new MultiDimensionalStimulus([
+                new PulseStimulus(1e-5, 1e-5, 2e-5),
+                new PulseStimulus(2e-5, 2e-5, 4e-5),
+            ]);
+            simulation.StimulusMapping[b] = new MultiDimensionalStimulus([
+                new PulseStimulus(4e-5, 4e-5, 8e-5),
+                new PulseStimulus(8e-5, 8e-5, 16e-5),
+            ]);
+            if (carryIn)
+                simulation.StimulusMapping[cin!] = new PulseStimulus(16e-5, 16e-5, 32e-5);
+
+            SubcircuitReference moduleRef = new(module, []);
+            simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
+            simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
+            if (carryIn)
+                simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cin!.Signal));
+            simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
+            if (carryOut)
+                simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout!.Signal));
+            ISimulationResult[] results = [.. simulation.Simulate()];
+        }
+    }
+
+    public static void AddedSignalTest()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+        Module module = new("mod1");
+        Signal s1 = module.GenerateSignal("s1");
+        Signal s2 = module.GenerateSignal("s2");
+        Signal s3 = module.GenerateSignal("s3");
+        s3.AssignBehavior(s1.Plus(s2));
+        module.AddNewPort(s1, PortDirection.Input);
+        module.AddNewPort(s2, PortDirection.Input);
+        module.AddNewPort(s3, PortDirection.Output);
+
+        // Check VHDL
+        string vhdl = module.GetVhdl();
+        File.WriteAllText("AddedSignalVhdl.txt", vhdl);
     }
 }

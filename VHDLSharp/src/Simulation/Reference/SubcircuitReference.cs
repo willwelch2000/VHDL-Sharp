@@ -71,7 +71,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
                 return new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
 
             // Try to find signal
-            ISingleNodeNamedSignal? signal = FinalModule.NamedSignals.SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
+            ISingleNodeNamedSignal? signal = FinalModule.AllModuleSignals.OfType<INamedSignal>().SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
             if (signal is not null)
                 return new SignalReference(this, signal);
 
@@ -131,7 +131,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public bool TryGetChildSignalReference(string name, out SignalReference? reference)
     {
         // Try to find signal
-        INamedSignal? signal = FinalModule.NamedSignals.FirstOrDefault(s => s.Name == name);
+        INamedSignal? signal = FinalModule.AllModuleSignals.OfType<INamedSignal>().FirstOrDefault(s => s.Name == name);
         if (signal is not null)
         {
             reference = new SignalReference(this, signal);
@@ -158,7 +158,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// <returns></returns>
     public bool Equals(SubcircuitReference? other)
     {
-        return other is not null && TopLevelModule == other.TopLevelModule && Path.SequenceEqual(other.Path);
+        return other is not null && TopLevelModule.Equals(other.TopLevelModule) && Path.SequenceEqual(other.Path);
     }
 
     /// <inheritdoc/>
@@ -196,7 +196,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         IModule module = TopLevelModule;
         foreach (IInstantiation instantiation in Path)
         {
-            if (instantiation.ParentModule != module)
+            if (!instantiation.ParentModule.Equals(module))
                 exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
                 exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");

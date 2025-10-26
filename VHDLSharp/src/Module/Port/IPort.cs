@@ -9,9 +9,9 @@ namespace VHDLSharp.Modules;
 public interface IPort
 {
     /// <summary>
-    /// The signal object that this refers to
+    /// The signal object that this refers to--must be a top-level signal
     /// </summary>
-    public INamedSignal Signal { get; }
+    public ITopLevelNamedSignal Signal { get; }
 
     /// <summary>
     /// The direction that this port is with respect to the module

@@ -34,10 +34,10 @@ public class SpiceBasedSimulation(IModule module) : Simulation(module)
     /// <returns></returns>
     public SpiceCircuit GetSpice()
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
-        if (!IsComplete())
-            throw new IncompleteException("Simulation setup must be complete to convert to circuit");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit", issue);
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Simulation setup must be complete to convert to circuit: {reason}");
 
         SpiceCircuit circuit = Module.GetSpice();
 

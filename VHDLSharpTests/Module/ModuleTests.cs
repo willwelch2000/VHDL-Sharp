@@ -20,27 +20,27 @@ public class ModuleTests
         Signal s3 = new("s3", m1);
         Signal s4 = new("s4", m1);
 
-        INamedSignal[] namedSignals = [.. m1.NamedSignals];
-        Assert.IsFalse(namedSignals.Length != 0);
+        IModuleSpecificSignal[] moduleSignals = [.. m1.AllModuleSignals];
+        Assert.IsFalse(moduleSignals.Length != 0);
 
         m1.AddNewPort(s1, PortDirection.Input);
         m1.AddNewPort(s2, PortDirection.Input);
         m1.AddNewPort(s4, PortDirection.Output);
-        Assert.IsFalse(m1.IsComplete());
+        Assert.IsFalse(m1.IsComplete(out string? reason));
 
-        namedSignals = [.. m1.NamedSignals];
-        Assert.AreEqual(3, namedSignals.Length);
-        Assert.IsTrue(namedSignals.Contains(s1));
-        Assert.IsTrue(namedSignals.Contains(s2));
-        Assert.IsTrue(namedSignals.Contains(s4));
+        moduleSignals = [.. m1.AllModuleSignals];
+        Assert.AreEqual(3, moduleSignals.Length);
+        Assert.IsTrue(moduleSignals.Contains(s1));
+        Assert.IsTrue(moduleSignals.Contains(s2));
+        Assert.IsTrue(moduleSignals.Contains(s4));
 
         s3.AssignBehavior(s1.Not());
         m1.SignalBehaviors[s4] = new LogicBehavior(s3.And(s2));
-        Assert.IsTrue(m1.IsComplete());
+        Assert.IsTrue(m1.IsComplete(out reason));
 
-        namedSignals = [.. m1.NamedSignals];
-        Assert.AreEqual(4, namedSignals.Length);
-        Assert.IsTrue(namedSignals.Contains(s3));
+        moduleSignals = [.. m1.AllModuleSignals];
+        Assert.AreEqual(4, moduleSignals.Length);
+        Assert.IsTrue(moduleSignals.Contains(s3));
 
         // Check VHDL
         string vhdl = m1.GetVhdl();
@@ -140,7 +140,7 @@ public class ModuleTests
         Assert.AreEqual("Behavior must be compatible with output signal", issue.Exception.Message);
         s4.AssignBehavior(s4Behavior); // Undo
 
-        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(s3.Not())); // Signal from another dimension as input
+        Assert.ThrowsException<Exception>(() => s4.AssignBehavior(s3.Not())); // Signal from another module as input
         s4.AssignBehavior(s4Behavior);
         Assert.ThrowsException<Exception>(() => m2.SignalBehaviors[s1] = new ValueBehavior(1)); // Assigning signal in wrong module
         s4.AssignBehavior(s4Behavior);
@@ -175,7 +175,7 @@ public class ModuleTests
         Assert.AreEqual(1, issues.Length);
         Assert.AreEqual(m1, issues[0].TopLevelEntity);
         Assert.AreEqual(0, issues[0].FaultChain.Count);
-        Assert.AreEqual("Port signals must have this module as parent", issues[0].Exception.Message);
+        Assert.AreEqual("Signal s2 must have this module (m1) as parent", issues[0].Exception.Message);
         m1.Ports.Remove(p2);
     }
 

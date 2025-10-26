@@ -19,4 +19,9 @@ public class Issue()
     /// Exception for why there is a problem
     /// </summary>
     public required Exception Exception { get; set; }
+
+    /// <inheritdoc/>
+    public override string ToString() =>
+        string.Join('/', FaultChain.Prepend(TopLevelEntity)) +
+        ": " + Exception;
 }

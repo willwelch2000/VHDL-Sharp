@@ -23,10 +23,26 @@ namespace VHDLSharp.Behaviors;
 /// </summary>
 public class DynamicBehavior : Behavior
 {
+    private int initialValue = 0;
+
     /// <summary>
     /// Ordered mapping of condition to behavior
     /// </summary>
     public ObservableCollection<(ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+
+    /// <summary>
+    /// Initial value for simulation. 
+    /// Only works in rule-based simulation
+    /// </summary>
+    public int InitialValue
+    {
+        get => initialValue;
+        set
+        {
+            initialValue = value;
+            InvokeBehaviorUpdated(this, EventArgs.Empty);
+        }
+    }
 
     /// <summary>
     /// Generate new dynamic behavior
@@ -37,19 +53,28 @@ public class DynamicBehavior : Behavior
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> NamedInputSignals => ConditionMappings.SelectMany(c => c.Behavior.NamedInputSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputSignals).OfType<INamedSignal>())).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Distinct();
 
     /// <inheritdoc/>
-    public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
+    public override Dimension Dimension
+    {
+        get
+        {
+            Dimension dim = Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension));
+            if (dim.Value is not null || initialValue <= 0)
+                return dim;
+            return Dimension.CombineWithoutCheck([dim, new(null, System.Numerics.BitOperations.Log2((uint)initialValue))]);
+        }
+    }
 
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
         if (ConditionMappings.Count == 0)
             throw new Exception("Must have at least one condition mapping");
-        
+
         StringBuilder sb = new();
-        sb.AppendLine($"process({string.Join(", ", NamedInputSignals.Select(s => s.Name))}) is");
+        sb.AppendLine($"process({string.Join(", ", InputModuleSignals.Select(s => s.GetVhdlName()))}) is");
         sb.AppendLine("begin");
 
         // First condition
@@ -75,6 +100,12 @@ public class DynamicBehavior : Behavior
     {
         // Check parent modules of input signals
         base.CheckTopLevelValidity(out exception);
+
+        // Check that value is in range
+        if (initialValue < 0)
+            exception = new Exception($"Initial value must be >= 0 (set to {initialValue})");
+        if ((Dimension.Maximum ?? Dimension.Value) is int max && initialValue >= (1 << max))
+            exception = new Exception($"Initial value must be < {1 << Dimension.Maximum}");
 
         ILogicallyCombinable<ICondition>[] conditions = [.. ConditionMappings.Select(map => map.Condition)];
         if (conditions.Any(c => c.BaseObjects.Any(obj => obj is IEventDrivenCondition)))
@@ -291,7 +322,7 @@ public class DynamicBehavior : Behavior
         // If first step, use 0 as value
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)
-            return 0;
+            return InitialValue;
 
         // Check if any condition set is satisfied--if so, use the corresponding value
         foreach ((ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior) in ConditionMappings)

@@ -13,11 +13,15 @@ public class DynamicBehaviorTests
     {
         Module flipFlopMod = Util.GetFlipFlopModule();
         DynamicBehavior behavior = flipFlopMod.SignalBehaviors.Values.First() as DynamicBehavior ?? throw new();
-        
+
         // Basic stuff
         Assert.AreEqual(flipFlopMod, behavior.ParentModule);
         Assert.AreEqual(new Dimension(1), behavior.Dimension);
-        
+        behavior.InitialValue = 2;
+        Assert.IsFalse(behavior.ValidityManager.IsValid(out _));
+        behavior.InitialValue = 0;
+        Assert.IsTrue(behavior.ValidityManager.IsValid(out _));
+
         // Check simulation rule and its output values
         SubcircuitReference subcircuitRef = new(flipFlopMod, []);
         SignalReference outRef = subcircuitRef.GetChildSignalReference("OUT");
@@ -56,5 +60,11 @@ public class DynamicBehaviorTests
             {outRef, [0, 0, 1, 1, 1]},
         }, [0, 1, 2, 3, 4, 5], 5);
         Assert.AreEqual(0, simRule.OutputValueCalculation(state));
+
+        // Test initial value
+        behavior.InitialValue = 1;
+        simRule = behavior.GetSimulationRule(outRef);
+        state = RuleBasedSimulationState.GivenStartingPoint([], [0], 0);
+        Assert.AreEqual(1, simRule.OutputValueCalculation(state));
     }
 }

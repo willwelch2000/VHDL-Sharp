@@ -25,13 +25,13 @@ public class CaseBehaviorTests
         behavior.AddCase(0, l7);
         behavior[1] = new(l6);
         behavior.AddCase(2, l3);
-        Assert.IsFalse(behavior.IsComplete());
+        Assert.IsFalse(behavior.IsComplete(out string? reason));
         behavior.AddCase(3, l1);
-        Assert.IsTrue(behavior.IsComplete());
+        Assert.IsTrue(behavior.IsComplete(out reason));
         behavior.AddCase(3, null);
-        Assert.IsFalse(behavior.IsComplete());
+        Assert.IsFalse(behavior.IsComplete(out reason));
         behavior.SetDefault(l1);
-        Assert.IsTrue(behavior.IsComplete());
+        Assert.IsTrue(behavior.IsComplete(out reason));
 
         // Basic stuff
         Assert.AreEqual(module1, behavior.ParentModule);
@@ -43,7 +43,7 @@ public class CaseBehaviorTests
         Assert.AreEqual(l1, behavior.DefaultExpression?.InnerExpression);
 
         // Input signals--only selector
-        INamedSignal[] inputs = [.. behavior.NamedInputSignals];
+        IModuleSpecificSignal[] inputs = [.. behavior.InputModuleSignals];
         Assert.AreEqual(1, inputs.Length);
         Assert.AreEqual(selector, inputs[0]);
         Assert.AreEqual(selector, behavior.Selector);

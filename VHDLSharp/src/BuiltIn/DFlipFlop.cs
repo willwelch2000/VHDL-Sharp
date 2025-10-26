@@ -70,6 +70,7 @@ public class DFlipFlop(DFlipFlopParams options) : ParameterizedModule<DFlipFlopP
         module.AddNewPort(q, PortDirection.Output);
 
         DynamicBehavior behavior = new();
+        q.AssignBehavior(behavior);
 
         // Edge behavior
         ILogicallyCombinable<ICondition> edge = options.NegativeEdgeTriggered ? clk.FallingEdge() : clk.RisingEdge();

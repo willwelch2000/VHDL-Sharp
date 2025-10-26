@@ -14,28 +14,38 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// An event-driven condition that is true on a signal's rising edge
 /// </summary>
-public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDrivenCondition
+public class RisingEdge : Condition, IEventDrivenCondition
 {
+    /// <summary>
+    /// Constructor given trigger signal
+    /// </summary>
+    /// <param name="signal">Signal to trigger on</param>
+    public RisingEdge(ISingleNodeModuleSpecificSignal signal)
+    {
+        Signal = signal;
+        ManageNewSignals([signal]);
+    }
+    
     /// <summary>
     /// Signal used for the condition
     /// </summary>
-    public ISingleNodeNamedSignal Signal { get; } = signal;
+    public ISingleNodeModuleSpecificSignal Signal { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> InputSignals => [Signal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [Signal];
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context)
     {
-        if (!((IValidityManagedEntity)context).ValidityManager.IsValid())
-            throw new InvalidException("Subcircuit context must be valid to evluate condition");
-        SignalReference signalReference = context.GetChildSignalReference(Signal);
+        if (!((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Subcircuit context must be valid to evluate condition", issue);
+        SignalReference signalReference = context.GetChildSignalReference(Signal.AsNamedSignal());
         bool[] values = [.. state.GetSingleNodeSignalValues(signalReference)];
         return values.Length > 1 && !values[^2] && values[^1];
     }
 
     /// <inheritdoc/>
-    public override string ToLogicString() => $"rising_edge({Signal.Name})";
+    public override string ToLogicString() => $"rising_edge({Signal.ToLogicString()})";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
@@ -50,5 +60,5 @@ public class RisingEdge(ISingleNodeNamedSignal signal) : Condition, IEventDriven
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
         !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
-        new([new Resistor(SpiceUtil.GetSpiceName(uniqueId, 0, "connect"), Signal.Name, outputSignal.Name, 1e-3)]);
+        new([new Resistor(SpiceUtil.GetSpiceName(uniqueId, 0, "connect"), Signal.GetSpiceName(), outputSignal.Name, 1e-3)]);
 }

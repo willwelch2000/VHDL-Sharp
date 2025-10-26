@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -10,7 +11,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule
+public interface IModule : IEquatable<IModule>, ICompletable
 {
     /// <summary>
     /// Name of the module
@@ -33,22 +34,20 @@ public interface IModule
     public InstantiationCollection Instantiations { get; }
 
     /// <summary>
-    /// Get all named signals used in this module. 
-    /// Signals can come from ports, behavior input signals, or output signals. 
-    /// If all of a multi-dimensional signal's children are used, then only the top-level signal should be included. 
-    /// Otherwise, only the children should be returned. 
+    /// Get all signals used in this module that belong to it. 
+    /// Signals can come from ports, behavior input signals, assigned output signals, instantiations, or derived signals. 
+    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
+    /// Otherwise, only the used children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
 
     /// <summary>
-    /// Get all modules (recursive) used by this module as instantiations
+    /// Get all modules used by this module as instantiations
     /// </summary>
-    public IEnumerable<IModule> ModulesUsed { get; }
-
-    /// <summary>
-    /// True if module is ready to be used
-    /// </summary>
-    public bool IsComplete();
+    /// <param name="recursive">If true, returns modules used by used modules, etc.</param>
+    /// <param name="compileDerivedSignals">If true, compiles derived signals into instantiations before including modules (and undoes it)</param>
+    /// <returns></returns>
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals);
 
     /// <summary>
     /// Convert to string
@@ -101,11 +100,23 @@ public interface IModule
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(INamedSignal signal);
+    public bool ContainsSignal(IModuleSpecificSignal signal);
 
     /// <summary>
     /// Get VHDL component declaration for the module
     /// </summary>
     /// <returns></returns>
     public string GetVhdlComponentDeclaration();
+
+    /// <summary>
+    /// If this is a type of module that links to another module (ex. <see cref="ParameterizedModule{T}"/>),
+    /// this should be a link to that module
+    /// </summary>
+    public IModule BaseModule => this;
+
+    /// <summary>
+    /// Removes instantiations and linked signals that were added during compilation,
+    /// which happens whenever a code-production or simulation function is run
+    /// </summary>
+    public void UndoDerivedSignalCompilation();
 }

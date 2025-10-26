@@ -16,9 +16,9 @@ public interface ICondition : ILogicallyCombinable<ICondition>
     public IModule? ParentModule { get; }
 
     /// <summary>
-    /// Input signals to condition
+    /// Module-specific input signals to condition
     /// </summary>
-    public IEnumerable<ISignal> InputSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <summary>
     /// Determine if the condition is met given the rule-based simulation state. 

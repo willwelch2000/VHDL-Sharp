@@ -30,15 +30,12 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     public override IEnumerable<SingleNodeNamedSignal> ToSingleNodeSignals => [this];
 
     /// <inheritdoc/>
-    public override bool CanCombine(ILogicallyCombinable<ISignal> other)
-    {
-        // If there's a signal with a parent, check that one--otherwise, get the first available
-        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is INamedSignal) ?? other.BaseObjects.FirstOrDefault();
-        if (signal is null)
-            return true;
-        // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not INamedSignal namedSignal || ParentModule == namedSignal.ParentModule);
-    }
+    public override INamedSignal this[Range range] =>
+        range.Start.GetOffset(1) == 0 && range.End.GetOffset(1) == 1 ? this :
+        throw new ArgumentOutOfRangeException(nameof(range), "The range for slicing a single-node signal must be 0");
+
+    /// <inheritdoc/>
+    public override bool CanCombine(ILogicallyCombinable<ISignal> other) => ISignal.CanCombineSignals(this, other);
 
     /// <inheritdoc/>
     public override string GetVhdlName() => Name;

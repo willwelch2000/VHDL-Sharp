@@ -8,7 +8,7 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
     /// <summary>
     /// Minimum time step that will be used
     /// </summary>
-    public double MinTimeStep { get; set; } = 1e-6;
+    public double MinTimeStep { get; set; } = 1e-7;
 
     /// <summary>
     /// Maximum time step that will be used. Null means no limit
