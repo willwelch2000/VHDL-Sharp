@@ -109,6 +109,7 @@ public class PortMapping : ObservableDictionary<IPort, INamedSignal>, IValidityM
             if (port.Direction == PortDirection.Output && ParentModule.Ports.Any(p => p.Signal == signal && p.Direction == PortDirection.Input))
                 exception = new PortMappingException("Output port cannot be assigned to parent module's input port");
         }
+
         return exception is null;
     }
 

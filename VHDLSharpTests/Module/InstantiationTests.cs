@@ -57,6 +57,18 @@ public class InstantiationTests
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
 
+        // Check VHDL
+        string vhdl = instantiation.GetVhdlStatement();
+        string expectedVhdl =
+        """
+        i1 : instanceMod
+            port map (
+                p1 => s1,
+                p2 => v1
+            );
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedVhdl, vhdl));
+
         // Check module Spice
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
@@ -75,6 +87,53 @@ public class InstantiationTests
         Xi1 s1 v1_0 v1_1 instanceMod
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check module VHDL
+        parentMod.AddNewPort(s1, PortDirection.Input);
+        parentMod.AddNewPort(v1, PortDirection.Output);
+        vhdl = parentMod.GetVhdl();
+        expectedVhdl =
+        """
+        library ieee
+        use ieee.std_logic_1164.all;
+
+        entity parentMod is
+            port (
+                s1	: in	std_logic;
+                v1	: out	std_logic_vector(1 downto 0)
+            );
+        end parentMod;
+
+        architecture rtl of parentMod is
+        component instanceMod
+            port (
+                p1	: in	std_logic;
+                p2	: out	std_logic_vector(1 downto 0)
+            );
+        end component instanceMod;
+
+        begin
+            i1 : instanceMod
+                port map (
+                    p1 => s1,
+                    p2 => v1
+                );
+            
+        end rtl;
+
+        entity instanceMod is
+            port (
+                p1	: in	std_logic;
+                p2	: out	std_logic_vector(1 downto 0)
+            );
+        end instanceMod;
+
+        architecture rtl of instanceMod is
+        begin
+            p2 <= "11";
+        end rtl;
+        """;
+        Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedVhdl, vhdl));
 
         // Check simulation rule and its output values
         SimulationRule simRule = parentMod.GetSimulationRules().First();

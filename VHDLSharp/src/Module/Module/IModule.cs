@@ -34,17 +34,20 @@ public interface IModule : IEquatable<IModule>, ICompletable
     public InstantiationCollection Instantiations { get; }
 
     /// <summary>
-    /// Get all named signals used in this module. 
-    /// Signals can come from ports, behavior input signals, or output signals. 
-    /// If all of a multi-dimensional signal's children are used, then only the top-level signal should be included. 
-    /// Otherwise, only the children should be returned. 
+    /// Get all signals used in this module that belong to it. 
+    /// Signals can come from ports, behavior input signals, assigned output signals, instantiations, or derived signals. 
+    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
+    /// Otherwise, only the used children are returned. 
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
 
     /// <summary>
-    /// Get all modules (recursive) used by this module as instantiations
+    /// Get all modules used by this module as instantiations
     /// </summary>
-    public IEnumerable<IModule> ModulesUsed { get; }
+    /// <param name="recursive">If true, returns modules used by used modules, etc.</param>
+    /// <param name="compileDerivedSignals">If true, compiles derived signals into instantiations before including modules (and undoes it)</param>
+    /// <returns></returns>
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals);
 
     /// <summary>
     /// Convert to string
@@ -97,7 +100,7 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(INamedSignal signal);
+    public bool ContainsSignal(IModuleSpecificSignal signal);
 
     /// <summary>
     /// Get VHDL component declaration for the module
@@ -110,4 +113,10 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// this should be a link to that module
     /// </summary>
     public IModule BaseModule => this;
+
+    /// <summary>
+    /// Removes instantiations and linked signals that were added during compilation,
+    /// which happens whenever a code-production or simulation function is run
+    /// </summary>
+    public void UndoDerivedSignalCompilation();
 }

@@ -26,7 +26,7 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
         this.dimension = dimension;
         Name = name;
         ParentModule = parentModule;
-        vectorNodes = Enumerable.Range(0, dimension).Select(i => new VectorNode(this, i)).ToArray();
+        vectorNodes = [.. Enumerable.Range(0, dimension).Select(i => new VectorNode(this, i))];
     }
 
     /// <summary>
@@ -66,15 +66,8 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public override VectorNode this[int index]
-    {
-        get
-        {
-            if (index < dimension && index >= 0)
-                return vectorNodes[index];
-            throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
-        }
-    }
+    public override VectorNode this[int index] => index < dimension && index >= 0 ? vectorNodes[index] :
+        throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
 
     /// <inheritdoc/>
     public override VectorSlice this[Range range]
@@ -82,23 +75,15 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
         get
         {
             int start = range.Start.GetOffset(dimension);
-            int end = range.End.GetOffset(dimension);
+            int end = range.End.GetOffset(dimension); // exclusive end of range
             if (start > end || start < 0 || end > dimension)
                 throw new ArgumentOutOfRangeException(nameof(range), "Specified range doesn't work for this vector");
-            return new VectorSlice(this, start, end);
+            return new VectorSlice(this, start, end-1);
         }
     }
 
     /// <inheritdoc/>
-    public override bool CanCombine(ILogicallyCombinable<ISignal> other)
-    {
-        // If there's a named signal (with a parent), check that one--otherwise, get the first available
-        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is INamedSignal) ?? other.BaseObjects.FirstOrDefault();
-        if (signal is null)
-            return true;
-        // Fine if dimension is compatible and parent is null or compatible
-        return Dimension.Compatible(signal.Dimension) && (signal is not INamedSignal namedSignal || ParentModule.Equals(namedSignal.ParentModule));
-    }
+    public override bool CanCombine(ILogicallyCombinable<ISignal> other) => ISignal.CanCombineSignals(this, other);
 
     /// <inheritdoc/>
     public override string GetVhdlName() => Name;

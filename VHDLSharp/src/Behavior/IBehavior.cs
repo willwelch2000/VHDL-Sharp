@@ -12,9 +12,10 @@ namespace VHDLSharp.Behaviors;
 public interface IBehavior
 {
     /// <summary>
-    /// Get all of the named input signals used in this behavior
+    /// Get all of the module-specific input signals used in this behavior.
+    /// Derived signals are not "unpacked" to get their used signals
     /// </summary>
-    public IEnumerable<INamedSignal> NamedInputSignals { get; }
+    public IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object

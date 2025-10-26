@@ -9,10 +9,10 @@ namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Interface for any type of signal that can be used in an expression.
-/// It is assumed that parent-child relationships, as well as the parent module, are not changed after construction.
+/// It is assumed that parent-child relationships and the dimension are not changed after construction.
 /// An implementation that breaks this rule could cause validation issues.
 /// Classes should not directly implement this. 
-/// Instead, they should implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, which extend this.
+/// Instead, they should implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>, which extend this.
 /// </summary>
 public interface ISignal : ILogicallyCombinable<ISignal>
 {
@@ -22,7 +22,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     public DefiniteDimension Dimension { get; }
 
     /// <summary>
-    /// Indexer for multi-dimensional signals
+    /// Indexer for multi-dimensional signals. 
     /// A single-dimensional signal will just return itself for the first item
     /// </summary>
     /// <param name="index"></param>
@@ -82,18 +82,33 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <param name="context"></param>
     /// <param name="lastIndex"></param>
     /// <returns>Value if possible</returns>
-    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/> or <see cref="ISignalWithKnownValue"/>, 
+    /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>
     /// or if it doesn't have a value in the state yet</exception>
-    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null) => this switch
+    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null)
     {
-        INamedSignal namedSignal => state.GetSignalValues(context.GetChildSignalReference(namedSignal)) switch
+        switch (this)
         {
-            List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
-            _ => throw new Exception("Values list not long enough")
-        },
-        ISignalWithKnownValue signalWithKnownValue => signalWithKnownValue.Value,
-        _ => throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue"),
-    };
+            case ISignalWithKnownValue signalWithKnownValue:
+                return signalWithKnownValue.Value;
+            case INamedSignal or IDerivedSignal or IDerivedSignalNode:
+                // Get the signal itself or the linked signal, if derived
+                INamedSignal signalToUse = this switch
+                {
+                    INamedSignal namedSignal => namedSignal,
+                    IDerivedSignal derivedSignal => derivedSignal.LinkedSignal ?? throw new Exception("No linked signal on derived signal"),
+                    IDerivedSignalNode derivedSignalNode => derivedSignalNode.LinkedSignal ?? throw new Exception("No linked signal on derived signal node"),
+                    _ => throw new("Impossible"),
+                };
+                // Find most-recent value of the signal
+                return state.GetSignalValues(context.GetChildSignalReference(signalToUse)) switch
+                {
+                    List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
+                    _ => throw new Exception("Values list not long enough"),
+                };
+            default:
+                throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue");
+        }
+    }
 
     /// <summary>
     /// Given several signals, returns true if they can be combined together
@@ -108,12 +123,12 @@ public interface ISignal : ILogicallyCombinable<ISignal>
         if (baseSignals.Count() < 2)
             return true;
 
-        // Find named signal, if it exists
-        INamedSignal? namedSignal = baseSignals.FirstOrDefault(s => s is INamedSignal) as INamedSignal;
+        // Find signal with assigned module, if it exists
+        IModuleSpecificSignal? namedSignal = baseSignals.FirstOrDefault(s => s is IModuleSpecificSignal) as IModuleSpecificSignal;
         if (namedSignal is not null)
         {
             // If any signal has another parent
-            if (baseSignals.Any(s => s is INamedSignal namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
+            if (baseSignals.Any(s => s is IModuleSpecificSignal namedS && !namedS.ParentModule.Equals(namedSignal.ParentModule)))
                 return false;
         }
 
@@ -123,6 +138,16 @@ public interface ISignal : ILogicallyCombinable<ISignal>
             return false;
 
         return true;
+    }
+
+    internal static bool CanCombineSignals(IModuleSpecificSignal signalWithModule, ILogicallyCombinable<ISignal> other)
+    {
+        // If there's a signal with a parent module, check that one--otherwise, get the first available
+        ISignal? signal = other.BaseObjects.FirstOrDefault(e => e is IModuleSpecificSignal) ?? other.BaseObjects.FirstOrDefault();
+        if (signal is null)
+            return true;
+        // Fine if dimension is compatible and parent is nonexistent or compatible
+        return signalWithModule.Dimension.Compatible(signal.Dimension) && (signal is not IModuleSpecificSignal namedSignal || signalWithModule.ParentModule.Equals(namedSignal.ParentModule));
     }
 
     private static CustomLogicObjectOptions<ISignal, SignalSpiceSharpObjectInput, SignalSpiceSharpObjectOutput>? signalSpiceSharpObjectOptions;

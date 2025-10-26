@@ -58,13 +58,13 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public InstantiationCollection Instantiations => BaseModule.Instantiations;
 
     /// <inheritdoc/>
-    public IEnumerable<INamedSignal> NamedSignals => BaseModule.NamedSignals;
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals => BaseModule.AllModuleSignals;
 
     /// <inheritdoc/>
-    public IEnumerable<IModule> ModulesUsed => BaseModule.ModulesUsed;
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals) => BaseModule.GetModulesUsed(recursive, compileDerivedSignals);
 
     /// <inheritdoc/>
-    public bool ContainsSignal(INamedSignal signal) => BaseModule.ContainsSignal(signal);
+    public bool ContainsSignal(IModuleSpecificSignal signal) => BaseModule.ContainsSignal(signal);
 
     /// <inheritdoc/>
     public IEnumerable<SimulationRule> GetSimulationRules() => BaseModule.GetSimulationRules();
@@ -98,4 +98,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public bool Equals(IModule? other) => other is not null && other.BaseModule == BaseModule;
+
+    /// <inheritdoc/>
+    public void UndoDerivedSignalCompilation() => BaseModule.UndoDerivedSignalCompilation();
 }

@@ -5,7 +5,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Base class for any signal that contains just a single node (not a vector).
 /// </summary>
-public interface ISingleNodeNamedSignal : INamedSignal, ISingleNodeSignal
+public interface ISingleNodeNamedSignal : INamedSignal, ISingleNodeModuleSpecificSignal
 {
     /// <summary>Get rising edge condition for this signal</summary>
     public RisingEdge RisingEdge() => new(this);

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Exceptions;
@@ -65,8 +66,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdlStatement()
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation is invalid");
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation is invalid", issue);
 
         if (!PortMapping.IsComplete(out string? reason))
             throw new IncompleteException($"Instantiation not yet complete: {reason}");
@@ -75,10 +76,10 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         sb.AppendLine($"{Name} : {InstantiatedModule.Name}");
         sb.AppendLine("port map (".AddIndentation(1));
         sb.AppendJoin(",\n", PortMapping.Select(
-            kvp => $"{kvp.Key.Signal.GetVhdlDeclaration()} => {kvp.Value.GetVhdlDeclaration()}".AddIndentation(2)
+            kvp => $"{kvp.Key.Signal.GetVhdlName()} => {kvp.Value.GetVhdlName()}".AddIndentation(2)
         ));
         sb.AppendLine();
-        sb.AppendLine(");".AddIndentation(1));
+        sb.Append(");".AddIndentation(1));
 
         return sb.ToString();
     }
@@ -86,8 +87,8 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation is invalid");
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation is invalid", issue);
 
         if (!PortMapping.IsComplete(out string? reason))
             throw new IncompleteException($"Instantiation not yet complete: {reason}");
@@ -103,4 +104,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 
     /// <inheritdoc/>
     public override string ToString() => $"{InstantiatedModule} in {ParentModule}";
+
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason) => PortMapping.IsComplete(out reason);
 }

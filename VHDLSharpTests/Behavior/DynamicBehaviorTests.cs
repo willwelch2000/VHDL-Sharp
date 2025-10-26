@@ -18,9 +18,9 @@ public class DynamicBehaviorTests
         Assert.AreEqual(flipFlopMod, behavior.ParentModule);
         Assert.AreEqual(new Dimension(1), behavior.Dimension);
         behavior.InitialValue = 2;
-        Assert.IsFalse(behavior.ValidityManager.IsValid());
+        Assert.IsFalse(behavior.ValidityManager.IsValid(out _));
         behavior.InitialValue = 0;
-        Assert.IsTrue(behavior.ValidityManager.IsValid());
+        Assert.IsTrue(behavior.ValidityManager.IsValid(out _));
 
         // Check simulation rule and its output values
         SubcircuitReference subcircuitRef = new(flipFlopMod, []);

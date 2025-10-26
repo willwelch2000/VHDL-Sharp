@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VHDLSharp.Validation;
 
@@ -82,16 +83,40 @@ public abstract class ValidityManager
     /// </summary>
     protected abstract IEnumerable<IValidityManagedEntity> ChildrenEntities { get; }
 
+
     /// <summary>
     /// Checks if this entity, and its recursive children, are valid
     /// </summary>
+    /// <param name="issue">Exception to throw explaining why it's invalid</param>
     /// <returns>True if valid, false if not</returns>
-    public bool IsValid()
+    public bool IsValid([MaybeNullWhen(true)] out Exception issue) => IsValid(out issue, []);
+
+    /// <summary>
+    /// Checks if this entity, and its recursive children, are valid.
+    /// Private function that stores the entities that have already been checked
+    /// </summary>
+    /// <param name="issue">Exception to throw explaining why it's invalid</param>
+    /// <param name="checkedEntities">Set of entities that have been confirmed valid in this checking cycle</param>
+    /// <returns>True if valid, false if not</returns>
+    private bool IsValid([MaybeNullWhen(true)] out Exception issue, HashSet<IValidityManagedEntity> checkedEntities)
     {
+        issue = null;
         // If we are checking validity after changes and the validity-check Guid matches the throwing-exceptions Guid, then it is still valid
         if (GlobalSettings.MonitorMode == MonitorMode.AlertUpdatesAndThrowException && throwingExceptionGuid == guidAtLastValidityCheck)
             return true;
-        return entity.CheckTopLevelValidity(out _) && ChildrenEntities.All(c => c.ValidityManager.IsValid());
+        if (checkedEntities.Contains(entity))
+            return true;
+        if (!entity.CheckTopLevelValidity(out issue))
+            return false;
+        foreach (IValidityManagedEntity child in ChildrenEntities)
+            if (!child.ValidityManager.IsValid(out Exception? innerIssue, checkedEntities))
+            {
+                // TODO consider forcing IValidityManagedEntity to have a name property that can be used here
+                issue = new InvalidException("Issue with child", innerIssue);
+                return false;
+            }
+        checkedEntities.Add(entity);
+        return true;
     }
 
     /// <summary>

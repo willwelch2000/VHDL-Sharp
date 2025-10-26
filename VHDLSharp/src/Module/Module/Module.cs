@@ -29,9 +29,11 @@ public class Module : IModule, IValidityManagedEntity
 
     private EventHandler? updated;
 
-    /// <summary>
-    /// Default constructor
-    /// </summary>
+    // Used as validity checker, so it should be set false before control leaves the module
+    // It is possible for there to be compiled objects even if this is false
+    private bool compiled;
+
+    /// <summary>Default constructor</summary>
     public Module()
     {
         // The collection callbacks are considerd part of the objects' responsibilities
@@ -75,7 +77,7 @@ public class Module : IModule, IValidityManagedEntity
         foreach ((string portName, PortDirection direction) in ports)
             AddNewPort(portName, direction);
     }
-    
+
     /// <summary>
     /// Event called when a property of this module (not a child) is changed 
     /// that could affect other objects, such as port mapping
@@ -118,47 +120,71 @@ public class Module : IModule, IValidityManagedEntity
     public InstantiationCollection Instantiations { get; }
 
     /// <summary>
-    /// Get all named signals used in this module. 
-    /// Signals can come from ports, behavior input signals, or output signals. 
-    /// If all of a multi-dimensional signal's children are used, then the top-level signal is included. 
-    /// Otherwise, only the children are returned. 
+    /// Get all module-specific signals used here, potentially even those that belong to another module.
+    /// This only happens if there's an error, so it is used to check if they were assigned by error
     /// </summary>
-    public IEnumerable<INamedSignal> NamedSignals
+    /// <param name="includeIncorrectlyAssignedSignals">If true, includes module-specific signals used here even if they belong to another module</param>
+    /// <returns></returns>
+    private HashSet<IModuleSpecificSignal> GetAllModuleSignals(bool includeIncorrectlyAssignedSignals)
     {
-        get
-        {
-            // Get list of all single-node named signals used
-            HashSet<INamedSignal> allSingleNodeSignals = [.. Ports.Select(p => p.Signal)
-                .Union(SignalBehaviors.Values.SelectMany(b => b.NamedInputSignals))
-                .Union(SignalBehaviors.Keys)
-                .Union(Instantiations.SelectMany(i => i.PortMapping.Values))
-                .SelectMany(s => s.ToSingleNodeSignals)];
-
-            HashSet<INamedSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
-            HashSet<INamedSignal> allNamedSignals = [];
-
-            foreach (INamedSignal topLevelSignal in topLevelSignals)
+        // Get list of all single-node named signals used
+        HashSet<ISingleNodeModuleSpecificSignal> allSingleNodeSignals =
+            [.. Ports.Select(p => p.Signal) // Port signals
+            .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
+            .Union(SignalBehaviors.Keys) // Assigned signals
+            .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
+            // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
+            .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
             {
-                // If all child signals are present, add top level one
-                if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
-                    allNamedSignals.Add(topLevelSignal);
-                else
-                    // Otherwise, add single-node signals that are present
-                    foreach (ISingleNodeNamedSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
-                        allNamedSignals.Add(singleNodeSignal);
-            }
+                IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                    [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
+                IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
+                    [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
+                _ => [s],
+            })
+            .Where(s => s.ParentModule == this || includeIncorrectlyAssignedSignals) // Should be true for all, but double check
+            .SelectMany(s => s.ToSingleNodeSignals)]; // Convert to the single-node signals
 
-            return allNamedSignals;
+        HashSet<IModuleSpecificSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
+        HashSet<IModuleSpecificSignal> allModuleSignals = [];
+
+        foreach (IModuleSpecificSignal topLevelSignal in topLevelSignals)
+        {
+            // If all child signals are present, add top level one
+            if (topLevelSignal.ToSingleNodeSignals.All(allSingleNodeSignals.Contains))
+                allModuleSignals.Add(topLevelSignal);
+            else
+                // Otherwise, add single-node signals that are present
+                foreach (ISingleNodeModuleSpecificSignal singleNodeSignal in topLevelSignal.ToSingleNodeSignals.Where(allSingleNodeSignals.Contains))
+                    allModuleSignals.Add(singleNodeSignal);
         }
+
+        return allModuleSignals;
     }
 
-    /// <summary>
-    /// Get all modules (recursive) used by this module as instantiations
-    /// </summary>
-    public IEnumerable<IModule> ModulesUsed =>
-        Instantiations.SelectMany(i => i.InstantiatedModule.ModulesUsed.Append(i.InstantiatedModule)).Distinct();
-        
-    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid();
+    /// <inheritdoc/>
+    public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
+
+    /// <inheritdoc/>
+    public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals)
+    {
+        HashSet<IModule> modulesUsed = [];
+        bool uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
+        foreach (IModule module in Instantiations.Select(i => i.InstantiatedModule))
+        {
+            if (!modulesUsed.Add(module))
+                continue;
+            // Add module's used modules if recursive and we haven't already added this module
+            if (recursive)
+                foreach (IModule submodule in module.GetModulesUsed(recursive, compileDerivedSignals))
+                    modulesUsed.Add(submodule);
+        }
+        if (uncompile)
+            compiled = false;
+        return modulesUsed;
+    }
+
+    private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid(out _);
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -213,7 +239,7 @@ public class Module : IModule, IValidityManagedEntity
     {
         if (!((IModule)this).Equals(signal.ParentModule))
             throw new ArgumentException("Signal must have this module as parent");
-        
+
         Port result = new(signal, direction);
         Ports.Add(result);
         return result;
@@ -263,6 +289,10 @@ public class Module : IModule, IValidityManagedEntity
                 return false;
             }
 
+        // Check that instantiation collection is complete
+        if (!Instantiations.IsComplete(out reason))
+            return false;
+
         reason = null;
         return true;
     }
@@ -280,7 +310,7 @@ public class Module : IModule, IValidityManagedEntity
     public string GetVhdl()
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
@@ -291,33 +321,38 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("library ieee");
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
-        // Submodules
-        ignoreValidity = true; // Subcircuits and this already checked
-        foreach (var module in ModulesUsed)
-        {
-            sb.AppendLine(module.GetVhdlNoSubmodules());
-            sb.AppendLine();
-        }
+        // Subcircuits and this already checked
+        ignoreValidity = true;
 
         // Main module
         sb.AppendLine(GetVhdlNoSubmodules());
-        ignoreValidity = false;
 
-        return sb.ToString();
+        // Submodules--need to do all modules recursively
+        bool firstLoop = true;
+        foreach (IModule module in GetModulesUsed(true, true))
+        {
+            if (!firstLoop)
+            {
+                firstLoop = false;
+                sb.AppendLine();
+            }
+            sb.AppendLine(module.GetVhdlNoSubmodules());
+        }
+
+        ignoreValidity = false;
+        return sb.ToString().TrimEnd();
     }
 
-    /// <summary>
-    /// Get the VHDL for this module without submodules or 
-    /// stuff that goes at the beginning of the file
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc/>
     public string GetVhdlNoSubmodules()
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
+
+        CompileDerivedSignals();
 
         StringBuilder sb = new();
 
@@ -334,20 +369,36 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine($"architecture rtl of {Name} is");
 
         // Signals
-        foreach(INamedSignal signal in NamedSignals.Except(Ports.Select(p => p.Signal)))
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        foreach (INamedSignal signal in moduleSignals.OfType<INamedSignal>()
+            .Union(moduleSignals.OfType<IDerivedSignal>().Select(d => d.LinkedSignal ??
+                throw new Exception("Derived signal must be linked to named signal before getting VHDL")))
+            .Except(Ports.Select(p => p.Signal)))
         {
             sb.AppendLine(signal.GetVhdlDeclaration().AddIndentation(1));
         }
 
-        // Component declarations
-        foreach (IModule module in ModulesUsed)
-            sb.AppendLine(module.GetVhdlComponentDeclaration());
+        // Component declarations--don't need recursive because it should just declare the ones it directly uses
+        bool firstLoop = true;
+        foreach (IModule module in GetModulesUsed(false, false))
+        {
+            if (firstLoop)
+            {
+                firstLoop = false;
+                sb.AppendLine();
+            }
+            sb.AppendLine(module.GetVhdlComponentDeclaration().AddIndentation(1));
+        }
 
         // Begin
         sb.AppendLine("begin");
 
         // Add all instantiations
-        sb.Append(Instantiations.GetVhdl().AddIndentation(1));
+        if (Instantiations.Count != 0)
+        {
+            sb.Append(Instantiations.GetVhdl().AddIndentation(1));
+            sb.AppendLine();
+        }
 
         // Behaviors
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
@@ -358,6 +409,7 @@ public class Module : IModule, IValidityManagedEntity
         // End
         sb.AppendLine("end rtl;");
 
+        compiled = false;
         return sb.ToString();
     }
 
@@ -368,10 +420,12 @@ public class Module : IModule, IValidityManagedEntity
     public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
+
+        CompileDerivedSignals();
 
         string[] pins = [.. PortsToSpice()];
 
@@ -390,7 +444,7 @@ public class Module : IModule, IValidityManagedEntity
         int i = 0;
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
             circuits.Add(behavior.GetSpice(signal, i++.ToString()));
-        
+
         // Add large resistors from output/bidirectional ports to ground
         // foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output || p.Direction == PortDirection.Bidirectional).Select(p => p.Signal)) TODO
         foreach (INamedSignal signal in Ports.Where(p => p.Direction == PortDirection.Output).Select(p => p.Signal))
@@ -401,7 +455,10 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         circuits.Add(new(additionalEntities));
-        return SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
+        SpiceSubcircuit subcircuit = SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
+
+        compiled = false;
+        return subcircuit;
     }
 
     /// <inheritdoc/>
@@ -411,13 +468,15 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit)
     {
         if (!ConsiderValid)
-            throw new InvalidException("Module is invalid");
+            throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
-        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid())
-            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule");
+        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule", issue);
         if (!((IModule)this).Equals(subcircuit.FinalModule))
             throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
+
+        CompileDerivedSignals();
 
         // Behaviors
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
@@ -426,6 +485,8 @@ public class Module : IModule, IValidityManagedEntity
         // Instantiations
         foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
             yield return rule;
+
+        compiled = false;
     }
 
     /// <summary>
@@ -440,16 +501,14 @@ public class Module : IModule, IValidityManagedEntity
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
-    public bool ContainsSignal(INamedSignal signal)
+    public bool ContainsSignal(IModuleSpecificSignal signal)
     {
-        INamedSignal[] namedSignals = [.. NamedSignals];
+        IModuleSpecificSignal[] namedSignals = [.. AllModuleSignals];
         // True if directly contained
         if (namedSignals.Contains(signal))
             return true;
         // True if signal is single-node and the parent is contained
-        if (signal is ISingleNodeNamedSignal)
-            return namedSignals.Contains(signal.TopLevelSignal);
-        return false;
+        return signal is ISingleNodeModuleSpecificSignal && namedSignals.Contains(signal.TopLevelSignal);
     }
 
     private void BehaviorsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
@@ -459,7 +518,7 @@ public class Module : IModule, IValidityManagedEntity
             foreach (object newItem in e.NewItems)
                 if (newItem is KeyValuePair<INamedSignal, IBehavior> kvp)
                     childrenEntities.Add(kvp.Value);
-        
+
         // If something has been removed, remove behavior from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
@@ -476,7 +535,7 @@ public class Module : IModule, IValidityManagedEntity
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
             foreach (object newItem in e.NewItems)
                 childrenEntities.Add(newItem);
-        
+
         // If something has been removed, remove from tracking
         if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset) && e.OldItems is not null)
             foreach (object oldItem in e.OldItems)
@@ -505,21 +564,52 @@ public class Module : IModule, IValidityManagedEntity
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
-        // Check that behaviors are in correct module/have correct dimension and that output signal isn't input port
+
+        // Check that all module signals have this module as parent
+        IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
+        foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
+            if (!((IModule)this).Equals(moduleSignal.ParentModule))
+                exception = moduleSignal is INamedSignal namedModSignal ?
+                    new Exception($"Signal {namedModSignal.Name} must have this module ({Name}) as parent") :
+                    new Exception($"Signals must have this module ({Name}) as parent");
+
+        // Check that behaviors have correct dimension and that output signal isn't input port
+        INamedSignal[] inputPortSignals = [.. Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal)];
         foreach ((INamedSignal outputSignal, IBehavior behavior) in SignalBehaviors)
         {
-            if (!((IModule)this).Equals(outputSignal.ParentModule))
-                exception = new Exception($"Output signal {outputSignal.Name} must have this module ({Name}) as parent");
             if (behavior.ParentModule is not null && !((IModule)this).Equals(behavior.ParentModule))
                 exception = new Exception($"Behavior must have this module as parent");
             if (!behavior.IsCompatible(outputSignal))
                 exception = new Exception($"Behavior must be compatible with output signal");
-            if (Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal).Contains(outputSignal))
+            if (inputPortSignals.Contains(outputSignal))
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
         }
 
-        // Throw error if a signal has two assignments--either from behavior mapping or as output port of instantiation
-        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.SelectMany(kvp => kvp.Key.ToSingleNodeSignals), .. Instantiations.SelectMany(i => i.GetSignals(PortDirection.Output).SelectMany(s => s.ToSingleNodeSignals))];
+        // This list removes duplicate derived signals (from when a node references a parent),
+        // but keeps duplicate linked signals that come from different derived signals--not allowed, checked below
+        List<INamedSignal> linkedSignals = [];
+
+        // Check that linked signals have the right dimension and aren't input ports
+        foreach (IDerivedSignal derivedSignal in moduleSignals.OfType<IDerivedSignal>()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+        {
+            if (derivedSignal.LinkedSignal is not null)
+            {
+                INamedSignal linkedSignal = derivedSignal.LinkedSignal;
+                linkedSignals.Add(linkedSignal);
+                if (!derivedSignal.Dimension.Compatible(linkedSignal.Dimension))
+                    exception = new Exception($"Linked signal ({linkedSignal}) must have the same dimension as the derived signal it's linked to");
+                if (inputPortSignals.Contains(linkedSignal))
+                    exception = new Exception($"Linked signal ({linkedSignal}) must not be an input port");
+            }
+        }
+
+        // Throw error if a signal has two or more assignments--either from behavior mapping, output port of (non-compiled) instantiation, or derived signal linked signal
+        List<ISingleNodeNamedSignal> allSingleNodeOutputSignals = [.. SignalBehaviors.Keys
+            .Concat(Instantiations.Where(i => i is not ICompiledObject) // Ignore instantiations added due to compilation
+                .SelectMany(i => i.GetSignals(PortDirection.Output)))
+            .Concat(linkedSignals)
+            .SelectMany(s => s.ToSingleNodeSignals)];
         if (allSingleNodeOutputSignals.Count != allSingleNodeOutputSignals.Distinct().Count())
         {
             ISingleNodeNamedSignal child = allSingleNodeOutputSignals.First(s => allSingleNodeOutputSignals.Count(s2 => s2 == s) > 1);
@@ -527,18 +617,16 @@ public class Module : IModule, IValidityManagedEntity
             if (parent is not null)
                 exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
             else
-                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior or instantiation output");
+                exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior, instantiation output, or as a used derived signal's linked signal");
         }
 
-        // Don't allow ports with the same signal or with wrong parent module
+        // Don't allow ports with the same signal
         HashSet<ISignal> portSignals = [];
-        if (!Ports.All(p => portSignals.Add(p.Signal) && ((IModule)this).Equals(p.Signal.ParentModule)))
+        if (!Ports.All(p => portSignals.Add(p.Signal)))
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
                 exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
-            else
-                exception = new Exception("Port signals must have this module as parent");
         }
 
         return exception is null;
@@ -546,4 +634,52 @@ public class Module : IModule, IValidityManagedEntity
 
     /// <inheritdoc/>
     public bool Equals(IModule? other) => other is not null && other.BaseModule == this;
+
+    /// <summary>
+    /// Generate instantiations and linked signals for derived signals
+    /// </summary>
+    /// <returns>True if compilation is performed, false if not necessary because it already has been compiled</returns>
+    private bool CompileDerivedSignals()
+    {
+        if (compiled)
+            return false;
+
+        // Remove all compiled instantiations--signals are removed in the section below
+        foreach (CompiledInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>().ToArray())
+            Instantiations.Remove(instantiation);
+
+        // Loop through all used derived signals and the derived signals whose nodes are used
+        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        IDerivedSignal[] usedDerivedSignals = [.. moduleSignals.OfType<IDerivedSignal>().Distinct()
+            .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))];
+        foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
+        {
+            // If the signal is unlinked or previously compiled, link a new named signal
+            if (derivedSignal.LinkedSignal is ICompiledObject or null)
+                derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
+                {
+                    1 => new CompiledSignal($"DerivedSignal{i}", this),
+                    _ => new CompiledVector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
+                };
+
+            // Add the compiled instantiation, converting to a CompiledInstantiation instance
+            CompiledInstantiation instantiation = new(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}"));
+            Instantiations.Add(instantiation);
+        }
+
+        compiled = true;
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public void UndoDerivedSignalCompilation()
+    {
+        // Remove all instantiations
+        foreach (IInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>())
+            Instantiations.Remove(instantiation);
+        // Remove all auto-linked signals
+        foreach (IDerivedSignal derivedSignal in AllModuleSignals.OfType<IDerivedSignal>().Where(s => s.LinkedSignal is ICompiledObject))
+            derivedSignal.LinkedSignal = null;
+        compiled = false;
+    }
 }

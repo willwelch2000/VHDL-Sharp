@@ -20,7 +20,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     private readonly ValidityManager validityManager;
     
     // TODO for now, this does not follow the modules it uses because its validity doesn't depend on it.
-    // It also doesn't track the signals, because they are not supposed to change their parent module
+    // It also doesn't track the signals--except for derived signals--because they are not supposed to change their parent module
+    // Derived signals are more complicated since they can have child signals and more complicated
     private readonly ObservableCollection<object> childEntities;
 
     /// <summary>
@@ -32,10 +33,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
         validityManager = new ValidityManager<object>(this, childEntities);
     }
     
-    /// <summary>
-    /// Get all of the named input signals used in this behavior
-    /// </summary>
-    public abstract IEnumerable<INamedSignal> NamedInputSignals { get; }
+    /// <inheritdoc/>
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <summary>
     /// Dimension of behavior, as a <see cref="Dimension"/> object
@@ -59,7 +58,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// Module this behavior refers to, found from the signals
     /// Null if no input signals, meaning that it has no specific module
     /// </summary>
-    public IModule? ParentModule => NamedInputSignals.FirstOrDefault()?.ParentModule;
+    public IModule? ParentModule => InputModuleSignals.FirstOrDefault()?.ParentModule;
 
     /// <summary>
     /// Checks that the behavior is valid given the input signals. 
@@ -69,7 +68,7 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     protected virtual bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
-        var modules = NamedInputSignals.Select(s => s.ParentModule).Distinct();
+        var modules = InputModuleSignals.Select(s => s.ParentModule).Distinct();
         if (modules.Count() > 1)
             exception = new Exception("Input signals should all come from the same module");
         return exception is null;
@@ -83,8 +82,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public string GetVhdlStatement(INamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Behavior must be valid to convert to VHDL");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Behavior must be valid to convert to VHDL", issue);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetVhdlStatementWithoutCheck(outputSignal);
@@ -93,8 +92,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(INamedSignal outputSignal, string uniqueId)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Behavior must be valid to convert to Spice circuit");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Behavior must be valid to convert to Spice circuit", issue);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetSpiceWithoutCheck(outputSignal, uniqueId);
@@ -103,10 +102,10 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public SimulationRule GetSimulationRule(SignalReference outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
-        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
-            throw new InvalidException("Output signal must be valid to use to get simulation rule");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", issue);
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid(out issue))
+            throw new InvalidException("Output signal must be valid to use to get simulation rule", issue);
         if (!IsCompatible(outputSignal.Signal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return new(outputSignal, (state) => GetOutputValueWithoutCheck(state, outputSignal));
@@ -130,10 +129,10 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <inheritdoc/>
     public int GetOutputValue(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit");
-        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid())
-            throw new InvalidException("Output signal must be valid to use to get output value");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", issue);
+        if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid(out issue))
+            throw new InvalidException("Output signal must be valid to use to get output value", issue);
         if (!IsCompatible(outputSignal.Signal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetOutputValueWithoutCheck(state, outputSignal);
@@ -177,4 +176,15 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// </summary>
     /// <param name="entity"></param>
     protected void RemoveChildEntity(object entity) => childEntities.Remove(entity);
+
+    /// <summary>
+    /// Should be called by child classes whenever new signals are added. 
+    /// Finds the derived signals and tracks them
+    /// </summary>
+    /// <param name="newSignals"></param>
+    protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
+    {
+        foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Add(derivedSignal);
+    }
 }

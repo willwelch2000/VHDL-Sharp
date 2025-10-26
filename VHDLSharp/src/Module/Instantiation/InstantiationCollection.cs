@@ -13,7 +13,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Collection of instantiations that simplifies Spice and Spice# conversion for groups of instantiations
 /// </summary>
-public class InstantiationCollection : ICollection<IInstantiation>, IValidityManagedEntity
+public class InstantiationCollection : ICollection<IInstantiation>, IValidityManagedEntity, ICompletable
 {
     private readonly ObservableCollection<IInstantiation> instantiations;
 
@@ -97,8 +97,8 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     /// <returns></returns>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
-        if (!validityManager.IsValid())
-            throw new InvalidException("Instantiation collection is invalid");
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation collection is invalid", issue);
 
         // Add subcircuit definitions to the set for all distinct modules unless they've been made already
         HashSet<IModuleLinkedSubcircuitDefinition> moduleSubcircuitDefinitions = [.. existingModuleLinkedSubcircuits];
@@ -138,9 +138,15 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
             return "";
         
         StringBuilder sb = new();
+        bool firstLoop = true;
         foreach (IInstantiation instantiation in instantiations)
+        {
+            if (!firstLoop)
+                sb.AppendLine();
+            else
+                firstLoop = false;
             sb.AppendLine(instantiation.GetVhdlStatement());
-        sb.AppendLine();
+        }
 
         return sb.ToString();
     }
@@ -181,5 +187,15 @@ public class InstantiationCollection : ICollection<IInstantiation>, IValidityMan
     private void InstantiationsListUpdated(object? sender, NotifyCollectionChangedEventArgs e)
     {
         updated?.Invoke(this, e);
+    }
+
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        foreach (IInstantiation inst in this)
+            if (!inst.IsComplete(out reason))
+                return false;
+        reason = null;
+        return true;
     }
 }

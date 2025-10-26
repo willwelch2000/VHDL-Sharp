@@ -32,8 +32,8 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     /// <returns></returns>
     public IEnumerable<SimulationRule> GetSimulationRules()
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Simulation setup must be valid to convert to Spice# circuit", issue);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Simulation setup must be complete to convert to circuit: {reason}");
 
@@ -52,16 +52,19 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
             throw new Exception("Rules have overlapping output signals");
 
         Queue<double> nextTimeSteps = [];
-        while (state.CurrentTimeStep <= Length)
+        while (true)
         {
             // Apply rules
             foreach (SimulationRule rule in rules)
                 state.AddSignalValue(rule.OutputSignal, rule.OutputValueCalculation(state));
             
-            // Go to next time step
+            // Go to next time step, if within length
             if (nextTimeSteps.Count == 0)
                 nextTimeSteps = new(timeStepGenerator.NextTimeSteps(state, independentEventTimes, Length));
-            state.CurrentTimeStep = nextTimeSteps.Dequeue();
+            double nextTimeStep = nextTimeSteps.Dequeue();
+            if (nextTimeStep > Length)
+                break;
+            state.CurrentTimeStep = nextTimeStep;
         }
 
         // Get results

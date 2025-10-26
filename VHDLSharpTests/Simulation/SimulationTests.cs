@@ -43,6 +43,11 @@ public class SimulationTests
             setup.AssignStimulus(p2, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
             ISimulationResult[] results = [.. setup.Simulate()];
 
+            // Check that there's the same length of timesteps and values
+            Assert.AreEqual(results[0].TimeSteps.Length, results[0].Values.Length);
+            Assert.AreEqual(results[1].TimeSteps.Length, results[1].Values.Length);
+            Assert.AreEqual(results[2].TimeSteps.Length, results[2].Values.Length);
+
             // Assert that all results of s3 match s1 AND s2
             // Assumes that time values are the same for all result sets
             if (!(results[0].TimeSteps.SequenceEqual(results[1].TimeSteps) && results[0].TimeSteps.SequenceEqual(results[2].TimeSteps)))

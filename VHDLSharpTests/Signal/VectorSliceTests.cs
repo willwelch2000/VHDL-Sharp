@@ -12,14 +12,18 @@ public class VectorSliceTests
         Module module = new("m1");
         Vector vector = new("v1", module, 4);
         VectorSlice slice = vector[2..4];
+        VectorSlice slice2 = vector[2..];
 
         Assert.AreEqual(slice.Vector, vector);
         Assert.AreEqual(2, slice.StartNode);
-        Assert.AreEqual(4, slice.EndNode);
+        Assert.AreEqual(3, slice.EndNode);
+        Assert.AreEqual(3, slice2.EndNode);
         Assert.AreEqual(2, slice.Dimension.NonNullValue);
+        Assert.AreEqual(2, slice2.Dimension.NonNullValue);
         Assert.AreEqual(vector[2], slice[0]);
         Assert.AreEqual(vector[3], slice[1]);
-        Assert.AreEqual("v1[2:4]", slice.Name);
+        Assert.AreEqual("v1[2:3]", slice.Name);
+        Assert.AreEqual("v1[2:3]", slice2.Name);
         Assert.AreEqual(slice.ParentSignal, vector);
         Assert.AreEqual(slice.ParentModule, module);
 
@@ -48,11 +52,11 @@ public class VectorSliceTests
         Assert.IsTrue(slice1.CanCombine(slice2));
         Assert.IsTrue(slice1.CanCombine(v4));
         Assert.IsTrue(slice1.CanCombine(literal1));
-        Assert.IsFalse(slice1.CanCombine(slice3));
-        Assert.IsFalse(slice1.CanCombine(slice4));
-        Assert.IsFalse(slice1.CanCombine(literal2));
+        Assert.IsFalse(slice1.CanCombine(slice3)); // Different module
+        Assert.IsFalse(slice1.CanCombine(slice4)); // Different dimension
+        Assert.IsFalse(slice1.CanCombine(literal2)); // Different dimension
         Assert.IsTrue(slice4.CanCombine(literal2));
-        Assert.IsFalse(slice1.CanCombine(s1));
+        Assert.IsFalse(slice1.CanCombine(s1)); // Different dimension
         Assert.IsTrue(slice4.CanCombine(s1));
         Assert.IsTrue(slice1.CanCombine([slice2, literal1]));
         // False because they come from different modules

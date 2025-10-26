@@ -53,16 +53,16 @@ public class ValidityManagerTests
         {
             Valid = false
         };
-        Assert.IsFalse(node1.ValidityManager.IsValid());
+        Assert.IsFalse(node1.ValidityManager.IsValid(out _));
         node1.Valid = true;
-        Assert.IsTrue(node1.ValidityManager.IsValid());
+        Assert.IsTrue(node1.ValidityManager.IsValid(out _));
         node1.Valid = false;
 
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
-        Assert.IsFalse(node1.ValidityManager.IsValid());
+        Assert.IsFalse(node1.ValidityManager.IsValid(out _));
         node1.Valid = true;
-        Assert.IsTrue(node1.ValidityManager.IsValid());
+        Assert.IsTrue(node1.ValidityManager.IsValid(out _));
         Assert.ThrowsException<Exception>(() => node1.Valid = false);
-        Assert.IsFalse(node1.ValidityManager.IsValid());
+        Assert.IsFalse(node1.ValidityManager.IsValid(out _));
     }
 }

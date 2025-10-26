@@ -21,10 +21,12 @@ public class Equality : Condition, IConstantCondition
     /// </summary>
     /// <param name="mainSignal"></param>
     /// <param name="comparison">Signal to compare against</param>
-    public Equality(INamedSignal mainSignal, ISignal comparison)
+    public Equality(IModuleSpecificSignal mainSignal, ISignal comparison)
     {
         MainSignal = mainSignal;
         ComparisonSignal = comparison;
+        // Add comparison if it's a derived signal
+        ManageNewSignals([mainSignal, comparison]);
         // Check after construction
         if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
             throw exception;
@@ -33,7 +35,7 @@ public class Equality : Condition, IConstantCondition
     /// <summary>
     /// Main signal that gets evaluated
     /// </summary>
-    public INamedSignal MainSignal { get; }
+    public IModuleSpecificSignal MainSignal { get; }
 
     /// <summary>
     /// The main signal is compared against this
@@ -41,19 +43,19 @@ public class Equality : Condition, IConstantCondition
     public ISignal ComparisonSignal { get; }
 
     /// <inheritdoc/>
-    public override IEnumerable<INamedSignal> InputSignals => ComparisonSignal is INamedSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ComparisonSignal is IModuleSpecificSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
     public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
-        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to evaluate") : 
-        !((IValidityManagedEntity)context).ValidityManager.IsValid() ? throw new InvalidException("Subcircuit context must be valid to evluate condition") :
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to evaluate", issue) : 
+        !((IValidityManagedEntity)context).ValidityManager.IsValid(out issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
     public override string ToLogicString() => 
-        !ValidityManager.IsValid() ? throw new InvalidException("Condition must be valid to get string") : 
-        $"{MainSignal.Name} = {ComparisonSignal.ToLogicString()}";
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to get string", issue) : 
+        $"{MainSignal.ToLogicString()} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
@@ -73,8 +75,8 @@ public class Equality : Condition, IConstantCondition
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
-        if (!ValidityManager.IsValid())
-            throw new InvalidException("Condition must be valid to get Spice representation");
+        if (!ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Condition must be valid to get Spice representation", issue);
         if (!outputSignal.ParentModule.Equals(ParentModule))
             throw new IncompatibleSignalException("Output signal must have same parent module as condition");
 
