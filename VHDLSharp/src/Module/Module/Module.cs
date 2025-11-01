@@ -648,24 +648,22 @@ public class Module : IModule, IValidityManagedEntity
         foreach (CompiledInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>().ToArray())
             Instantiations.Remove(instantiation);
 
-        // Loop through all used derived signals and the derived signals whose nodes are used
+        // Gather all used derived signals and the derived signals whose nodes are used
         IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
         IDerivedSignal[] usedDerivedSignals = [.. moduleSignals.OfType<IDerivedSignal>().Distinct()
             .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))];
+        // Loop through the derived signals--if the signal is unlinked or previously compiled, link a new named signal
         foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
-        {
-            // If the signal is unlinked or previously compiled, link a new named signal
             if (derivedSignal.LinkedSignal is ICompiledObject or null)
                 derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
                 {
                     1 => new CompiledSignal($"DerivedSignal{i}", this),
                     _ => new CompiledVector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
                 };
-
-            // Add the compiled instantiation, converting to a CompiledInstantiation instance
-            CompiledInstantiation instantiation = new(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}"));
-            Instantiations.Add(instantiation);
-        }
+        // Loop through again and add the compiled instantiation, converting to a CompiledInstantiation instance
+        // These loops cannot be combined because cometimes the instantiation compilation requires another linked signal existing already
+        foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
+            Instantiations.Add(new CompiledInstantiation(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}")));
 
         compiled = true;
         return true;

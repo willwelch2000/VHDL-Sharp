@@ -205,4 +205,27 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     {
         updated?.Invoke(sender, e);
     }
+
+    /// <summary>
+    /// Given a set of signals, look inside derived signals to find their used signals. 
+    /// This only recurses one level because it is assumed that the used signals of 
+    /// the derived signals will also recurse
+    /// </summary>
+    /// <param name="signals"></param>
+    /// <returns></returns>
+    internal static HashSet<IModuleSpecificSignal> UnpackDerivedSignals(IEnumerable<IModuleSpecificSignal> signals)
+    {
+        HashSet<IModuleSpecificSignal> usedSignals = [];
+        foreach (IModuleSpecificSignal signal in signals)
+        {
+            if (!usedSignals.Add(signal))
+                continue;
+            // If it's a derived signal or derived signal node, also return its used signals
+            IDerivedSignal? derivedSignal = signal as IDerivedSignal ?? (signal as IDerivedSignalNode)?.DerivedSignal;
+            if (derivedSignal is not null)
+                foreach (IModuleSpecificSignal subSignal in derivedSignal.UsedModuleSpecificSignals)
+                    usedSignals.Add(subSignal);
+        }
+        return usedSignals;
+    }
 }
