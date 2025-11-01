@@ -1,3 +1,7 @@
+using VHDLSharp.Behaviors;
+using VHDLSharp.LogicTree;
+using VHDLSharp.Modules;
+
 namespace VHDLSharp.Signals.Derived;
 
 /// <summary>
@@ -39,4 +43,22 @@ public static class DerivedSignalExtensions
     /// <param name="other">Other signal to concatenate after the starting signal</param>
     /// <returns></returns>
     public static IDerivedSignal ConcatWith(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => throw new NotImplementedException();
+
+    /// <summary>
+    /// Convert a logic expression to a derived signal
+    /// </summary>
+    /// <param name="logicExpression"></param>
+    /// <param name="parentModule">Module this signal belongs to. 
+    /// If null, the module is extracted from the expression and an exception is thrown if it isn't found</param>
+    /// <returns></returns>
+    public static LogicSignal ToSignal(this LogicExpression logicExpression, IModule? parentModule = null) => new(logicExpression, parentModule);
+
+    /// <summary>
+    /// Convert a logic expression to a derived signal
+    /// </summary>
+    /// <param name="logicExpression"></param>
+    /// <param name="parentModule">Module this signal belongs to. 
+    /// If null, the module is extracted from the expression and an exception is thrown if it isn't found</param>
+    /// <returns></returns>
+    public static LogicSignal ToSignal(this ILogicallyCombinable<ISignal> logicExpression, IModule? parentModule = null) => LogicExpression.ToLogicExpression(logicExpression).ToSignal(parentModule);
 }
