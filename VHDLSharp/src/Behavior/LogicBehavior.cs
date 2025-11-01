@@ -44,7 +44,7 @@ public class LogicBehavior : Behavior, ICombinationalBehavior
 
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal) =>
-        $"{outputSignal} <= {LogicExpression.GetVhdl()};";
+        $"{outputSignal.GetVhdlName()} <= {LogicExpression.GetVhdl()};";
 
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal) =>

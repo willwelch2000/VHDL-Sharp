@@ -198,4 +198,20 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
     /// <summary>Convert signal to <see cref="LogicBehavior"/></summary>
     /// <param name="signal">Signal to convert</param>
     public static implicit operator LogicBehavior(NamedSignal signal) => new(signal);
+
+    /// <summary>
+    /// Create a named signal with the given dimension. 
+    /// Produces a <see cref="Signal"/> if the dimension is 1, otherwise a <see cref="Vector"/>
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="parentModule"></param>
+    /// <param name="dimension"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception">If dimension is less than 1</exception>
+    public static ITopLevelNamedSignal GenerateSignalOrVector(string name, IModule parentModule, int dimension) => dimension switch
+    {
+        1 => new Signal(name, parentModule),
+        > 1 => new Vector(name, parentModule, dimension),
+        _ => throw new Exception("Dimension must be >= 0"),
+    };
 }

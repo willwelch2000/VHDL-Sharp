@@ -47,12 +47,7 @@ public class LogicSignal : DerivedSignal
         Dictionary<INamedSignal, ITopLevelNamedSignal> signalMappings = [];
         TransformExpressionOutput output = Expression.GenerateLogicalObject(TransformExpressionOptions, new() { NewParentModule = childModule, SignalMappings = signalMappings });
         int dimension = Expression.Dimension.NonNullValue;
-        ITopLevelNamedSignal outputSignal = dimension switch
-        {
-            1 => new Signal("Output", childModule),
-            > 1 => new Vector("Output", childModule, dimension),
-            _ => throw new Exception("Dimension should not be < 1"),
-        };
+        ITopLevelNamedSignal outputSignal = NamedSignal.GenerateSignalOrVector("Output", childModule, dimension);
         childModule.SignalBehaviors[outputSignal] = new LogicBehavior(output.Expression);
 
         // Handle ports and port mapping
@@ -110,12 +105,7 @@ public class LogicSignal : DerivedSignal
                 return new() { Expression = mapping };
             string name = $"Input{signalMappings.Count}";
             int dimension = namedSignal.Dimension.NonNullValue;
-            ITopLevelNamedSignal newMapping = dimension switch
-            {
-                1 => new Signal(name, newParentModule),
-                > 1 => new Vector(name, newParentModule, dimension),
-                _ => throw new Exception("Dimension should not be < 1"),
-            };
+            ITopLevelNamedSignal newMapping = NamedSignal.GenerateSignalOrVector(name, newParentModule, dimension);
             signalMappings[namedSignal] = newMapping;
             return new() { Expression = newMapping };
         }

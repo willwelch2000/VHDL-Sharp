@@ -70,7 +70,7 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
         throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
 
     /// <inheritdoc/>
-    public override VectorSlice this[Range range]
+    public override INamedSignal this[Range range]
     {
         get
         {
@@ -78,6 +78,8 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
             int end = range.End.GetOffset(dimension); // exclusive end of range
             if (start > end || start < 0 || end > dimension)
                 throw new ArgumentOutOfRangeException(nameof(range), "Specified range doesn't work for this vector");
+            if (start == end - 1)
+                return this[start];
             return new VectorSlice(this, start, end-1);
         }
     }

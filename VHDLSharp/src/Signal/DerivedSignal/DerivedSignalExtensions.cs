@@ -39,10 +39,10 @@ public static class DerivedSignalExtensions
     /// <summary>
     /// Concatenate this signal with another
     /// </summary>
-    /// <param name="signal">Starting signal</param>
-    /// <param name="other">Other signal to concatenate after the starting signal</param>
+    /// <param name="signal">Starting signal, makes up the upper bits of the output</param>
+    /// <param name="other">Other signal to concatenate after the starting signal, making up the lower bits</param>
     /// <returns></returns>
-    public static IDerivedSignal ConcatWith(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => throw new NotImplementedException();
+    public static IDerivedSignal ConcatWith(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => new ConcatSignal(signal, other);
 
     /// <summary>
     /// Convert a logic expression to a derived signal

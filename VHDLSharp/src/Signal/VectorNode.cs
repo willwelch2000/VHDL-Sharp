@@ -48,6 +48,9 @@ public class VectorNode : SingleNodeNamedSignal
     public override string GetVhdlDeclaration() => $"signal {Vector.Name}_{Node}\t: {VhdlType}";
 
     /// <inheritdoc/>
+    public override string GetVhdlName() => $"{Vector.Name}({Node})";
+
+    /// <inheritdoc/>
     public override bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal)
     {
         // Directly a port

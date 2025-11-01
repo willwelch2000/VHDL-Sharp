@@ -62,7 +62,7 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
+            sb.AppendLine($"\t\t\t{outputSignal.GetVhdlName()} <= {expression.GetVhdl()};");
         }
 
         // Default

@@ -112,17 +112,17 @@ public class LogicSignalTests
         begin
             Adder0 : Adder_1bit_noCIn
                 port map (
-                    A => A[0],
-                    B => B[0],
-                    Y => Y[0],
+                    A => A(0),
+                    B => B(0),
+                    Y => Y(0),
                     COut => COut0
                 );
             
             Adder1 : Adder_1bit_noCOut
                 port map (
-                    A => A[1],
-                    B => B[1],
-                    Y => Y[1],
+                    A => A(1),
+                    B => B(1),
+                    Y => Y(1),
                     CIn => COut0
                 );
             
@@ -210,11 +210,6 @@ public class LogicSignalTests
             // Checks if we're within timeBuffer of a transition point
             if (Math.Abs(timeStep - 1e-5 * Math.Round(timeStep / 1e-5, 0)) < timeBuffer)
                 continue;
-
-            int i1 = s1Results.Values[i];
-            int i2 = s2Results.Values[i];
-            int i3 = s3Results.Values[i];
-            int i4 = s4Results.Values[i];
 
             int sum = (s1Results.Values[i] & s2Results.Values[i]) + s3Results.Values[i];
             int expectedS4 = sum % 4;

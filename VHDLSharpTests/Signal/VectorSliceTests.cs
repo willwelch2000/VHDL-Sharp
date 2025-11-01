@@ -11,8 +11,8 @@ public class VectorSliceTests
     {
         Module module = new("m1");
         Vector vector = new("v1", module, 4);
-        VectorSlice slice = vector[2..4];
-        VectorSlice slice2 = vector[2..];
+        VectorSlice slice = (VectorSlice)vector[2..4];
+        VectorSlice slice2 = (VectorSlice)vector[2..];
 
         Assert.AreEqual(slice.Vector, vector);
         Assert.AreEqual(2, slice.StartNode);
@@ -44,10 +44,10 @@ public class VectorSliceTests
         Literal literal1 = new(1, 2);
         Literal literal2 = new(1, 1);
 
-        VectorSlice slice1 = v1[1..3];
-        VectorSlice slice2 = v2[1..3];
-        VectorSlice slice3 = v3[1..3];
-        VectorSlice slice4 = v1[1..2];
+        VectorSlice slice1 = (VectorSlice)v1[1..3];
+        VectorSlice slice2 = (VectorSlice)v2[1..3];
+        VectorSlice slice3 = (VectorSlice)v3[1..3];
+        VectorNode slice4 = (VectorNode)v1[1..2]; // This is just a single node
 
         Assert.IsTrue(slice1.CanCombine(slice2));
         Assert.IsTrue(slice1.CanCombine(v4));
@@ -68,9 +68,9 @@ public class VectorSliceTests
     {
         Module topMod = new("top");
         Vector v1 = topMod.GenerateVector("v1", 5);
-        VectorSlice v1Slice = v1[2..5];
+        VectorSlice v1Slice = (VectorSlice)v1[2..5];
         Vector v2 = topMod.GenerateVector("v2", 5);
-        VectorSlice v2Slice = v2[2..5];
+        VectorSlice v2Slice = (VectorSlice)v2[2..5];
         Module instMod = new("inst");
         Port pIn1 = instMod.AddNewPort("in", 3, PortDirection.Input);
         Port pIn2 = instMod.AddNewPort("in", 5, PortDirection.Input);
