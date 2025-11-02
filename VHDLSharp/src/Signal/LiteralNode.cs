@@ -65,22 +65,6 @@ public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue
 
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
-    /// <summary>
-    /// Indexer--must be 0 for this
-    /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public ISingleNodeSignal this[int index]
-    {
-        get
-        {
-            if (index != 0)
-                throw new ArgumentOutOfRangeException(nameof(index), $"Must be 0 for single node signal");
-            return this;
-        }
-    }
-
     /// <inheritdoc/>
     public bool CanCombine(ILogicallyCombinable<ISignal> other)
     {

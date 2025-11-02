@@ -83,20 +83,21 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public virtual ISingleNodeNamedSignal this[int index]
+    public virtual ISingleNodeNamedSignal this[Index index]
     {
         get
         {
-            if (index < 0 || index >= Dimension.NonNullValue)
-                throw new ArgumentOutOfRangeException(nameof(index), $"Must be between 0 and dimension ({Dimension.NonNullValue})");
-            return ToSingleNodeSignals.ElementAt(index);
+            int actualIndex = index.IsFromEnd ? Dimension.NonNullValue - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {Dimension.NonNullValue - 1}");
+            return ToSingleNodeSignals.ElementAt(actualIndex);
         }
     }
 
     /// <inheritdoc/>
     public abstract INamedSignal this[Range range] { get; }
 
-    ISingleNodeSignal ISignal.this[int index] => this[index];
+    ISingleNodeSignal ISignal.this[Index index] => this[index];
 
     /// <inheritdoc/>
     public abstract bool CanCombine(ILogicallyCombinable<ISignal> other);

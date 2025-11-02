@@ -143,9 +143,16 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public IModuleSpecificSignal? ParentSignal => null;
 
     /// <inheritdoc/>
-    public ISingleNodeSignal this[int index] => index < Dimension.NonNullValue && index >= 0 ?
-        new DerivedSignalNode(this, index) :
-        throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+    public ISingleNodeSignal this[Index index]
+    {
+        get
+        {
+            int actualIndex = index.IsFromEnd ? Dimension.NonNullValue - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {Dimension.NonNullValue - 1}");
+            return new DerivedSignalNode(this, actualIndex);
+        }
+    }
 
     /// <inheritdoc/>
     public IEnumerable<ISignal> ChildSignals => ToSingleNodeSignals;

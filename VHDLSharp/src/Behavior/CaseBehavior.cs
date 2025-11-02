@@ -84,15 +84,17 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public LogicExpression? this[int index]
+    public LogicExpression? this[Index index]
     {
         get
         {
-            if (index < 0 || index >= caseExpressions.Length)
-                throw new ArgumentException($"Case value must be between 0 and {caseExpressions.Length-1}");
-            return caseExpressions[index];
+            int actualIndex = index.IsFromEnd ? caseExpressions.Length - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= caseExpressions.Length)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Case value must refer to an index between 0 and {caseExpressions.Length-1}");
+            return caseExpressions[actualIndex];
         }
-        set => AddCase(index, value);
+        // Index expression from ChatGPT
+        set => AddCase(index.IsFromEnd ? caseExpressions.Length - index.Value : index.Value, value);
     }
 
     /// <summary>

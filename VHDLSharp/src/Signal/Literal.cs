@@ -81,17 +81,18 @@ public class Literal : ISignalWithKnownValue
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public LiteralNode this[int index]
+    public LiteralNode this[Index index]
     {
         get
         {
-            if (index < Dimension.NonNullValue && index >= 0)
-                return bits[index];
-            throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+            int actualIndex = index.IsFromEnd ? Dimension.NonNullValue - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {Dimension.NonNullValue - 1}");
+            return bits[actualIndex];
         }
     }
 
-    ISingleNodeSignal ISignal.this[int index] => this[index];
+    ISingleNodeSignal ISignal.this[Index index] => this[index];
 
     /// <summary>
     /// Just check dimension since this has no parent module

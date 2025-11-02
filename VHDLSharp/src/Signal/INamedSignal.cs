@@ -47,9 +47,9 @@ public interface INamedSignal : IModuleSpecificSignal
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public new ISingleNodeNamedSignal this[int index] { get; }
+    public new ISingleNodeNamedSignal this[Index index] { get; }
 
-    ISingleNodeSignal ISignal.this[int index] => this[index];
+    ISingleNodeSignal ISignal.this[Index index] => this[index];
 
     /// <summary>
     /// If this is the top level, it returns this. 

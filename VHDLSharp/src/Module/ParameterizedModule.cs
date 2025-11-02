@@ -39,11 +39,11 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     }
 
     /// <summary>
-    /// Function to build the module given the input object
+    /// Function to build the module given the input options object
     /// </summary>
-    /// <param name="input"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
-    public abstract IModule BuildModule(T input);
+    public abstract IModule BuildModule(T options);
 
     /// <inheritdoc/>
     public string Name => BaseModule.Name;
