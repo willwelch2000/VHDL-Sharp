@@ -53,7 +53,7 @@ public class LogicSignal : DerivedSignal
         // Handle ports and port mapping
         Instantiation instantiation = new(childModule, ParentModule, instanceName);
         Port outputPort = childModule.AddNewPort(outputSignal, PortDirection.Output);
-        instantiation.PortMapping[outputPort] = ((IDerivedSignal)this).GetLinkedSignal();
+        instantiation.PortMapping[outputPort] = GetLinkedSignal();
         foreach ((INamedSignal topLevelSignal, ITopLevelNamedSignal childSignal) in signalMappings)
         {
             Port inputPort = childModule.AddNewPort(childSignal, PortDirection.Input);

@@ -32,9 +32,10 @@ public static class DerivedSignalExtensions
     /// </summary>
     /// <param name="signal">Starting signal</param>
     /// <param name="totalBits">The total number of bits for the output signal</param>
-    /// <param name="signed">If true, the added bits will match the MSB</param>
+    /// <param name="signed">If true, the extension is a signed extension,
+    /// so the added bits will match the MSB of the input signal</param>
     /// <returns></returns>
-    public static IDerivedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => throw new NotImplementedException();
+    public static IDerivedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => new ExtendedSignal(signal, totalBits, signed);
 
     /// <summary>
     /// Concatenate this signal with another

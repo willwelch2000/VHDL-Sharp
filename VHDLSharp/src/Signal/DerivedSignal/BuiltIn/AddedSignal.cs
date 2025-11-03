@@ -46,7 +46,7 @@ public class AddedSignal : DerivedSignal
     {
         IModule adder = new Adder(Signal1.Dimension.NonNullValue, false, IncludeCarryOut);
         Instantiation inst = new(adder, ParentModule, instanceName);
-        INamedSignal linkedSignal = ((IDerivedSignal)this).GetLinkedSignal();
+        INamedSignal linkedSignal = GetLinkedSignal();
         inst.PortMapping.SetPort("A", Signal1.AsNamedSignal());
         inst.PortMapping.SetPort("B", Signal2.AsNamedSignal());
         // Y is either (all but the last bit of linked signal, if there's a carry-out bit included) or the full linked signal

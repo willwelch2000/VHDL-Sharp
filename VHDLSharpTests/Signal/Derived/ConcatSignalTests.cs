@@ -104,10 +104,6 @@ public class ConcatSignalTests
             if (Math.Abs(timeStep - 1e-5 * Math.Round(timeStep / 1e-5, 0)) < timeBuffer)
                 continue;
 
-            int i1 = s1Results.Values[i];
-            int i2 = s2Results.Values[i];
-            int i3 = s3Results.Values[i];
-
             int expectedS3 = s1Results.Values[i]*2 + s2Results.Values[i]; // s1 is left-shifted 1 bit
             Assert.AreEqual(expectedS3, s3Results.Values[i]);
         }

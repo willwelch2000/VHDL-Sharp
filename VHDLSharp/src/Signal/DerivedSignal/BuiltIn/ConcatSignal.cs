@@ -50,7 +50,7 @@ public class ConcatSignal : DerivedSignal
         Instantiation inst = new(childModule, ParentModule, instanceName);
         inst.PortMapping[upper] = UpperSignal.AsNamedSignal();
         inst.PortMapping[lower] = LowerSignal.AsNamedSignal();
-        inst.PortMapping[output] = ((IDerivedSignal)this).GetLinkedSignal();
+        inst.PortMapping[output] = GetLinkedSignal();
         return inst;
     }
 }
