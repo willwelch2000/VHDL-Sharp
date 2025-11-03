@@ -10,7 +10,7 @@ namespace VHDLSharp.Signals;
 /// Interface for a signal that uses more complicated logic (in the form of an <see cref="IInstantiation"/>)
 /// to assign a value to a signal. A <see cref="LinkedSignal"/> should be assigned the value determined
 /// by the relevant logic. 
-/// This is treated
+/// Any implementing class must be in charge of registering itself in the module that it's in. 
 /// </summary>
 public interface IDerivedSignal : IModuleSpecificSignal
 {
@@ -72,6 +72,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     {
         ValidityManager = new ValidityManager<object>(this, [], []);
         ParentModule = parentModule;
+        parentModule.RegisterDerivedSignal(this);
     }
 
     /// <summary>Module to which this signal belongs</summary>

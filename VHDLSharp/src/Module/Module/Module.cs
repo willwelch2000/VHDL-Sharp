@@ -33,6 +33,8 @@ public class Module : IModule, IValidityManagedEntity
     // It is possible for there to be compiled objects even if this is false
     private bool compiled;
 
+    private readonly HashSet<IDerivedSignal> registeredDerivedSignals = [];
+
     /// <summary>Default constructor</summary>
     public Module()
     {
@@ -133,6 +135,7 @@ public class Module : IModule, IValidityManagedEntity
             .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
             .Union(SignalBehaviors.Keys) // Assigned signals
             .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
+            .Union(registeredDerivedSignals) // Registered derived signals
             // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
             .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
             {
@@ -278,7 +281,9 @@ public class Module : IModule, IValidityManagedEntity
     {
         // Set of all assigned output signals, broken into their single-node components
         HashSet<ISingleNodeNamedSignal> allAssignedOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)
-            .Concat(SignalBehaviors.Keys).SelectMany(s => s.ToSingleNodeSignals)];
+            .Concat(SignalBehaviors.Keys)
+            .Concat(AllModuleSignals.OfType<IDerivedSignal>().Select(s => s.LinkedSignal).OfType<INamedSignal>())
+            .SelectMany(s => s.ToSingleNodeSignals)];
 
         // Check that every single-node signal in every port has been assigned
         // This strategy should work for a Vector assigned as multiple VectorSlices
@@ -679,5 +684,13 @@ public class Module : IModule, IValidityManagedEntity
         foreach (IDerivedSignal derivedSignal in AllModuleSignals.OfType<IDerivedSignal>().Where(s => s.LinkedSignal is ICompiledObject))
             derivedSignal.LinkedSignal = null;
         compiled = false;
+    }
+
+    /// <inheritdoc/>
+    public void RegisterDerivedSignal(IDerivedSignal signal)
+    {
+        if (!signal.ParentModule.Equals(this))
+            throw new Exception($"The provided derived signal does must have this ({Name}) as its parent module");
+        registeredDerivedSignals.Add(signal);
     }
 }

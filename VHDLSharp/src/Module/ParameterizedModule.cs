@@ -101,4 +101,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public void UndoDerivedSignalCompilation() => BaseModule.UndoDerivedSignalCompilation();
+
+    /// <inheritdoc/>
+    public void RegisterDerivedSignal(IDerivedSignal signal) => BaseModule.RegisterDerivedSignal(signal);
 }

@@ -119,4 +119,11 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// which happens whenever a code-production or simulation function is run
     /// </summary>
     public void UndoDerivedSignalCompilation();
+
+    /// <summary>
+    /// Method to ensure that this module knows about a derived signal. 
+    /// This is called by the derived signal class when created
+    /// </summary>
+    /// <param name="signal"></param>
+    public void RegisterDerivedSignal(IDerivedSignal signal);
 }
