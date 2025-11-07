@@ -76,11 +76,4 @@ public interface INamedSignal : IModuleSpecificSignal
     /// <param name="equivalentSignal">The equivalent signal that this is mapped to</param>
     /// <returns></returns>
     public bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal);
-
-    /// <summary>
-    /// Get equality condition with this and a comparison signal
-    /// </summary>
-    /// <param name="comparison">Another signal to compare with this</param>
-    /// <returns></returns>
-    public Equality EqualityWith(ISignal comparison) => new(this, comparison);
 }

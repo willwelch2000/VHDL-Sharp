@@ -11,6 +11,7 @@ using VHDLSharp.Validation;
 
 namespace VHDLSharp.Conditions;
 
+// TODO make main signal ISignal
 /// <summary>
 /// Comparison between signal and either another signal or a value
 /// </summary>
@@ -46,15 +47,15 @@ public class Equality : Condition, IConstantCondition
     public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ComparisonSignal is IModuleSpecificSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
-    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) => 
-        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to evaluate", issue) : 
+    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) =>
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to evaluate", issue) :
         !((IValidityManagedEntity)context).ValidityManager.IsValid(out issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 
     /// <inheritdoc/>
-    public override string ToLogicString() => 
-        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to get string", issue) : 
+    public override string ToLogicString() =>
+        !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to get string", issue) :
         $"{MainSignal.ToLogicString()} = {ComparisonSignal.ToLogicString()}";
 
     /// <inheritdoc/>
@@ -65,7 +66,7 @@ public class Equality : Condition, IConstantCondition
     {
         if (!MainSignal.CanCombine(ComparisonSignal) || !ComparisonSignal.CanCombine(MainSignal))
         {
-            exception =  new IncompatibleSignalException("Main signal is not compatible with comparison signal");
+            exception = new IncompatibleSignalException("Main signal is not compatible with comparison signal");
             return false;
         }
         exception = null;

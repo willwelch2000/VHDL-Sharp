@@ -184,9 +184,6 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
     }
 
     /// <inheritdoc/>
-    public Equality EqualityWith(ISignal comparison) => new(this, comparison);
-
-    /// <inheritdoc/>
     public bool Equals(INamedSignal? other)
     {
         if (other is null)

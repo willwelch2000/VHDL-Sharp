@@ -26,11 +26,16 @@ public class ConditionTests
 
         Equality equalitySingle = new(s1, s2);
         Assert.ThrowsException<IncompatibleSignalException>(() => new Equality(v1, v3));
-        Equality equalityVector = v1.EqualityWith(v2);
+        Equality equalityVector = v1.EqualTo(v2);
         RisingEdge risingEdge = new(s1);
         FallingEdge fallingEdge = s1.FallingEdge();
         High high = new(s1);
         Low low = new(s1);
+        Comparison greaterThan = s1.GreaterThan(s2);
+        Comparison greaterThanSigned = s1.GreaterThan(s2, true);
+        Assert.ThrowsException<IncompatibleSignalException>(() => new Comparison(v1, v3, true));
+        Comparison lessThan = v1.LessThan(v2);
+        Comparison lessThanSigned = v1.LessThan(v2, true);
 
         SubcircuitReference context = new(module1, []);
         SignalReference s1Ref = context.GetChildSignalReference(s1);
@@ -46,6 +51,10 @@ public class ConditionTests
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
         Assert.IsFalse(high.Evaluate(state, context));
         Assert.IsFalse(low.Evaluate(state, context));
+        Assert.IsFalse(greaterThan.Evaluate(state, context));
+        Assert.IsFalse(greaterThanSigned.Evaluate(state, context));
+        Assert.IsFalse(lessThan.Evaluate(state, context));
+        Assert.IsFalse(lessThanSigned.Evaluate(state, context));
 
         // Second state--signals at 0
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -61,6 +70,10 @@ public class ConditionTests
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
         Assert.IsFalse(high.Evaluate(state, context));
         Assert.IsTrue(low.Evaluate(state, context));
+        Assert.IsFalse(greaterThan.Evaluate(state, context));
+        Assert.IsFalse(greaterThanSigned.Evaluate(state, context));
+        Assert.IsFalse(lessThan.Evaluate(state, context));
+        Assert.IsFalse(lessThanSigned.Evaluate(state, context));
 
         // Third state--s2 and v2 moved up
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -76,6 +89,10 @@ public class ConditionTests
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
         Assert.IsFalse(high.Evaluate(state, context));
         Assert.IsTrue(low.Evaluate(state, context));
+        Assert.IsFalse(greaterThan.Evaluate(state, context));
+        Assert.IsTrue(greaterThanSigned.Evaluate(state, context));
+        Assert.IsTrue(lessThan.Evaluate(state, context));
+        Assert.IsFalse(lessThanSigned.Evaluate(state, context));
 
         // Fourth state--s1 and v1 moved up to match
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -91,6 +108,10 @@ public class ConditionTests
         Assert.IsFalse(fallingEdge.Evaluate(state, context));
         Assert.IsTrue(high.Evaluate(state, context));
         Assert.IsFalse(low.Evaluate(state, context));
+        Assert.IsFalse(greaterThan.Evaluate(state, context));
+        Assert.IsFalse(greaterThanSigned.Evaluate(state, context));
+        Assert.IsFalse(lessThan.Evaluate(state, context));
+        Assert.IsFalse(lessThanSigned.Evaluate(state, context));
 
         // Fifth state--s1 moved back down
         state = RuleBasedSimulationState.GivenStartingPoint(new()
@@ -106,6 +127,29 @@ public class ConditionTests
         Assert.IsTrue(fallingEdge.Evaluate(state, context));
         Assert.IsFalse(high.Evaluate(state, context));
         Assert.IsTrue(low.Evaluate(state, context));
+        Assert.IsFalse(greaterThan.Evaluate(state, context));
+        Assert.IsTrue(greaterThanSigned.Evaluate(state, context));
+        Assert.IsFalse(lessThan.Evaluate(state, context));
+        Assert.IsFalse(lessThanSigned.Evaluate(state, context));
+
+        // Alternate fifth state--for testing comparisons
+        state = RuleBasedSimulationState.GivenStartingPoint(new()
+        {
+            {s1Ref, [0, 0, 1, 1]},
+            {s2Ref, [0, 1, 1, 0]},
+            {v1Ref, [0, 0, 5, 5]},
+            {v2Ref, [0, 5, 5, 3]},
+        }, [0, 1, 2, 3, 4], 4);
+        Assert.IsFalse(equalitySingle.Evaluate(state, context));
+        Assert.IsTrue(equalityVector.Evaluate(state, context));
+        Assert.IsFalse(risingEdge.Evaluate(state, context));
+        Assert.IsTrue(fallingEdge.Evaluate(state, context));
+        Assert.IsFalse(high.Evaluate(state, context));
+        Assert.IsTrue(low.Evaluate(state, context));
+        Assert.IsTrue(greaterThan.Evaluate(state, context));
+        Assert.IsFalse(greaterThanSigned.Evaluate(state, context));
+        Assert.IsFalse(lessThan.Evaluate(state, context));
+        Assert.IsTrue(lessThanSigned.Evaluate(state, context));
     }
 
     [TestMethod]
@@ -119,29 +163,33 @@ public class ConditionTests
         Vector v2 = module1.GenerateVector("v2", 3);
 
         Equality equalitySingle = new(s1, s2);
-        Equality equalityVector = v1.EqualityWith(v2);
+        Equality equalityVector = v1.EqualTo(v2);
         RisingEdge risingEdge = new(s1);
         FallingEdge fallingEdge = s1.FallingEdge();
         High high = s1.IsHigh();
         Low low = s1.IsLow();
+        Comparison greaterThan = s1.GreaterThan(s2);
+        Comparison greaterThanSigned = s1.GreaterThan(s2, true);
+        Comparison lessThan = v1.LessThan(v2);
+        Comparison lessThanSigned = v1.LessThan(v2, true);
 
         TimeDefinedStimulus s1Stimulus = new()
         {
-            Points = new() { { 0, false }, { 2e-5, true }, { 3e-5, false } }
+            Points = new() { { 0, false }, { 2e-5, true }, { 4e-5, false } }
         };
         TimeDefinedStimulus s2Stimulus = new()
         {
-            Points = new() { { 0, false }, { 1e-5, true } }
+            Points = new() { { 0, false }, { 1e-5, true }, { 3e-5, false } }
         };
         MultiDimensionalStimulus v1Stimulus = new([
-            new PulseStimulus(2e-5, 10e-5, 20e-5),
+            new PulseStimulus(2e-5, 2e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(2e-5, 10e-5, 20e-5),
+            new PulseStimulus(2e-5, 2e-5, 20e-5),
         ]);
         MultiDimensionalStimulus v2Stimulus = new([
-            new PulseStimulus(1e-5, 10e-5, 20e-5),
+            new PulseStimulus(1e-5, 2e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(1e-5, 10e-5, 20e-5),
+            new PulseStimulus(1e-5, 2e-5, 20e-5),
         ]);
         SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
             s1Stimulus.GetSpice(s1, "s1Stimulus"),
@@ -156,8 +204,14 @@ public class ConditionTests
         Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
         Circuit highCircuit = high.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
         Circuit lowCircuit = low.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit greaterThanCircuit = greaterThan.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit greaterThanSignedCircuit = greaterThanSigned.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit lessThanCircuit = lessThan.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        Circuit lessThanSignedCircuit = lessThanSigned.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
 
         var tran = new Transient("Tran 1", 0.1e-5, 5e-5);
+        var s1Exp = new RealVoltageExport(tran, "s1");
+        var s2Exp = new RealVoltageExport(tran, "s2");
         var s3Exp = new RealVoltageExport(tran, "s3");
 
         // Check single-node equality
@@ -169,6 +223,7 @@ public class ConditionTests
                 > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
                 > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => true,
                 > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => true,
                 _ => null,
             };
 
@@ -183,7 +238,9 @@ public class ConditionTests
             {
                 > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => true,
                 > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
-                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => true,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => true,
                 _ => null,
             };
 
@@ -197,8 +254,8 @@ public class ConditionTests
             bool? expectedResult = tran.Time switch
             {
                 > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
-                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => true,
-                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -212,8 +269,8 @@ public class ConditionTests
             bool? expectedResult = tran.Time switch
             {
                 > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => true,
-                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => false,
-                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => true,
                 _ => null,
             };
 
@@ -226,9 +283,39 @@ public class ConditionTests
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => false,
-                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => true,
-                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => false,
+                > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+
+        // Check low
+        foreach (int _ in tran.Run(lowCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                > Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => true,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+
+        // Check greater than
+        foreach (int _ in tran.Run(greaterThanCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                > Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => false,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
                 _ => null,
             };
 
@@ -236,14 +323,48 @@ public class ConditionTests
                 Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
         }
         
-        // Check low
-        foreach (int _ in tran.Run(lowCircuit, Transient.ExportTransient))
+        // Check greater than signed
+        foreach (int _ in tran.Run(greaterThanSignedCircuit, Transient.ExportTransient))
         {
             bool? expectedResult = tran.Time switch
             {
-                >      Util.TimeBuffer and < 1e-5-Util.TimeBuffer => true,
-                > 2e-5+Util.TimeBuffer and < 3e-5-Util.TimeBuffer => false,
-                > 3e-5+Util.TimeBuffer and < 4e-5-Util.TimeBuffer => true,
+                > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => false,
+                > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+        
+        // Check less than
+        foreach (int _ in tran.Run(lessThanCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => false,
+                > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => true,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => false,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => false,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
+                _ => null,
+            };
+
+            if (expectedResult is not null)
+                Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
+        }
+        
+        // Check less than signed
+        foreach (int _ in tran.Run(lessThanSignedCircuit, Transient.ExportTransient))
+        {
+            bool? expectedResult = tran.Time switch
+            {
+                > Util.TimeBuffer and < 1e-5 - Util.TimeBuffer => false,
+                > 1e-5 + Util.TimeBuffer and < 2e-5 - Util.TimeBuffer => false,
+                > 2e-5 + Util.TimeBuffer and < 3e-5 - Util.TimeBuffer => false,
+                > 3e-5 + Util.TimeBuffer and < 4e-5 - Util.TimeBuffer => true,
+                > 4e-5 + Util.TimeBuffer and < 5e-5 - Util.TimeBuffer => false,
                 _ => null,
             };
 

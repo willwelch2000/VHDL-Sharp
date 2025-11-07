@@ -54,16 +54,4 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     /// </summary>
     /// <param name="value"></param>
     public void AssignBehavior(bool value) => AssignBehavior(new ValueBehavior(value ? 1 : 0));
-
-    /// <inheritdoc/>
-    public RisingEdge RisingEdge() => new(this);
-    
-    /// <inheritdoc/>
-    public FallingEdge FallingEdge() => new(this);
-
-    /// <inheritdoc/>
-    public High IsHigh() => new(this);
-
-    /// <inheritdoc/>
-    public Low IsLow() => new(this);
 }
