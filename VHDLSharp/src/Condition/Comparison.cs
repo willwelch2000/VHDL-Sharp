@@ -67,10 +67,10 @@ public class Comparison : Condition, IConstantCondition
         int dimension = MainSignal.Dimension.NonNullValue;
         if (Signed)
         {
-            // Adjust for two's complement
+            // Adjust for two's complement--MSB is negative not positive, so subtract 2 times that value
             int threshold = 1 << (dimension - 1);
-            main = main >= threshold ? main - threshold : main;
-            comparison = comparison >= threshold ? comparison - threshold : comparison;
+            main = main >= threshold ? main - 2*threshold : main;
+            comparison = comparison >= threshold ? comparison - 2*threshold : comparison;
         }
         return LessThan ? main < comparison : main > comparison;
     }

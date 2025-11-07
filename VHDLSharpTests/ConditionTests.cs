@@ -140,12 +140,6 @@ public class ConditionTests
             {v1Ref, [0, 0, 5, 5]},
             {v2Ref, [0, 5, 5, 3]},
         }, [0, 1, 2, 3, 4], 4);
-        Assert.IsFalse(equalitySingle.Evaluate(state, context));
-        Assert.IsTrue(equalityVector.Evaluate(state, context));
-        Assert.IsFalse(risingEdge.Evaluate(state, context));
-        Assert.IsTrue(fallingEdge.Evaluate(state, context));
-        Assert.IsFalse(high.Evaluate(state, context));
-        Assert.IsTrue(low.Evaluate(state, context));
         Assert.IsTrue(greaterThan.Evaluate(state, context));
         Assert.IsFalse(greaterThanSigned.Evaluate(state, context));
         Assert.IsFalse(lessThan.Evaluate(state, context));

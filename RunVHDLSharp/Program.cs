@@ -30,7 +30,6 @@ public static class Program
             B. Left and right shifts
         3. Conditions should allow module-specific signals instead of named signals--completed
             A. Add test of this?
-        4. Add GreaterThan and LessThan conditions
         5. Add a ConditionBehavior that allows an ordered set of condition/ICombinationalBehavior pairs
             A. Very similar to DynamicBehavior but no flip flop, just a mux basically
             B. Only IConstantConditions allowed
