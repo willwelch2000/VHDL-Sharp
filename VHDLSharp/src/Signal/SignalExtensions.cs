@@ -1,4 +1,5 @@
 using VHDLSharp.Conditions;
+using VHDLSharp.LogicTree;
 
 namespace VHDLSharp.Signals;
 
@@ -55,11 +56,50 @@ public static class SignalExtensions
     /// <param name="signal"></param>
     /// <returns></returns>
     public static High IsHigh(this ISingleNodeNamedSignal signal) => new(signal);
-    
+
     /// <summary>
     /// Low condition for <paramref name="signal"/>
     /// </summary>
     /// <param name="signal"></param>
     /// <returns></returns>
     public static Low IsLow(this ISingleNodeNamedSignal signal) => new(signal);
+
+    /// <summary>
+    /// Bitwise And of this signal and another
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static And<ISignal> And(this ISignal signal, ILogicallyCombinable<ISignal> other) => new(signal, other);
+
+    /// <summary>
+    /// Bitwise Or of this signal and another
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static Or<ISignal> Or(this ISignal signal, ILogicallyCombinable<ISignal> other) => new(signal, other);
+
+    /// <summary>
+    /// Logical Not of this signal
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    public static Not<ISignal> Not(this ISignal signal) => new(signal);
+
+    /// <summary>
+    /// Bitwise And of this signal and others
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public static And<ISignal> And(this ISignal signal, IEnumerable<ILogicallyCombinable<ISignal>> others) => new([signal, .. others]);
+
+    /// <summary>
+    /// Bitwise Or of this signal and others
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="others"></param>
+    /// <returns></returns>
+    public static Or<ISignal> Or(this ISignal signal, IEnumerable<ILogicallyCombinable<ISignal>> others) => new([signal, .. others]);
 }

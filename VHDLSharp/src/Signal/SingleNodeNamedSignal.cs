@@ -1,5 +1,4 @@
 using VHDLSharp.Behaviors;
-using VHDLSharp.Conditions;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;

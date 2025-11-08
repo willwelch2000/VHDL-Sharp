@@ -123,23 +123,6 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
     /// <returns></returns>
     public virtual string GetVhdlDeclaration() => $"signal {Name}\t: {VhdlType}";
 
-    // The following functions are given here so that they can be accessed without referring to this object as ISignal
-
-    /// <inheritdoc/>
-    public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
-
-    /// <inheritdoc/>
-    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
-
-    /// <inheritdoc/>
-    public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
-
-    /// <inheritdoc/>
-    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
-
-    /// <inheritdoc/>
-    public Not<ISignal> Not() => new(this);
-
     // Methods that are shortcuts for adding behaviors
 
     /// <summary>
