@@ -298,6 +298,11 @@ public class Module : IModule, IValidityManagedEntity
         if (!Instantiations.IsComplete(out reason))
             return false;
 
+        // Check all applicable behaviors
+        foreach (ICompletable behavior in SignalBehaviors.Values.OfType<ICompletable>())
+            if (!behavior.IsComplete(out reason))
+                return false;
+
         reason = null;
         return true;
     }
