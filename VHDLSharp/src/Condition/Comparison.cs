@@ -12,7 +12,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that compares 2 signals
 /// </summary>
-public class Comparison : Condition, IConstantCondition
+public class Comparison : ConstantCondition
 {
     /// <summary>
     /// Constructor given two signals. Condition is true when the main signal is greater than the comparison
@@ -101,7 +101,7 @@ public class Comparison : Condition, IConstantCondition
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
+    public override SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
         if (!ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Condition must be valid to get Spice representation", issue);

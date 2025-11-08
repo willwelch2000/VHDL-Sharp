@@ -15,7 +15,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Comparison between signal and either another signal or a value
 /// </summary>
-public class Equality : Condition, IConstantCondition
+public class Equality : ConstantCondition
 {
     /// <summary>
     /// Generate equality comparison between two signals
@@ -74,7 +74,7 @@ public class Equality : Condition, IConstantCondition
     }
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
+    public override SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
         if (!ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Condition must be valid to get Spice representation", issue);
