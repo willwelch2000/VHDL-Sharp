@@ -144,9 +144,13 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
-            throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
+            throw new Exception($"Case value must be between 0 and {caseExpressions.Length - 1}");
         CheckCompatibleNewExpression(logicExpression);
+        LogicExpression? oldExpression = caseExpressions[value];
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
+        // Remove no-longer used signals from being tracked
+        if (oldExpression is not null)
+            ManageRemovedSignals(oldExpression.BaseObjects);
         InvokeBehaviorUpdated(this, EventArgs.Empty);
     }
 
@@ -171,7 +175,11 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     public void SetDefault(ILogicallyCombinable<ISignal>? logicExpression)
     {
         CheckCompatibleNewExpression(logicExpression);
+        LogicExpression? oldExpression = defaultExpression;
         defaultExpression = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
+        // Remove no-longer used signals from being tracked
+        if (oldExpression is not null)
+            ManageRemovedSignals(oldExpression.BaseObjects);
     }
 
     /// <summary>

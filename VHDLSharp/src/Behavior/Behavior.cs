@@ -184,7 +184,21 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <param name="newSignals"></param>
     protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
     {
+        // Doesn't need to unpack derived signals--just the direct children are followed
         foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
             childEntities.Add(derivedSignal);
+    }
+    
+    /// <summary>
+    /// Should be called by child classes whenever signals are removed. 
+    /// Finds the derived signals and untracks them
+    /// </summary>
+    /// <param name="removedSignals"></param>
+    protected void ManageRemovedSignals(IEnumerable<ISignal> removedSignals)
+    {
+        // Avoid removing those that are still input signals--might be used in another part of the behavior
+        IModuleSpecificSignal[] inputSignals = [.. InputModuleSignals];
+        foreach (IDerivedSignal derivedSignal in removedSignals.Except(inputSignals).OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Remove(derivedSignal);
     }
 }
