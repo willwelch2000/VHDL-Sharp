@@ -35,7 +35,7 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<IModuleSpecificSignal>()).Append(Selector).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => caseExpressions.Append(DefaultExpression).OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<IModuleSpecificSignal>()).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
