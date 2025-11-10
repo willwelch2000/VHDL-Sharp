@@ -1,4 +1,6 @@
+using VHDLSharp.Conditions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Utility;
 
@@ -41,5 +43,14 @@ internal static class Util
         }
 
         return true;
+    }
+
+    internal static bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        bool Primary(ICondition condition) => condition.Evaluate(state, context);
+        bool And(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a && b);
+        bool Or(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a || b);
+        bool Not(bool input) => !input;
+        return conditionCombo.PerformFunction(Primary, And, Or, Not);
     }
 }

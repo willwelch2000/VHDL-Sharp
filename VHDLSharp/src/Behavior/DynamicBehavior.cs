@@ -21,7 +21,7 @@ namespace VHDLSharp.Behaviors;
 /// The output signal is assigned the value from the combinational behavior when the condition is met. 
 /// Priority is used for the conditions
 /// </summary>
-public class DynamicBehavior : Behavior
+public class DynamicBehavior : Behavior, ICompletable
 {
     private int initialValue = 0;
 
@@ -70,9 +70,6 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        if (ConditionMappings.Count == 0)
-            throw new Exception("Must have at least one condition mapping");
-
         StringBuilder sb = new();
         sb.AppendLine($"process({string.Join(", ", InputModuleSignals.Select(s => s.GetVhdlName()))}) is");
         sb.AppendLine("begin");
@@ -126,7 +123,7 @@ public class DynamicBehavior : Behavior
 
         // Check that dimensions of all behaviors are compatible
         if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension)))
-            exception = new Exception("Expressions are incompatible. Must have same or compatible dimensions");
+            exception = new Exception("Used behaviors are incompatible. Must have same or compatible dimensions");
 
         return exception is null;
     }
@@ -134,9 +131,6 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
     {
-        if (ConditionMappings.Count == 0)
-            throw new Exception("Must have at least one condition mapping");
-
         IModule module = outputSignal.ParentModule;
 
         // Create intermediate signals for inner conditions and behaviors, and add their circuits to list
@@ -153,7 +147,7 @@ public class DynamicBehavior : Behavior
             // Generate intermediate signal from behavior matching dimension of output
             string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"inner{i}");
             INamedSignal intSignal = dimension == 1 ? new Signal(intermediateName, module) :
-                new Vector(intermediateName, module, outputSignal.Dimension.NonNullValue);
+                new Vector(intermediateName, module, dimension);
             j = 0;
             intermediateCircuits.Add(innerBehavior.GetSpice(intSignal, $"{uniqueId}_{i}_{j++}"));
 
@@ -257,7 +251,7 @@ public class DynamicBehavior : Behavior
                 string[] oneInputBits = [.. value.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
                 string[] outBits = [.. muxTreeSignals[i + 1].ToSingleNodeSignals.Select(s => s.GetSpiceName())];
                 for (int k = 0; k < zeroInputBits.Length; k++)
-                    additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, k, "OutputMUX"), SpiceUtil.GetMuxSubcircuit(1), condition.GetSpiceName(), zeroInputBits[k], oneInputBits[k], outBits[k]));
+                    additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, k, $"OutputMUX{i}"), SpiceUtil.GetMuxSubcircuit(1), condition.GetSpiceName(), zeroInputBits[k], oneInputBits[k], outBits[k]));
             }
         }
 
@@ -316,30 +310,18 @@ public class DynamicBehavior : Behavior
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
     {
-        if (ConditionMappings.Count == 0)
-            throw new Exception("Must have at least one condition mapping");
-
         // If first step, use 0 as value
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)
             return InitialValue;
 
         // Check if any condition set is satisfied--if so, use the corresponding value
-        foreach ((ILogicallyCombinable<ICondition> Condition, ICombinationalBehavior Behavior) in ConditionMappings)
-            if (EvaluateConditionCombo(Condition, state, outputSignal.Subcircuit))
-                return Behavior.GetOutputValue(state, outputSignal);
+        foreach ((ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
+            if (Util.EvaluateConditionCombo(condition, state, outputSignal.Subcircuit))
+                return behavior.GetOutputValue(state, outputSignal);
 
         // Otherwise, use the previous value from the state
         return state.GetSignalValues(outputSignal)[lastIndex];
-    }
-
-    private bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubcircuitReference context)
-    {
-        bool Primary(ICondition condition) => condition.Evaluate(state, context);
-        bool And(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a && b);
-        bool Or(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a || b);
-        bool Not(bool input) => !input;
-        return conditionCombo.PerformFunction(Primary, And, Or, Not);
     }
 
     private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)
@@ -364,5 +346,17 @@ public class DynamicBehavior : Behavior
 
         // Invoke module update
         InvokeBehaviorUpdated(sender, e);
+    }
+
+    /// <inheritdoc/>
+    public bool IsComplete([MaybeNullWhen(true)] out string reason)
+    {
+        if (ConditionMappings.Count == 0)
+        {
+            reason = "Must have at least one condition mapping";
+            return false;
+        }
+        reason = null;
+        return true;
     }
 }

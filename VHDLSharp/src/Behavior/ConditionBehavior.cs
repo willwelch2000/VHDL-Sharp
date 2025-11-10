@@ -1,0 +1,189 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using SpiceSharp.Components;
+using SpiceSharp.Entities;
+using VHDLSharp.Conditions;
+using VHDLSharp.Dimensions;
+using VHDLSharp.LogicTree;
+using VHDLSharp.Modules;
+using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
+using VHDLSharp.SpiceCircuits;
+using VHDLSharp.Utility;
+
+namespace VHDLSharp.Behaviors;
+
+/// <summary>
+/// Behavior defined by an ordered set of condition/behavior pairs. 
+/// The behavior corresponding to the highest-priority true condition is applied. 
+/// A default behavior can be defined as well. It is an output of 0 unless otherwise specified. 
+/// All behaviors must be combination (implement <see cref="ICombinationalBehavior"/>)
+/// </summary>
+public class ConditionBehavior : Behavior, ICombinationalBehavior
+{
+    private ICombinationalBehavior defaultBehavior = new ValueBehavior(0);
+
+    /// <summary>
+    /// Generate new condition behavior
+    /// </summary>
+    public ConditionBehavior()
+    {
+        ConditionMappings.CollectionChanged += ConditionMappingUpdated;
+    }
+
+    /// <summary>
+    /// Default behavior to use when no condition is met. Originally set to output 0. 
+    /// </summary>
+    public ICombinationalBehavior DefaultBehavior
+    {
+        get => defaultBehavior;
+        set
+        {
+            RemoveChildEntity(defaultBehavior);
+            AddChildEntity(value);
+            defaultBehavior = value;
+            InvokeBehaviorUpdated(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Ordered mapping of condition to behavior
+    /// </summary>
+    public ObservableCollection<(ILogicallyCombinable<IConstantCondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
+
+    /// <inheritdoc/>
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(m => m.Behavior.InputModuleSignals.Union(m.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Union(DefaultBehavior.InputModuleSignals);
+
+    /// <inheritdoc/>
+    public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension).Append(DefaultBehavior.Dimension));
+
+    /// <inheritdoc/>
+    protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
+    {
+        // Check parent modules of input signals
+        base.CheckTopLevelValidity(out exception);
+
+        // Check that dimensions of all behaviors are compatible
+        if (!Dimension.AreCompatible(ConditionMappings.Select(c => c.Behavior.Dimension).Append(DefaultBehavior.Dimension)))
+            exception = new Exception("Used behaviors are incompatible. Must have same or compatible dimensions");
+
+        return exception is null;
+    }
+
+    private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Track each new condition/behavior in validity manager
+        if ((e.Action == NotifyCollectionChangedAction.Add || e.Action == NotifyCollectionChangedAction.Replace) && e.NewItems is not null)
+            foreach (object newItem in e.NewItems)
+                if (newItem is KeyValuePair<ILogicallyCombinable<ICondition>, ICombinationalBehavior> kvp)
+                {
+                    AddChildEntity(kvp.Key);
+                    AddChildEntity(kvp.Value);
+                }
+
+        // If something has been removed, remove behavior from tracking
+        if ((e.Action == NotifyCollectionChangedAction.Remove || e.Action == NotifyCollectionChangedAction.Reset || e.Action == NotifyCollectionChangedAction.Replace) && e.OldItems is not null)
+            foreach (object oldItem in e.OldItems)
+                if (oldItem is KeyValuePair<ILogicallyCombinable<ICondition>, ICombinationalBehavior> kvp)
+                {
+                    RemoveChildEntity(kvp.Key);
+                    RemoveChildEntity(kvp.Value);
+                }
+
+        // Invoke module update
+        InvokeBehaviorUpdated(sender, e);
+    }
+
+    /// <inheritdoc/>
+    protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
+    {
+        if (ConditionMappings.Count == 0)
+            return DefaultBehavior.GetVhdlStatement(outputSignal);
+
+        StringBuilder sb = new();
+        bool firstLoop = true;
+
+        // Conditions
+        foreach ((ILogicallyCombinable<IConstantCondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
+        {
+            sb.AppendLine($"{(firstLoop ? "if" : "elsif")} ({condition.ToLogicString()}) then");
+            sb.AppendLine(behavior.GetVhdlStatement(outputSignal).AddIndentation(1));
+            firstLoop = false;
+        }
+
+        // Default
+        sb.AppendLine("else");
+        sb.AppendLine(defaultBehavior.GetVhdlStatement(outputSignal).AddIndentation(1));
+        sb.AppendLine($"end if");
+
+        return sb.ToString();
+    }
+
+    /// <inheritdoc/>
+    protected override SpiceCircuit GetSpiceWithoutCheck(INamedSignal outputSignal, string uniqueId)
+    {
+        int conditionCount = ConditionMappings.Count;
+        if (conditionCount == 0)
+            return DefaultBehavior.GetSpice(outputSignal, uniqueId);
+
+        IModule module = outputSignal.ParentModule;
+        int dimension = outputSignal.Dimension.NonNullValue;
+        List<SpiceCircuit> intermediateCircuits = [];
+        List<IEntity> additionalEntities = [];
+
+        List<(INamedSignal value, ISingleNodeNamedSignal condition)> signalPairs = [];
+        // Go through condition/behavior pairs
+        int i = 0;
+        foreach ((ILogicallyCombinable<IConstantCondition> innerCondition, ICombinationalBehavior innerBehavior) in ConditionMappings)
+        {
+            int j = 0;
+            // Generate intermediate signal from behavior matching dimension of output
+            string intermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, $"inner{i}");
+            INamedSignal intSignal = NamedSignal.GenerateSignalOrVector(intermediateName, module, dimension);
+            intermediateCircuits.Add(innerBehavior.GetSpice(intSignal, $"{uniqueId}_{i}_{j++}"));
+
+            Signal enSignal = new(SpiceUtil.GetSpiceName(uniqueId, 0, $"condition{i}"), module);
+            intermediateCircuits.Add(innerCondition.ToBasicCondition().GenerateLogicalObject(IConstantCondition.ConditionSpiceSharpObjectOptions, new()
+            {
+                UniqueId = $"{uniqueId}_{i}_{j++}",
+                OutputSignal = enSignal,
+            }));
+
+            signalPairs.Add((intSignal, enSignal));
+            i++;
+        }
+
+        // Default behavior
+        string defaultIntermediateName = SpiceUtil.GetSpiceName(uniqueId, 0, "default");
+        INamedSignal defaultBehaviorSignal = NamedSignal.GenerateSignalOrVector(defaultIntermediateName, module, dimension);
+        intermediateCircuits.Add(defaultBehavior.GetSpice(defaultBehaviorSignal, $"{uniqueId}_{i}"));
+
+        // MUX tree
+        INamedSignal muxOut = outputSignal;
+        foreach ((int j, (INamedSignal value, ISingleNodeNamedSignal condition)) in signalPairs.Index())
+        {
+            INamedSignal zeroInput = j == conditionCount - 1 ? defaultBehaviorSignal :
+                NamedSignal.GenerateSignalOrVector(SpiceUtil.GetSpiceName(uniqueId, 0, $"MUXOut{j}"), module, dimension);
+            string[] zeroInputBits = [.. zeroInput.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+            string[] oneInputBits = [.. value.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+            string[] outBits = [.. outputSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
+            for (int k = 0; k < zeroInputBits.Length; k++)
+                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, k, $"MUX{i}"), SpiceUtil.GetMuxSubcircuit(1), condition.GetSpiceName(), zeroInputBits[k], oneInputBits[k], outBits[k]));
+            muxOut = zeroInput;
+        }
+
+        return SpiceCircuit.Combine([.. intermediateCircuits, new(additionalEntities)]);
+    }
+
+    /// <inheritdoc/>
+    protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal)
+    {
+        // Get output from behavior with highest-priority true condition, or default
+        foreach ((ILogicallyCombinable<IConstantCondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
+            if (Util.EvaluateConditionCombo(condition.ToBasicCondition(), state, outputSignal.Subcircuit))
+                return behavior.GetOutputValue(state, outputSignal);
+        return DefaultBehavior.GetOutputValue(state, outputSignal);
+    }
+}
