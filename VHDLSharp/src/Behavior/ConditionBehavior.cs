@@ -170,7 +170,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior
             string[] oneInputBits = [.. value.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
             string[] outBits = [.. outputSignal.ToSingleNodeSignals.Select(s => s.GetSpiceName())];
             for (int k = 0; k < zeroInputBits.Length; k++)
-                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, k, $"MUX{i}"), SpiceUtil.GetMuxSubcircuit(1), condition.GetSpiceName(), zeroInputBits[k], oneInputBits[k], outBits[k]));
+                additionalEntities.Add(new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, k, $"MUX{j}"), SpiceUtil.GetMuxSubcircuit(1), condition.GetSpiceName(), zeroInputBits[k], oneInputBits[k], outBits[k]));
             muxOut = zeroInput;
         }
 
