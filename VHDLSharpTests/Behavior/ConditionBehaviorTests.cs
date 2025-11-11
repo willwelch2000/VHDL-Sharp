@@ -1,6 +1,7 @@
 using VHDLSharp.Behaviors;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharpTests;
 
@@ -118,5 +119,26 @@ public class ConditionBehaviorTests
         Xn0x1_MUX1 n0x0_condition1 n0x0_default_1 n0x0_inner1_1 OUT_1 MUX1
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
+
+        // Check simulation rule and its output values
+        SubcircuitReference subcircuitRef = new(module, []);
+        SignalReference outputRef = new(subcircuitRef, output);
+        SignalReference inputRef = new(subcircuitRef, input);
+        SimulationRule simRule = behavior.GetSimulationRule(outputRef);
+        for (int i = 0; i < 8; i++)
+        {
+            RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()
+            {
+                {inputRef, [i]}
+            }, [0, 1], 1);
+            int value = simRule.OutputValueCalculation(state);
+            int expectedValue = i switch
+            {
+                < 3 => 0,
+                3 => 1,
+                _ => 2,
+            };
+            Assert.AreEqual(expectedValue, value);
+        }
     }
 }
