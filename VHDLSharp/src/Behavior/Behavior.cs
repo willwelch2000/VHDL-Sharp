@@ -202,9 +202,9 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <param name="removedSignals"></param>
     protected void ManageRemovedSignals(IEnumerable<ISignal> removedSignals)
     {
-        // Avoid removing those that are still input signals--might be used in another part of the behavior
-        IModuleSpecificSignal[] inputSignals = [.. InputModuleSignals];
-        foreach (IDerivedSignal derivedSignal in removedSignals.Except(inputSignals).OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+        // The ValidityManager class is built to track the net add/remove count, so it should work to 
+        // remove these even if they are used multiple times
+        foreach (IDerivedSignal derivedSignal in removedSignals.OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
             childEntities.Remove(derivedSignal);
     }
 }
