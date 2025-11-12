@@ -24,6 +24,7 @@ public class ExtendedSignal : DerivedSignal
         InputSignal = inputSignal;
         OutputBits = outputBits;
         Signed = signed;
+        ManageNewSignals([inputSignal]);
     }
 
     /// <summary>Input signal to be extended</summary>
@@ -40,7 +41,7 @@ public class ExtendedSignal : DerivedSignal
     public override DefiniteDimension Dimension => OutputBits;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => UnpackDerivedSignals([InputSignal]);
+    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [InputSignal];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

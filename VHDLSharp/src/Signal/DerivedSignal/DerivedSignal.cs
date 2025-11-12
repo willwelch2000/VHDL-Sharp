@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
@@ -64,13 +65,16 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
 {
     private EventHandler? updated;
 
+    private readonly ObservableCollection<object> childEntities;
+    
     /// <summary>
     /// Constructor given parent module
     /// </summary>
     /// <param name="parentModule"></param>
     public DerivedSignal(IModule parentModule)
     {
-        ValidityManager = new ValidityManager<object>(this, [], []);
+        childEntities = [];
+        ValidityManager = new ValidityManager<object>(this, childEntities);
         ParentModule = parentModule;
         parentModule.RegisterDerivedSignal(this);
     }
@@ -120,8 +124,9 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
                 if (foundSignals.Contains(signal)) // Skip if already found
                     continue;
                 yield return signal; // Return the signal itself
-                // If it's a derived signal, return all its used signals recursively as well
-                if (signal is IDerivedSignal derivedSignal)
+                // If it's a derived signal or derived signal node, return all its used signals recursively as well
+                IDerivedSignal? derivedSignal = signal as IDerivedSignal ?? (signal as IDerivedSignalNode)?.DerivedSignal;
+                if (derivedSignal is not null)
                     foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.UsedModuleSpecificSignals)
                         if (!foundSignals.Contains(subNamedSignal))
                             yield return subNamedSignal;
@@ -134,6 +139,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     /// <summary>
     /// All the input signals that implement <see cref="IModuleSpecificSignal"/>. 
     /// Used to generate the <see cref="UsedModuleSpecificSignals"/> list.
+    /// Not recursive
     /// </summary>
     protected abstract IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule { get; }
 
@@ -215,25 +221,27 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     }
 
     /// <summary>
-    /// Given a set of signals, look inside derived signals to find their used signals. 
-    /// This only recurses one level because it is assumed that the used signals of 
-    /// the derived signals will also recurse
+    /// Should be called by child classes whenever new signals are added. 
+    /// Finds the derived signals and tracks them
     /// </summary>
-    /// <param name="signals"></param>
-    /// <returns></returns>
-    internal static HashSet<IModuleSpecificSignal> UnpackDerivedSignals(IEnumerable<IModuleSpecificSignal> signals)
+    /// <param name="newSignals"></param>
+    protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
     {
-        HashSet<IModuleSpecificSignal> usedSignals = [];
-        foreach (IModuleSpecificSignal signal in signals)
-        {
-            if (!usedSignals.Add(signal))
-                continue;
-            // If it's a derived signal or derived signal node, also return its used signals
-            IDerivedSignal? derivedSignal = signal as IDerivedSignal ?? (signal as IDerivedSignalNode)?.DerivedSignal;
-            if (derivedSignal is not null)
-                foreach (IModuleSpecificSignal subSignal in derivedSignal.UsedModuleSpecificSignals)
-                    usedSignals.Add(subSignal);
-        }
-        return usedSignals;
+        // Doesn't need to unpack derived signals--just the direct children are followed
+        foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Add(derivedSignal);
+    }
+    
+    /// <summary>
+    /// Should be called by child classes whenever signals are removed. 
+    /// Finds the derived signals and untracks them
+    /// </summary>
+    /// <param name="removedSignals"></param>
+    protected void ManageRemovedSignals(IEnumerable<ISignal> removedSignals)
+    {
+        // Avoid removing those that are still input signals--might be used in another part of the derived signal
+        IModuleSpecificSignal[] inputSignals = [.. InputSignalsWithAssignedModule];
+        foreach (IDerivedSignal derivedSignal in removedSignals.Except(inputSignals).OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Remove(derivedSignal);
     }
 }

@@ -29,6 +29,7 @@ public class LogicSignal : DerivedSignal
             throw new Exception($"Module of expression ({moduleSpecificSignal.ParentModule}) must equal provided base module ({parentModule})");
 
         Expression = expression;
+        ManageNewSignals(expression.BaseObjects);
     }
 
     /// <summary>Expression defining this signal</summary>
@@ -38,7 +39,7 @@ public class LogicSignal : DerivedSignal
     public override DefiniteDimension Dimension => Expression.Dimension;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => UnpackDerivedSignals(Expression.BaseObjects.OfType<IModuleSpecificSignal>());
+    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => Expression.BaseObjects.OfType<IModuleSpecificSignal>();
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

@@ -21,6 +21,7 @@ public class ConcatSignal : DerivedSignal
         LowerSignal = lowerSignal;
         if (!upperSignal.ParentModule.Equals(lowerSignal.ParentModule))
             throw new Exception($"Input signals to concat must be compatible");
+        ManageNewSignals([upperSignal, lowerSignal]);
     }
 
     /// <summary>Signal that makes up upper bits of output</summary>
@@ -33,7 +34,7 @@ public class ConcatSignal : DerivedSignal
     public override DefiniteDimension Dimension => new(UpperSignal.Dimension.NonNullValue + LowerSignal.Dimension.NonNullValue);
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => UnpackDerivedSignals([UpperSignal, LowerSignal]);
+    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [UpperSignal, LowerSignal];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)
