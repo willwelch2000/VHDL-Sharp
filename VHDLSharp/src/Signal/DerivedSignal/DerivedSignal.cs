@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
+using VHDLSharp.Signals.Derived;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Signals;
@@ -56,6 +57,13 @@ public interface IDerivedSignal : IModuleSpecificSignal
     public new IEnumerable<IDerivedSignalNode> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Get a slice of this derived signal
+    /// </summary>
+    /// <param name="range"></param>
+    /// <returns></returns>
+    public abstract SliceSignal this[Range range] { get; }
 }
 
 /// <summary>
@@ -188,6 +196,16 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager { get; }
+
+    /// <inheritdoc/>
+    public SliceSignal this[Range range]
+    {
+        get
+        {
+            int dimension = Dimension.NonNullValue;
+            return new(this, range.Start.GetOffset(dimension), range.End.GetOffset(dimension));
+        }
+    }
 
     /// <inheritdoc/>
     public event EventHandler? Updated

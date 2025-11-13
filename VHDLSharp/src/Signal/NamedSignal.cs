@@ -71,9 +71,9 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
         set
         {
             if (value is null)
-                RemoveBehavior();
+                this.RemoveBehavior();
             else
-                AssignBehavior(value);
+                this.AssignBehavior(value);
         }
     }
 
@@ -122,41 +122,6 @@ public abstract class NamedSignal : INamedSignal, IEquatable<INamedSignal>
     /// </summary>
     /// <returns></returns>
     public virtual string GetVhdlDeclaration() => $"signal {Name}\t: {VhdlType}";
-
-    // Methods that are shortcuts for adding behaviors
-
-    /// <summary>
-    /// Assign a specified behavior to the signal
-    /// </summary>
-    /// <param name="behavior"></param>
-    /// <returns>Assigned behavior</returns>
-    public IBehavior AssignBehavior(IBehavior behavior)
-    {
-        ParentModule.SignalBehaviors[this] = behavior;
-        return behavior;
-    }
-
-    /// <summary>
-    /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns>Assigned behavior</returns>
-    public IBehavior AssignBehavior(int value) => AssignBehavior(new ValueBehavior(value));
-
-    /// <summary>
-    /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
-    /// </summary>
-    /// <param name="expression"></param>
-    /// <returns>Assigned behavior</returns>
-    public IBehavior AssignBehavior(ILogicallyCombinable<ISignal> expression) => AssignBehavior(new LogicBehavior(expression));
-
-    /// <summary>
-    /// Remove behavior assignment from this signal
-    /// </summary>
-    public void RemoveBehavior()
-    {
-        ParentModule.SignalBehaviors.Remove(this);
-    }
 
     /// <inheritdoc/>
     public virtual bool IsPartOfPortMapping(PortMapping mapping, [MaybeNullWhen(false)] out INamedSignal equivalentSignal)

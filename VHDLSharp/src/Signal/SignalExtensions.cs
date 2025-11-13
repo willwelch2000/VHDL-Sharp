@@ -1,3 +1,4 @@
+using VHDLSharp.Behaviors;
 using VHDLSharp.Conditions;
 using VHDLSharp.LogicTree;
 
@@ -102,4 +103,41 @@ public static class SignalExtensions
     /// <param name="others"></param>
     /// <returns></returns>
     public static Or<ISignal> Or(this ISignal signal, IEnumerable<ILogicallyCombinable<ISignal>> others) => new([signal, .. others]);
+
+
+    // Methods that are shortcuts for adding behaviors
+
+    /// <summary>
+    /// Assign a specified behavior to the signal
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="behavior"></param>
+    /// <returns>Assigned behavior</returns>
+    public static IBehavior AssignBehavior(this INamedSignal signal, IBehavior behavior)
+    {
+        signal.ParentModule.SignalBehaviors[signal] = behavior;
+        return behavior;
+    }
+
+    /// <summary>
+    /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="value"></param>
+    /// <returns>Assigned behavior</returns>
+    public static IBehavior AssignBehavior(this INamedSignal signal, int value) => signal.AssignBehavior(new ValueBehavior(value));
+
+    /// <summary>
+    /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="expression"></param>
+    /// <returns>Assigned behavior</returns>
+    public static IBehavior AssignBehavior(this INamedSignal signal, ILogicallyCombinable<ISignal> expression) => signal.AssignBehavior(new LogicBehavior(expression));
+
+    /// <summary>
+    /// Remove behavior assignment from this signal
+    /// </summary>
+    /// <param name="signal"></param>
+    public static void RemoveBehavior(this INamedSignal signal) => signal.ParentModule.SignalBehaviors.Remove(signal);
 }

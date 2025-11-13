@@ -52,5 +52,5 @@ public abstract class SingleNodeNamedSignal : NamedSignal, ISingleNodeNamedSigna
     /// Assign a specified value to the signal as a <see cref="ValueBehavior"/>
     /// </summary>
     /// <param name="value"></param>
-    public void AssignBehavior(bool value) => AssignBehavior(new ValueBehavior(value ? 1 : 0));
+    public void AssignBehavior(bool value) => this.AssignBehavior(new ValueBehavior(value ? 1 : 0));
 }
