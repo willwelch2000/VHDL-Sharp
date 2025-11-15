@@ -108,9 +108,15 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
         return Dimension.CombineWithoutCheck(subDimensions);
     }
 
+    IEnumerable<IBehavior> IRecursiveBehavior.ChildBehaviors => ConditionMappings.Select(c => c.Behavior).Append(DefaultBehavior);
+
     /// <inheritdoc/>
     protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
+        // Check recursion
+        if (((IRecursiveBehavior)this).CheckRecursion())
+            exception = new Exception("Recursion detected in behavior. This is not allowed.");
+
         // Check parent modules of input signals
         base.CheckTopLevelValidity(out exception);
 

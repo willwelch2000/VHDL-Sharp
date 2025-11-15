@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 
@@ -24,4 +25,17 @@ internal interface IRecursiveBehavior : IBehavior
     /// <param name="behaviorsToIgnore">List of behaviors to avoid looking into</param>
     /// <returns></returns>
     Dimension GetDimension(ISet<IBehavior> behaviorsToIgnore);
+
+    IEnumerable<IBehavior> ChildBehaviors { get; }
+
+    bool CheckRecursion(ISet<IRecursiveBehavior>? parentBehaviors = null)
+    {
+        if (parentBehaviors is not null && parentBehaviors.Contains(this))
+            return true;
+        HashSet<IRecursiveBehavior> childParentBehaviors = parentBehaviors is null ? [this] : [.. parentBehaviors, this];
+        foreach (IRecursiveBehavior behavior in ChildBehaviors.OfType<IRecursiveBehavior>())
+            if (behavior.CheckRecursion(childParentBehaviors))
+                return true;
+        return false;
+    }
 }
