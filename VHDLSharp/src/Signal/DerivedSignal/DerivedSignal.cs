@@ -8,11 +8,17 @@ using VHDLSharp.Validation;
 
 namespace VHDLSharp.Signals;
 
+// Look at existing DerivedSignal child classes--all sub-signals must be added during construction,
+// ensuring that recursion doesn't happen. If this rule changes, recursion will need to be managed
+// like it is for behaviors. 
 /// <summary>
 /// Interface for a signal that uses more complicated logic (in the form of an <see cref="IInstantiation"/>)
 /// to assign a value to a signal. A <see cref="LinkedSignal"/> should be assigned the value determined
 /// by the relevant logic. 
 /// Any implementing class must be in charge of registering itself in the module that it's in. 
+/// Recursion with derived signals is not allowed or checked for, so it should not be allowed by 
+/// implementing classes. This can be ensured by not allowing sub-signals to be switched out
+/// after construction. 
 /// </summary>
 public interface IDerivedSignal : IModuleSpecificSignal
 {

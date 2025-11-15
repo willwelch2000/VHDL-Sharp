@@ -21,7 +21,7 @@ namespace VHDLSharp.Behaviors;
 /// A default behavior can be defined as well. It is an output of 0 unless otherwise specified. 
 /// All behaviors must be combination (implement <see cref="ICombinationalBehavior"/>)
 /// </summary>
-public class ConditionBehavior : Behavior, ICombinationalBehavior
+public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBehavior
 {
     private ICombinationalBehavior defaultBehavior = new ValueBehavior(0);
 
@@ -54,10 +54,59 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior
     public ObservableCollection<(ILogicallyCombinable<IConstantCondition> Condition, ICombinationalBehavior Behavior)> ConditionMappings { get; } = [];
 
     /// <inheritdoc/>
-    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(m => m.Behavior.InputModuleSignals.Union(m.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Union(DefaultBehavior.InputModuleSignals);
+    public override HashSet<IModuleSpecificSignal> InputModuleSignals => GetInputModuleSignals();
+
+    IEnumerable<IModuleSpecificSignal> IRecursiveBehavior.GetInputModuleSignals(ISet<IBehavior> behaviorsToIgnore) => GetInputModuleSignals(behaviorsToIgnore);
+
+    // Special method to avoid recursion when getting input signals
+    private HashSet<IModuleSpecificSignal> GetInputModuleSignals(ISet<IBehavior>? behaviorsToIgnore = null)
+    {
+        HashSet<IBehavior> childBehaviorsToIgnore = behaviorsToIgnore is null ? [this] : [.. behaviorsToIgnore, this];
+        HashSet<IModuleSpecificSignal> signals = [];
+
+        void HandleBehavior(ICombinationalBehavior behavior)
+        {
+            // Ignore all sub-behaviors that are in list to ignore
+            // Includes itself (don't want immediate recursion) and sub-behaviors once they've been explored
+            if (!childBehaviorsToIgnore.Contains(behavior))
+            {
+                IEnumerable<IModuleSpecificSignal> behaviorSignals = behavior is IRecursiveBehavior recursiveBehavior ? 
+                    recursiveBehavior.GetInputModuleSignals(childBehaviorsToIgnore) : behavior.InputModuleSignals;
+                foreach (IModuleSpecificSignal signal in behaviorSignals)
+                    signals.Add(signal);
+                childBehaviorsToIgnore.Add(behavior);
+            }
+        }
+
+        foreach ((ILogicallyCombinable<IConstantCondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
+        {
+            foreach (IModuleSpecificSignal signal in condition.BaseObjects.SelectMany(c => c.InputModuleSignals))
+                signals.Add(signal);
+            HandleBehavior(behavior);
+        }
+        HandleBehavior(DefaultBehavior);
+        return signals;
+    }
 
     /// <inheritdoc/>
-    public override Dimension Dimension => Dimension.CombineWithoutCheck(ConditionMappings.Select(c => c.Behavior.Dimension).Append(DefaultBehavior.Dimension));
+    public override Dimension Dimension => GetDimension();
+
+    Dimension IRecursiveBehavior.GetDimension(ISet<IBehavior> behaviorsToIgnore) => GetDimension(behaviorsToIgnore);
+
+    private Dimension GetDimension(ISet<IBehavior>? behaviorsToIgnore = null)
+    {
+        HashSet<IBehavior> childBehaviorsToIgnore = behaviorsToIgnore is null ? [this] : [.. behaviorsToIgnore, this];
+        List<Dimension> subDimensions = [];
+        foreach (IBehavior behavior in ConditionMappings.Select(c => c.Behavior).Append(DefaultBehavior))
+        {
+            if (childBehaviorsToIgnore.Contains(behavior))
+                continue;
+            subDimensions.Add(behavior is IRecursiveBehavior recursiveBehavior ? 
+                recursiveBehavior.GetDimension(childBehaviorsToIgnore) : behavior.Dimension);
+            childBehaviorsToIgnore.Add(behavior);
+        }
+        return Dimension.CombineWithoutCheck(subDimensions);
+    }
 
     /// <inheritdoc/>
     protected override bool CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)

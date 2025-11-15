@@ -108,6 +108,7 @@ public abstract class ValidityManager
             return true;
         if (!entity.CheckTopLevelValidity(out issue))
             return false;
+        checkedEntities.Add(entity); // Add before children in case of recursion
         foreach (IValidityManagedEntity child in ChildrenEntities)
             if (!child.ValidityManager.IsValid(out Exception? innerIssue, checkedEntities))
             {
@@ -115,7 +116,6 @@ public abstract class ValidityManager
                 issue = new InvalidException("Issue with child", innerIssue);
                 return false;
             }
-        checkedEntities.Add(entity);
         return true;
     }
 
