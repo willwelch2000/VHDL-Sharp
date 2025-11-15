@@ -150,4 +150,38 @@ public static class ConditionExtensions
 
         return constantConditionCombo.PerformFunction<ILogicallyCombinable<ICondition>>(Primary, And, Or, Not);
     }
+
+    // Following functions exist to fix function priority issues
+
+    /// <summary>
+    /// Logical And of this condition and another
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static And<ICondition> And(this IConstantCondition condition, ILogicallyCombinable<ICondition> other) => new(condition, other);
+
+    /// <summary>
+    /// Logical Or of this condition and another
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static Or<ICondition> Or(this IConstantCondition condition, ILogicallyCombinable<ICondition> other) => new(condition, other);
+
+    /// <summary>
+    /// Logical And of this condition and another
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static And<IConstantCondition> And(this IConstantCondition condition, IConstantCondition other) => new(condition, other);
+
+    /// <summary>
+    /// Logical Or of this condition and another
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public static Or<IConstantCondition> Or(this IConstantCondition condition, IConstantCondition other) => new(condition, other);
 }
