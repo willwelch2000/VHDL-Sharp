@@ -128,7 +128,7 @@ public interface ILogicallyCombinable<T> : IEquatable<ILogicallyCombinable<T>> w
     bool IEquatable<ILogicallyCombinable<T>>.Equals(ILogicallyCombinable<T>? other)
     {
         if (this is T t)
-            return ReferenceEquals(t, other);
+            return Equals(t, other);
         throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(Equals)}");
     }
 }

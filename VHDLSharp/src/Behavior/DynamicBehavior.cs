@@ -67,6 +67,47 @@ public class DynamicBehavior : Behavior, ICompletable
         }
     }
 
+    /// <summary>
+    /// Get or set behavior for a given condition.
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <returns></returns>
+    public ICombinationalBehavior this[ILogicallyCombinable<ICondition> condition]
+    {
+        get => ConditionMappings.First(c => c.Condition.Equals(condition)).Behavior;
+        set
+        {
+            Remove(condition);
+            ConditionMappings.Add((condition, value));
+        }
+    }
+
+    /// <summary>
+    /// Add a condition/behavior pair to the mappings list
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="behavior"></param>
+    public void Add(ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) => ConditionMappings.Add((condition, behavior));
+
+    /// <summary>
+    /// Remove mappings with a given condition
+    /// </summary>
+    /// <param name="condition"></param>
+    public void Remove(ILogicallyCombinable<ICondition> condition)
+    {
+        foreach (var pair in ConditionMappings.ToArray())
+            if (pair.Condition.Equals(condition))
+                ConditionMappings.Remove(pair);
+    }
+
+    /// <summary>
+    /// Remove a condition/behavior pair from the mappings list
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="behavior"></param>
+    public void Remove(ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) => ConditionMappings.Remove((condition, behavior));
+
+
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {

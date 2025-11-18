@@ -20,9 +20,17 @@ public class ConditionBehaviorTests
         {
             DefaultBehavior = new ValueBehavior(0)
         };
-        behavior.ConditionMappings.Add((input.EqualTo(comparison), new ValueBehavior(1)));
+        behavior.Add(input.EqualTo(comparison), new ValueBehavior(1));
         behavior.ConditionMappings.Add((input.GreaterThan(comparison), new ValueBehavior(2)));
         output.AssignBehavior(behavior);
+
+        // Remove and reapply to check
+        behavior.Remove(input.GreaterThan(comparison));
+        Assert.AreEqual(1, behavior.ConditionMappings.Count);
+        behavior[input.GreaterThan(comparison)] = new ValueBehavior(1);
+        Assert.AreEqual(2, behavior.ConditionMappings.Count);
+        behavior[input.GreaterThan(comparison)] = new ValueBehavior(2);
+        Assert.AreEqual(2, behavior.ConditionMappings.Count);
 
         // Check VHDL
         string vhdl = behavior.GetVhdlStatement(output);
