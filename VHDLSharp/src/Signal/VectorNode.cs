@@ -6,7 +6,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Node in a vector
 /// </summary>
-public class VectorNode : SingleNodeNamedSignal
+public class VectorNode : SingleNodeNamedSignal, IEquatable<VectorNode>
 {
     /// <summary>
     /// Constructor given vector and node
@@ -63,5 +63,21 @@ public class VectorNode : SingleNodeNamedSignal
             return false;
         equivalentSignal = mapping[port].ToSingleNodeSignals.ElementAt(Node);
         return true;
+    }
+    
+    /// <inheritdoc/>
+    public bool Equals(VectorNode? other) =>
+        other is not null && other.Vector.Equals(Vector) && other.Node == Node;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as VectorNode);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(Vector);
+        code.Add(Node);
+        return code.ToHashCode();
     }
 }

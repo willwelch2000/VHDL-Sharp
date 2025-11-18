@@ -15,7 +15,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Comparison between signal and either another signal or a value
 /// </summary>
-public class Equality : ConstantCondition
+public class Equality : ConstantCondition, IEquatable<Equality>
 {
     /// <summary>
     /// Generate equality comparison between two signals
@@ -99,5 +99,21 @@ public class Equality : ConstantCondition
         }
 
         return new SpiceCircuit(entities).WithCommonEntities();
+    }
+    
+    /// <inheritdoc/>
+    public bool Equals(Equality? other) => other is not null && 
+        MainSignal.Equals(other.MainSignal) && ComparisonSignal.Equals(other.ComparisonSignal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as Equality);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(MainSignal);
+        code.Add(ComparisonSignal);
+        return code.ToHashCode();
     }
 }

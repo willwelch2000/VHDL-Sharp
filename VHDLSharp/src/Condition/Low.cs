@@ -13,7 +13,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that is true if this signal is low
 /// </summary>
-public class Low : ConstantCondition
+public class Low : ConstantCondition, IEquatable<Low>
 {
     /// <summary>
     /// Constructor given trigger signal
@@ -56,4 +56,14 @@ public class Low : ConstantCondition
 
         return new SpiceCircuit(entities).WithCommonEntities();
     }
+    
+
+    /// <inheritdoc/>
+    public bool Equals(Low? other) => other is not null && Signal.Equals(other.Signal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as Low);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Signal.GetHashCode();
 }

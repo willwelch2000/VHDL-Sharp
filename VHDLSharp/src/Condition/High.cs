@@ -13,7 +13,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that is true if this signal is high
 /// </summary>
-public class High : ConstantCondition
+public class High : ConstantCondition, IEquatable<High>
 {
     /// <summary>
     /// Constructor given trigger signal
@@ -58,4 +58,13 @@ public class High : ConstantCondition
 
         return new SpiceCircuit(entities).WithCommonEntities();
     }
+
+    /// <inheritdoc/>
+    public bool Equals(High? other) => other is not null && Signal.Equals(other.Signal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as High);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Signal.GetHashCode();
 }

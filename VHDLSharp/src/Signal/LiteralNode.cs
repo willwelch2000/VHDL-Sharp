@@ -6,7 +6,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// A bit in a literal
 /// </summary>
-public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue
+public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue, IEquatable<LiteralNode>
 {
     /// <summary>
     /// Generate new <see cref="LiteralNode"/> given parent <see cref="Literal"/> and node index
@@ -65,10 +65,7 @@ public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue
     IEnumerable<ISingleNodeSignal> ISignal.ToSingleNodeSignals => ToSingleNodeSignals;
 
     /// <inheritdoc/>
-    public bool CanCombine(ILogicallyCombinable<ISignal> other)
-    {
-        return Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
-    }
+    public bool CanCombine(ILogicallyCombinable<ISignal> other) => Dimension.Compatible(Dimensions.Dimension.CombineWithoutCheck(other.BaseObjects.Select(o => o.Dimension)));
 
     /// <inheritdoc/>
     public bool CanCombine(IEnumerable<ILogicallyCombinable<ISignal>> others) => ISignal.CanCombineSignals([this, .. others]);
@@ -87,4 +84,20 @@ public class LiteralNode : ISingleNodeSignal, ISignalWithKnownValue
     /// </summary>
     /// <returns></returns>
     public string GetSpiceName() => Value ? "VDD" : "0";
+    
+    /// <inheritdoc/>
+    public bool Equals(LiteralNode? other) =>
+        other is not null && other.Literal.Equals(Literal) && other.Node == Node;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as LiteralNode);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(Literal);
+        code.Add(Node);
+        return code.ToHashCode();
+    }
 }

@@ -14,7 +14,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// An event-driven condition that is true on a signal's rising edge
 /// </summary>
-public class RisingEdge : Condition, IEventDrivenCondition
+public class RisingEdge : Condition, IEventDrivenCondition, IEquatable<RisingEdge>
 {
     /// <summary>
     /// Constructor given trigger signal
@@ -61,4 +61,13 @@ public class RisingEdge : Condition, IEventDrivenCondition
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
         !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
         new([new Resistor(SpiceUtil.GetSpiceName(uniqueId, 0, "connect"), Signal.GetSpiceName(), outputSignal.Name, 1e-3)]);
+        
+    /// <inheritdoc/>
+    public bool Equals(RisingEdge? other) => other is not null && Signal.Equals(other.Signal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as RisingEdge);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Signal.GetHashCode();
 }

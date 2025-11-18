@@ -13,6 +13,7 @@ public class VectorSliceTests
         Vector vector = new("v1", module, 4);
         VectorSlice slice = (VectorSlice)vector[2..4];
         VectorSlice slice2 = (VectorSlice)vector[2..];
+        VectorSlice slice3 = (VectorSlice)vector[2..4];
 
         Assert.AreEqual(slice.Vector, vector);
         Assert.AreEqual(2, slice.StartNode);
@@ -26,6 +27,8 @@ public class VectorSliceTests
         Assert.AreEqual("v1[2:3]", slice2.Name);
         Assert.AreEqual(slice.ParentSignal, vector);
         Assert.AreEqual(slice.ParentModule, module);
+        Assert.IsTrue(slice2.Equals(slice3));
+        Assert.AreEqual(slice2, slice3);
 
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => vector[-1..3]);
         Assert.ThrowsException<ArgumentOutOfRangeException>(() => vector[2..5]);

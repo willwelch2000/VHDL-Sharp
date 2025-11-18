@@ -12,7 +12,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that compares 2 signals
 /// </summary>
-public class Comparison : ConstantCondition
+public class Comparison : ConstantCondition, IEquatable<Comparison>
 {
     /// <summary>
     /// Constructor given two signals. Condition is true when the main signal is greater than the comparison
@@ -127,5 +127,24 @@ public class Comparison : ConstantCondition
         }
 
         return new LogicExpression(expression).GetSpice(outputSignal, uniqueId);
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(Comparison? other) => other is not null && 
+        MainSignal.Equals(other.MainSignal) && ComparisonSignal.Equals(other.ComparisonSignal) &&
+        LessThan.Equals(other.LessThan) && Signed.Equals(other.Signed);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as Comparison);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(MainSignal);
+        code.Add(ComparisonSignal);
+        code.Add(LessThan);
+        code.Add(Signed);
+        return code.ToHashCode();
     }
 }

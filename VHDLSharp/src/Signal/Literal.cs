@@ -7,7 +7,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// Literal value that can be used in expressions
 /// </summary>
-public class Literal : ISignalWithKnownValue
+public class Literal : ISignalWithKnownValue, IEquatable<Literal>
 {
     private readonly LiteralNode[] bits;
 
@@ -114,4 +114,20 @@ public class Literal : ISignalWithKnownValue
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
+    
+    /// <inheritdoc/>
+    public bool Equals(Literal? other) =>
+        other is not null && other.Dimension.NonNullValue.Equals(Dimension.NonNullValue) && other.Value == Value;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as Literal);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(Dimension.NonNullValue);
+        code.Add(Value);
+        return code.ToHashCode();
+    }
 }

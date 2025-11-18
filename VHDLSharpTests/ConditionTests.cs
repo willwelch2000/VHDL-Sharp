@@ -366,4 +366,53 @@ public class ConditionTests
                 Assert.AreEqual(expectedResult, s3Exp.Value > 2.5); // Operating in 5V domain
         }
     }
+
+    [TestMethod]
+    public void EqualityTest()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.AlertUpdatesAndThrowException;
+        Module module1 = new("m1");
+        Signal s1 = module1.GenerateSignal("s1");
+        Signal s2 = module1.GenerateSignal("s2");
+        Signal s3 = module1.GenerateSignal("s3");
+        Vector v1 = module1.GenerateVector("v1", 3);
+        Vector v2 = module1.GenerateVector("v2", 3);
+        Vector v3 = module1.GenerateVector("v3", 2);
+
+        Equality equalitySingle = new(s1, s2);
+        Equality equalitySingle2 = new(s1, s2);
+        Equality equalitySingle3 = new(s1, s3);
+        Assert.AreEqual(equalitySingle, equalitySingle2);
+        Assert.AreNotEqual(equalitySingle, equalitySingle3);
+
+        RisingEdge risingEdge = new(s1);
+        RisingEdge risingEdge2 = new(s1);
+        RisingEdge risingEdge3 = new(s2);
+        Assert.AreEqual(risingEdge, risingEdge2);
+        Assert.AreNotEqual(risingEdge, risingEdge3);
+
+        FallingEdge fallingEdge = new(s1);
+        FallingEdge fallingEdge2 = new(s1);
+        FallingEdge fallingEdge3 = new(s2);
+        Assert.AreEqual(fallingEdge, fallingEdge2);
+        Assert.AreNotEqual(fallingEdge, fallingEdge3);
+
+        High high = new(s1);
+        High high2 = new(s1);
+        High high3 = new(s2);
+        Assert.AreEqual(high, high2);
+        Assert.AreNotEqual(high, high3);
+
+        Low low = new(s1);
+        Low low2 = new(s1);
+        Low low3 = new(s2);
+        Assert.AreEqual(low, low2);
+        Assert.AreNotEqual(low, low3);
+
+        Comparison greaterThan = s1.GreaterThan(s2);
+        Comparison greaterThan2 = s1.GreaterThan(s2);
+        Comparison greaterThan3 = s1.GreaterThan(s3);
+        Assert.AreEqual(greaterThan, greaterThan2);
+        Assert.AreNotEqual(greaterThan, greaterThan3);
+    }
 }
