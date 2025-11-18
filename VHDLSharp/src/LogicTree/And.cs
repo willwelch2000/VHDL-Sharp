@@ -40,4 +40,21 @@ public class And<T> : LogicTree<T> where T : ILogicallyCombinable<T>
     /// <inheritdoc/>
     public override V PerformFunction<V>(Func<T, V> primary, Func<IEnumerable<V>, V> and, Func<IEnumerable<V>, V> or, Func<V, V> not) =>
         and(inputs.Select(i => i.PerformFunction(primary, and, or, not)));
+
+    /// <inheritdoc/>
+    public override bool Equals(ILogicallyCombinable<T>? other) => other is And<T> andOther &&
+        Inputs.SequenceEqual(andOther.Inputs);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is And<T> andOther && Equals(andOther);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        foreach (var input in Inputs)
+            hash.Add(input);
+        hash.Add(ExpressionHashType(this));
+        return hash.ToHashCode();
+    }
 }

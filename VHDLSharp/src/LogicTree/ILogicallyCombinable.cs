@@ -4,7 +4,7 @@ namespace VHDLSharp.LogicTree;
 /// Interface for anything that can be used as the end type of a logic tree
 /// </summary>
 /// <typeparam name="T">For outside use, this should be the implementing type itself</typeparam>
-public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
+public interface ILogicallyCombinable<T> : IEquatable<ILogicallyCombinable<T>> where T : ILogicallyCombinable<T>
 {
     /// <summary>
     /// Given another thing of type T, this is true if they are compatible for a logic tree
@@ -123,5 +123,12 @@ public interface ILogicallyCombinable<T> where T : ILogicallyCombinable<T>
         if (this is T t)
             return primary(t);
         throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(PerformFunction)}");
+    }
+
+    bool IEquatable<ILogicallyCombinable<T>>.Equals(ILogicallyCombinable<T>? other)
+    {
+        if (this is T t)
+            return ReferenceEquals(t, other);
+        throw new Exception($"If this is not of type {typeof(T).Name}, it should override {nameof(Equals)}");
     }
 }

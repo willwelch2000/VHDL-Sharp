@@ -78,6 +78,9 @@ public class SignalTests
         // Not
         Not<ISignal> not = s1.Not();
         Assert.AreEqual(s1, not.Input);
+        Not<ISignal> not2 = s1.Not();
+        Assert.IsTrue(not.Equals(not2));
+        Assert.AreEqual(not, not2);
 
         // And
         Assert.ThrowsException<Exception>(() => s1.And(s3));
@@ -87,6 +90,9 @@ public class SignalTests
         Assert.IsTrue(andInputs.Contains(s1));
         Assert.IsTrue(andInputs.Contains(s2));
         Assert.IsTrue(andInputs.Contains(s4));
+        And<ISignal> and2 = s1.And([s2, s4]);
+        Assert.IsTrue(and.Equals(and2));
+        Assert.AreEqual(and, and2);
 
         // Or
         Assert.ThrowsException<Exception>(() => s1.Or(s3));
@@ -96,6 +102,9 @@ public class SignalTests
         Assert.IsTrue(orInputs.Contains(s1));
         Assert.IsTrue(orInputs.Contains(s2));
         Assert.IsTrue(orInputs.Contains(s4));
+        Or<ISignal> or2 = s1.Or([s2, s4]);
+        Assert.IsTrue(or.Equals(or2));
+        Assert.AreEqual(or, or2);
     }
 
     [TestMethod]

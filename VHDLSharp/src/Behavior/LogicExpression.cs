@@ -165,4 +165,12 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     /// <returns></returns>
     public static LogicExpression ToLogicExpression(ILogicallyCombinable<ISignal> expression)
         => expression is LogicExpression logicExpression ? logicExpression : new(expression);
+
+    bool IEquatable<ILogicallyCombinable<ISignal>>.Equals(ILogicallyCombinable<ISignal>? other) => InnerExpression.Equals(other);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => InnerExpression.Equals(obj);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => InnerExpression.GetHashCode();
 }
