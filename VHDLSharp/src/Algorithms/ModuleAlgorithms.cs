@@ -26,19 +26,37 @@ public static class ModuleAlgorithms
     /// https://www.geeksforgeeks.org/dsa/detect-cycle-in-a-graph/
     /// </summary>
     /// <param name="mapping"></param>
-    /// <param name="path">Path of nodes that form a circle</param>
+    /// <param name="paths">Paths of nodes that form a circle</param>
+    /// <param name="findAllPaths">If true, find all circular paths and not just first</param>
     /// <returns></returns>
-    public static bool CheckForCircularity<T>(Dictionary<T, List<T>> mapping, [MaybeNullWhen(false)] out List<T> path) where T : notnull
+    public static bool CheckForCircularity<T>(Dictionary<T, List<T>> mapping, out List<List<T>> paths, bool findAllPaths = false) where T : notnull
     {
         HashSet<T> visited = [];
         Stack<T> recStack = [];
-        path = null;
+        List<List<T>> addedPaths = [];
+        bool pathFound = false;
 
-        bool Search(T node)
+        // Considers current recStack and final node
+        void AddPath(T finalNode)
+        {
+            // Last thing added is node that completes the path, so it is the first and last node
+            List<T> path = [finalNode];
+            bool skip = true;
+            foreach (T stackNode in recStack.Reverse())
+            {
+                if (!skip)
+                    path.Add(stackNode);
+                if (skip && stackNode.Equals(finalNode))
+                    skip = false;
+            }
+            addedPaths.Add(path);
+        }
+
+        bool SearchFirstPath(T node)
         {
             if (recStack.Contains(node))
             {
-                recStack.Push(node);
+                AddPath(node);
                 return true;
             }
             if (visited.Contains(node))
@@ -46,30 +64,40 @@ public static class ModuleAlgorithms
             visited.Add(node);
             recStack.Push(node);
             foreach (T neighbor in mapping[node])
-            {
-                if (Search(neighbor))
+                if (SearchFirstPath(neighbor))
                     return true;
-            }
             recStack.Pop();
             return false;
         }
-        
-        foreach (T node in mapping.Keys)
-            if (Search(node))
+
+        void Search(T node)
+        {
+            if (recStack.Contains(node))
             {
-                // Last thing added is node that completes the path, so it is the first and last node
-                T first = recStack.Pop();
-                path = [first];
-                bool skip = true;
-                foreach (T stackNode in recStack.Reverse())
-                {
-                    if (!skip)
-                        path.Add(stackNode);
-                    if (skip && stackNode.Equals(first))
-                        skip = false;
-                }
-                return true;
+                pathFound = true;
+                AddPath(node);
+                return;
             }
-        return false;
+            if (visited.Contains(node))
+                return;
+            visited.Add(node);
+            recStack.Push(node);
+            foreach (T neighbor in mapping[node])
+                Search(neighbor);
+            recStack.Pop();
+        }
+
+        if (findAllPaths)
+            foreach (T node in mapping.Keys)
+                Search(node);
+        else
+            foreach (T node in mapping.Keys)
+                if (SearchFirstPath(node))
+                {
+                    pathFound = true;
+                    break;
+                }
+        paths = addedPaths;
+        return pathFound;
     }
 }
