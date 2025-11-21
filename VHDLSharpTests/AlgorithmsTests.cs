@@ -8,7 +8,7 @@ public class AlgorithmsTests
     [TestMethod]
     public void CircularityCheckTest()
     {
-        static void PerformFirstPathCheck(Dictionary<int, List<int>> neighbors, bool expected, int[]? expectedPath = null)
+        static void PerformFirstPathCheck(Dictionary<int, IEnumerable<int>> neighbors, bool expected, int[]? expectedPath = null)
         {
             if (expected)
             {
@@ -19,7 +19,7 @@ public class AlgorithmsTests
                 Assert.IsFalse(ModuleAlgorithms.CheckForCircularity(neighbors, out _));
         }
 
-        static void PerformCheck(Dictionary<int, List<int>> neighbors, bool expected, List<int[]> expectedPaths)
+        static void PerformCheck(Dictionary<int, IEnumerable<int>> neighbors, bool expected, List<int[]> expectedPaths)
         {
             if (expected)
             {
@@ -57,7 +57,7 @@ public class AlgorithmsTests
             return true;
         }
 
-        Dictionary<int, List<int>> neighbors = new()
+        Dictionary<int, IEnumerable<int>> neighbors = new()
         {
             {1, [2]},
             {2, [3]},

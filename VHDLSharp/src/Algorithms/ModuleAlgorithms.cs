@@ -1,5 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
+using VHDLSharp.Behaviors;
 using VHDLSharp.Modules;
+using VHDLSharp.Signals;
 
 namespace VHDLSharp.Algorithms;
 
@@ -15,10 +16,56 @@ public static class ModuleAlgorithms
     /// <returns></returns>
     public static bool CheckForCircularSignals(IModule module)
     {
-        // Find all input-output connections
+        // Find all input-output connections--dictionary maps signal to its immediate inputs
+        // Assume that all inputs to an instance are inputs to all of its outputs
+        Dictionary<IModuleSpecificSignal, HashSet<IModuleSpecificSignal>> mapping = [];
+        // Following will be used if we check paths through instantiations
+        // HashSet<(IModuleSpecificSignal, IModuleSpecificSignal)> connectionsWithoutInstantiation = [];
+        // Dictionary<(IModuleSpecificSignal, IModuleSpecificSignal), IInstantiation> connectionsThroughInstantiation = [];
 
-        // Turn that into Dictionary of <output, list of input signals>
-        return false;
+        void AddSignals(IModuleSpecificSignal outputSignal, IEnumerable<IModuleSpecificSignal> inputSignals)
+        {
+            if (mapping.TryGetValue(outputSignal, out HashSet<IModuleSpecificSignal>? signals))
+                foreach (var signal in inputSignals)
+                    signals.Add(signal);
+            else
+                mapping[outputSignal] = [.. inputSignals];
+        }
+
+        // Signal behaviors
+        foreach ((IModuleSpecificSignal signal, IBehavior behavior) in module.SignalBehaviors)
+            AddSignals(signal, behavior.InputModuleSignals);
+
+        // Instantiations--add all input signals for all output signals
+        // Maybe explore later to see if there really is a connection
+        foreach (IInstantiation instantiation in module.Instantiations.Where(i => i is not ICompiledObject))
+        {
+            List<INamedSignal> outputSignals = [];
+            List<INamedSignal> inputSignals = [];
+            foreach ((IPort port, INamedSignal signal) in instantiation.PortMapping)
+                if (port.Direction == PortDirection.Input)
+                    inputSignals.Add(signal);
+                else
+                    outputSignals.Add(signal);
+            foreach (INamedSignal outputSignal in outputSignals)
+                AddSignals(outputSignal, inputSignals);
+        }
+
+        // Derived signals
+        foreach (IDerivedSignal derivedSignal in module.AllDerivedSignals)
+        {
+            // Linked signals
+            if (derivedSignal.LinkedSignal is INamedSignal namedSignal and not ICompiledObject)
+                AddSignals(namedSignal, [derivedSignal]);
+            // Input signals to derived signal
+            AddSignals(derivedSignal, derivedSignal.InputModuleSignals);
+        }
+
+        // Check if there are circular paths
+        return CheckForCircularity(mapping, out List<List<IModuleSpecificSignal>> paths);
+
+        // In future version, check if there are paths that don't go through instances
+        // If all paths go through an instance, look in the instance to see if it really does go in a path through it
     }
 
     /// <summary>
@@ -27,9 +74,9 @@ public static class ModuleAlgorithms
     /// </summary>
     /// <param name="mapping"></param>
     /// <param name="paths">Paths of nodes that form a circle</param>
-    /// <param name="findAllPaths">If true, find all circular paths and not just first</param>
+    /// <param name="findAllPaths">If true, find all circular paths and not just first. If false, only one is found.</param>
     /// <returns></returns>
-    public static bool CheckForCircularity<T>(Dictionary<T, List<T>> mapping, out List<List<T>> paths, bool findAllPaths = false) where T : notnull
+    public static bool CheckForCircularity<T, V>(Dictionary<T, V> mapping, out List<List<T>> paths, bool findAllPaths = false) where T : notnull where V : IEnumerable<T>
     {
         HashSet<T> visited = [];
         Stack<T> recStack = [];

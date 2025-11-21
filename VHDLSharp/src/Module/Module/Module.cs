@@ -169,6 +169,9 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
 
     /// <inheritdoc/>
+    public IEnumerable<IDerivedSignal> AllDerivedSignals => [.. registeredDerivedSignals];
+
+    /// <inheritdoc/>
     public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals)
     {
         HashSet<IModule> modulesUsed = [];

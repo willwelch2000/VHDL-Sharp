@@ -42,6 +42,11 @@ public interface IModule : IEquatable<IModule>, ICompletable
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
 
     /// <summary>
+    /// Get all derived signals that are used in this module
+    /// </summary>
+    public IEnumerable<IDerivedSignal> AllDerivedSignals { get; }
+
+    /// <summary>
     /// Get all modules used by this module as instantiations
     /// </summary>
     /// <param name="recursive">If true, returns modules used by used modules, etc.</param>
