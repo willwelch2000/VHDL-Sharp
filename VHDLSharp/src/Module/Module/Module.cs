@@ -140,9 +140,9 @@ public class Module : IModule, IValidityManagedEntity
             .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
             {
                 IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                    [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
+                    [s, .. derivedSignal.RecursiveInputModuleSignals, linkedSignal] : [s, .. derivedSignal.RecursiveInputModuleSignals],
                 IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                    [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
+                    [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals],
                 _ => [s],
             })
             .Where(s => s.ParentModule == this || includeIncorrectlyAssignedSignals) // Should be true for all, but double check

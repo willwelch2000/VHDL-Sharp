@@ -52,10 +52,17 @@ public interface IDerivedSignal : IModuleSpecificSignal
     public IInstantiation Compile(string moduleName, string instanceName);
 
     /// <summary>
-    /// Get all the module-specific signals that are used (recursively) by this, 
-    /// so that they can be included in the module
+    /// All the direct input signals that implement <see cref="IModuleSpecificSignal"/>. 
+    /// Used to generate the <see cref="RecursiveInputModuleSignals"/> list.
+    /// Not recursive
     /// </summary>
-    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals { get; }
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
+
+    /// <summary>
+    /// Get all the module-specific signals that are used (recursively through derived signals)
+    /// by this, so that they can be included in the module
+    /// </summary>
+    public IEnumerable<IModuleSpecificSignal> RecursiveInputModuleSignals { get; }
 
     /// <summary>
     /// Convert to single-node signals, as type <see cref="IDerivedSignalNode"/>
@@ -128,12 +135,12 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     protected abstract IInstantiation CompileWithoutCheck(string moduleName, string instanceName);
 
     /// <inheritdoc/>
-    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals
+    public IEnumerable<IModuleSpecificSignal> RecursiveInputModuleSignals
     {
         get
         {
             HashSet<IModuleSpecificSignal> foundSignals = [];
-            foreach (IModuleSpecificSignal signal in InputSignalsWithAssignedModule)
+            foreach (IModuleSpecificSignal signal in InputModuleSignals)
             {
                 if (foundSignals.Contains(signal)) // Skip if already found
                     continue;
@@ -141,7 +148,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
                 // If it's a derived signal or derived signal node, return all its used signals recursively as well
                 IDerivedSignal? derivedSignal = signal as IDerivedSignal ?? (signal as IDerivedSignalNode)?.DerivedSignal;
                 if (derivedSignal is not null)
-                    foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.UsedModuleSpecificSignals)
+                    foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.RecursiveInputModuleSignals)
                         if (!foundSignals.Contains(subNamedSignal))
                             yield return subNamedSignal;
                 // Remember signal to avoid returning it again
@@ -150,12 +157,8 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
         }
     }
 
-    /// <summary>
-    /// All the input signals that implement <see cref="IModuleSpecificSignal"/>. 
-    /// Used to generate the <see cref="UsedModuleSpecificSignals"/> list.
-    /// Not recursive
-    /// </summary>
-    protected abstract IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule { get; }
+    /// <inheritdoc/>
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <inheritdoc/>
     public abstract DefiniteDimension Dimension { get; }
@@ -230,7 +233,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
         // TODO parent-module check might be redundant with check in LinkedSignal setter
         exception = LinkedSignal is INamedSignal namedLinkedSignal && !namedLinkedSignal.ParentModule.Equals(ParentModule) ?
             new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") :
-            UsedModuleSpecificSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
+            RecursiveInputModuleSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
         return exception is null;
     }
 

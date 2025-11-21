@@ -43,7 +43,7 @@ public class SliceSignal : DerivedSignal
     public override DefiniteDimension Dimension => End - Start;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [InputSignal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [InputSignal];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

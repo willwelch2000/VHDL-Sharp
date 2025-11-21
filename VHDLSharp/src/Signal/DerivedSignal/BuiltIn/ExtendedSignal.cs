@@ -41,7 +41,7 @@ public class ExtendedSignal : DerivedSignal
     public override DefiniteDimension Dimension => OutputBits;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [InputSignal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [InputSignal];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

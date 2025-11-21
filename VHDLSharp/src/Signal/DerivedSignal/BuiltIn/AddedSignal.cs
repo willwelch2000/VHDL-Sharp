@@ -40,7 +40,7 @@ public class AddedSignal : DerivedSignal
     public override DefiniteDimension Dimension => IncludeCarryOut ? new(Signal1.Dimension.NonNullValue + 1) : Signal1.Dimension;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [Signal1, Signal2];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [Signal1, Signal2];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

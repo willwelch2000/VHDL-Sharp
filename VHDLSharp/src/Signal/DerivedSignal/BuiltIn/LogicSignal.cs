@@ -39,7 +39,7 @@ public class LogicSignal : DerivedSignal
     public override DefiniteDimension Dimension => Expression.Dimension;
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => Expression.BaseObjects.OfType<IModuleSpecificSignal>();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => Expression.BaseObjects.OfType<IModuleSpecificSignal>();
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)

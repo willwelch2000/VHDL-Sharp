@@ -34,7 +34,7 @@ public class ConcatSignal : DerivedSignal
     public override DefiniteDimension Dimension => new(UpperSignal.Dimension.NonNullValue + LowerSignal.Dimension.NonNullValue);
 
     /// <inheritdoc/>
-    protected override IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule => [UpperSignal, LowerSignal];
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [UpperSignal, LowerSignal];
 
     /// <inheritdoc/>
     protected override IInstantiation CompileWithoutCheck(string moduleName, string instanceName)
