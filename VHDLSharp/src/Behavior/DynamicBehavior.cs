@@ -21,7 +21,7 @@ namespace VHDLSharp.Behaviors;
 /// The output signal is assigned the value from the combinational behavior when the condition is met. 
 /// Priority is used for the conditions
 /// </summary>
-public class DynamicBehavior : Behavior, ICompletable
+public class DynamicBehavior : Behavior, ICompletable, IAllowRecursive
 {
     private int initialValue = 0;
 
@@ -53,7 +53,8 @@ public class DynamicBehavior : Behavior, ICompletable
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => 
+        ConditionMappings.SelectMany(c => c.Behavior.InputModuleSignals.Union(c.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Distinct();
 
     /// <inheritdoc/>
     public override Dimension Dimension
@@ -79,6 +80,29 @@ public class DynamicBehavior : Behavior, ICompletable
         {
             Remove(condition);
             ConditionMappings.Add((condition, value));
+        }
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<IModuleSpecificSignal> DisallowedRecursiveSignals
+    {
+        get
+        {
+            if (!ConditionMappings.Any())
+                yield break;
+            // Get all input signals from all condition mappings except last
+            foreach (IModuleSpecificSignal signal in ConditionMappings.SkipLast(1).SelectMany(c => c.Behavior.InputModuleSignals
+                .Union(c.Condition.BaseObjects.SelectMany(c => c.InputModuleSignals))).Distinct())
+                yield return signal;
+            // With last condition mapping...
+            (ILogicallyCombinable<ICondition> lastCondition, ICombinationalBehavior lastBehavior) = ConditionMappings.Last();
+            // Return all condition signals
+            foreach (IModuleSpecificSignal signal in lastCondition.BaseObjects.SelectMany(c => c.InputModuleSignals).Distinct())
+                yield return signal;
+            // Return behavior signals if the condition is not event-driven
+            if (!lastCondition.BaseObjects.Any(c => c is IEventDrivenCondition))
+                foreach (IModuleSpecificSignal signal in lastBehavior.InputModuleSignals)
+                    yield return signal;
         }
     }
 

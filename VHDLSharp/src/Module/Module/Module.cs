@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Algorithms;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
@@ -641,6 +642,10 @@ public class Module : IModule, IValidityManagedEntity
             if (duplicate is not null)
                 exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
         }
+
+        // Check circular signal assignment
+        if (ModuleAlgorithms.CheckForCircularSignals(this, out List<List<IModuleSpecificSignal>> paths))
+            exception = new Exception($"Recursive signal path detected: {string.Join('-', paths.First())}");
 
         return exception is null;
     }

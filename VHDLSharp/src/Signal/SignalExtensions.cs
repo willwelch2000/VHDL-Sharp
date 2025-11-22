@@ -113,7 +113,7 @@ public static class SignalExtensions
     /// <param name="signal"></param>
     /// <param name="behavior"></param>
     /// <returns>Assigned behavior</returns>
-    public static IBehavior AssignBehavior(this INamedSignal signal, IBehavior behavior)
+    public static T AssignBehavior<T>(this INamedSignal signal, T behavior) where T : IBehavior
     {
         signal.ParentModule.SignalBehaviors[signal] = behavior;
         return behavior;
@@ -125,7 +125,7 @@ public static class SignalExtensions
     /// <param name="signal"></param>
     /// <param name="value"></param>
     /// <returns>Assigned behavior</returns>
-    public static IBehavior AssignBehavior(this INamedSignal signal, int value) => signal.AssignBehavior(new ValueBehavior(value));
+    public static ValueBehavior AssignBehavior(this INamedSignal signal, int value) => signal.AssignBehavior(new ValueBehavior(value));
 
     /// <summary>
     /// Assign a specified expression to the signal as a <see cref="LogicBehavior"/>
@@ -133,11 +133,18 @@ public static class SignalExtensions
     /// <param name="signal"></param>
     /// <param name="expression"></param>
     /// <returns>Assigned behavior</returns>
-    public static IBehavior AssignBehavior(this INamedSignal signal, ILogicallyCombinable<ISignal> expression) => signal.AssignBehavior(new LogicBehavior(expression));
+    public static LogicBehavior AssignBehavior(this INamedSignal signal, ILogicallyCombinable<ISignal> expression) => signal.AssignBehavior(new LogicBehavior(expression));
 
     /// <summary>
     /// Remove behavior assignment from this signal
     /// </summary>
     /// <param name="signal"></param>
     public static void RemoveBehavior(this INamedSignal signal) => signal.ParentModule.SignalBehaviors.Remove(signal);
+
+    /// <summary>
+    /// Convert named signal to <see cref="LogicBehavior"/>
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    public static LogicBehavior ToBehavior(this INamedSignal signal) => new(signal);
 }

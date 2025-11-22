@@ -13,14 +13,14 @@ public static class ModuleAlgorithms
     /// Checks a module for circular signal assignment, where a signal is a (direct or indirect) input signal of itself
     /// </summary>
     /// <param name="module"></param>
+    /// <param name="paths">Paths of signals that form a circle</param>
     /// <returns></returns>
-    public static bool CheckForCircularSignals(IModule module)
+    public static bool CheckForCircularSignals(IModule module, out List<List<IModuleSpecificSignal>> paths)
     {
         // Find all input-output connections--dictionary maps signal to its immediate inputs
         // Assume that all inputs to an instance are inputs to all of its outputs
         Dictionary<IModuleSpecificSignal, HashSet<IModuleSpecificSignal>> mapping = [];
         // Following will be used if we check paths through instantiations
-        // HashSet<(IModuleSpecificSignal, IModuleSpecificSignal)> connectionsWithoutInstantiation = [];
         // Dictionary<(IModuleSpecificSignal, IModuleSpecificSignal), IInstantiation> connectionsThroughInstantiation = [];
 
         void AddSignals(IModuleSpecificSignal outputSignal, IEnumerable<IModuleSpecificSignal> inputSignals)
@@ -32,9 +32,9 @@ public static class ModuleAlgorithms
                 mapping[outputSignal] = [.. inputSignals];
         }
 
-        // Signal behaviors
+        // Signal behaviors--if it is an IAllowRecursive, just choose the disallowed ones
         foreach ((IModuleSpecificSignal signal, IBehavior behavior) in module.SignalBehaviors)
-            AddSignals(signal, behavior.InputModuleSignals);
+            AddSignals(signal, (behavior as IAllowRecursive)?.DisallowedRecursiveSignals ?? behavior.InputModuleSignals);
 
         // Instantiations--add all input signals for all output signals
         // Maybe explore later to see if there really is a connection
@@ -51,7 +51,7 @@ public static class ModuleAlgorithms
                 AddSignals(outputSignal, inputSignals);
         }
 
-        // Derived signals
+        // Derived signals--if derived signals can be recursive in future, check for IAllowRecursive
         foreach (IDerivedSignal derivedSignal in module.AllDerivedSignals)
         {
             // Linked signals
@@ -61,8 +61,8 @@ public static class ModuleAlgorithms
             AddSignals(derivedSignal, derivedSignal.InputModuleSignals);
         }
 
-        // Check if there are circular paths
-        return CheckForCircularity(mapping, out List<List<IModuleSpecificSignal>> paths);
+        // Check if there are circular paths--change findAllPaths to true if checking inside instances
+        return CheckForCircularity(mapping, out paths);
 
         // In future version, check if there are paths that don't go through instances
         // If all paths go through an instance, look in the instance to see if it really does go in a path through it
@@ -110,7 +110,7 @@ public static class ModuleAlgorithms
                 return false;
             visited.Add(node);
             recStack.Push(node);
-            foreach (T neighbor in mapping[node])
+            foreach (T neighbor in mapping.TryGetValue(node, out V? neighbors) ? neighbors.AsEnumerable() : [])
                 if (SearchFirstPath(neighbor))
                     return true;
             recStack.Pop();

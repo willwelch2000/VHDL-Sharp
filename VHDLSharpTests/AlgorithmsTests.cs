@@ -1,4 +1,7 @@
 using VHDLSharp.Algorithms;
+using VHDLSharp.Behaviors;
+using VHDLSharp.Modules;
+using VHDLSharp.Signals;
 
 namespace VHDLSharpTests;
 
@@ -109,5 +112,31 @@ public class AlgorithmsTests
             {1, [1]},
         };
         PerformFirstPathCheck(neighbors, true, [1]);
+    }
+
+    [TestMethod]
+    public void CircularSignalCheckTest()
+    {
+        Module module = new("mod1");
+        Signal s1 = module.GenerateSignal("s1");
+        Signal s2 = module.GenerateSignal("s2");
+        Signal s3 = module.GenerateSignal("s3");
+        s2.AssignBehavior(s1);
+        Assert.IsFalse(ModuleAlgorithms.CheckForCircularSignals(module, out List<List<IModuleSpecificSignal>> paths));
+        s1.AssignBehavior(s2);
+        Assert.IsTrue(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
+        s1.RemoveBehavior();
+        Assert.IsFalse(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
+
+        // Test legal dynamic behavior input
+        DynamicBehavior dynamic = s1.AssignBehavior(new DynamicBehavior());
+        dynamic.Add(s3.RisingEdge(), s2.ToBehavior());
+        Assert.IsFalse(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
+        Assert.IsTrue(module.ValidityManager.IsValid(out Exception? exception));
+
+        // Test illegal recursion in dynamic behavior
+        dynamic.Add(s3.IsHigh(), s2.ToBehavior());
+        Assert.IsTrue(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
+        Assert.IsFalse(module.ValidityManager.IsValid(out exception));
     }
 }
