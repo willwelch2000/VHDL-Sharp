@@ -176,7 +176,9 @@ public class Module : IModule, IValidityManagedEntity
     public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals)
     {
         HashSet<IModule> modulesUsed = [];
-        bool uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
+        bool uncompile = false;
+        if (compileDerivedSignals)
+            uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
         foreach (IModule module in Instantiations.Select(i => i.InstantiatedModule))
         {
             if (!modulesUsed.Add(module))
