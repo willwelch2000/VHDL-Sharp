@@ -1,5 +1,6 @@
 using VHDLSharp.Algorithms;
 using VHDLSharp.Behaviors;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 
@@ -138,5 +139,6 @@ public class AlgorithmsTests
         dynamic.Add(s3.IsHigh(), s2.ToBehavior());
         Assert.IsTrue(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
         Assert.IsFalse(module.ValidityManager.IsValid(out exception));
+        Assert.IsInstanceOfType(exception, typeof(CircularSignalException));
     }
 }

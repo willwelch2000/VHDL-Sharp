@@ -21,8 +21,8 @@ public interface IMayBeRecursive<T> where T : IMayBeRecursive<T>
         if (parents is not null && parents.Contains(this))
             return true;
         HashSet<IMayBeRecursive<T>> childParents = parents is null ? [this] : [.. parents, this];
-        foreach (IMayBeRecursive<T> behavior in Children)
-            if (behavior.CheckRecursion(childParents))
+        foreach (IMayBeRecursive<T> child in Children)
+            if (child.CheckRecursion(childParents))
                 return true;
         return false;
     }

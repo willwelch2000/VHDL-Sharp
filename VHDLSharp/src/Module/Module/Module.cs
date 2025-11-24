@@ -586,15 +586,21 @@ public class Module : IModule, IValidityManagedEntity
 
         // Check for recursion
         if (((IMayBeRecursive<IModule>)this).CheckRecursion())
+        {
             exception = new IllegalRecursionException("Recursion detected in module usage");
+            return false;
+        }
 
         // Check that all module signals have this module as parent
         IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
         foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
             if (!((IModule)this).Equals(moduleSignal.ParentModule))
+            {
                 exception = moduleSignal is INamedSignal namedModSignal ?
                     new Exception($"Signal {namedModSignal.Name} must have this module ({Name}) as parent") :
                     new Exception($"Signals must have this module ({Name}) as parent");
+                return false;
+            }
 
         // Check that behaviors have correct dimension and that output signal isn't input port
         INamedSignal[] inputPortSignals = [.. Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal)];
@@ -602,10 +608,12 @@ public class Module : IModule, IValidityManagedEntity
         {
             if (behavior.ParentModule is not null && !((IModule)this).Equals(behavior.ParentModule))
                 exception = new Exception($"Behavior must have this module as parent");
-            if (!behavior.IsCompatible(outputSignal))
+            else if (!behavior.IsCompatible(outputSignal))
                 exception = new Exception($"Behavior must be compatible with output signal");
-            if (inputPortSignals.Contains(outputSignal))
+            else if (inputPortSignals.Contains(outputSignal))
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
+            if (exception is not null)
+                return false;
         }
 
         // This list removes duplicate derived signals (from when a node references a parent),
@@ -622,8 +630,10 @@ public class Module : IModule, IValidityManagedEntity
                 linkedSignals.Add(linkedSignal);
                 if (!derivedSignal.Dimension.Compatible(linkedSignal.Dimension))
                     exception = new Exception($"Linked signal ({linkedSignal}) must have the same dimension as the derived signal it's linked to");
-                if (inputPortSignals.Contains(linkedSignal))
+                else if (inputPortSignals.Contains(linkedSignal))
                     exception = new Exception($"Linked signal ({linkedSignal}) must not be an input port");
+                if (exception is not null)
+                    return false;
             }
         }
 
@@ -641,6 +651,7 @@ public class Module : IModule, IValidityManagedEntity
                 exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
             else
                 exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior, instantiation output, or as a used derived signal's linked signal");
+            return false;
         }
 
         // Don't allow ports with the same signal
@@ -649,7 +660,10 @@ public class Module : IModule, IValidityManagedEntity
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
+            {
                 exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+                return false;
+            }
         }
 
         // Check circular signal assignment
