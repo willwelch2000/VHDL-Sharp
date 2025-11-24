@@ -6,6 +6,7 @@ using SpiceSharp.Components;
 using SpiceSharp.Entities;
 using VHDLSharp.Conditions;
 using VHDLSharp.Dimensions;
+using VHDLSharp.Exceptions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
@@ -108,7 +109,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
         return Dimension.CombineWithoutCheck(subDimensions);
     }
 
-    IEnumerable<IBehavior> IRecursiveBehavior.ChildBehaviors => ConditionMappings.Select(c => c.Behavior).Append(DefaultBehavior);
+    IEnumerable<IMayBeRecursive<IRecursiveBehavior>> IMayBeRecursive<IRecursiveBehavior>.Children => ConditionMappings.Select(c => c.Behavior).Append(DefaultBehavior).OfType<IRecursiveBehavior>();
 
     /// <summary>
     /// Get or set behavior for a given condition.
@@ -155,7 +156,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
     {
         // Check recursion
         if (((IRecursiveBehavior)this).CheckRecursion())
-            exception = new Exception("Recursion detected in behavior. This is not allowed.");
+            exception = new IllegalRecursionException("Recursion detected in behavior. This is not allowed.");
 
         // Check parent modules of input signals
         base.CheckTopLevelValidity(out exception);

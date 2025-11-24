@@ -64,6 +64,9 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public IEnumerable<IDerivedSignal> AllDerivedSignals => BaseModule.AllDerivedSignals;
 
     /// <inheritdoc/>
+    IEnumerable<IMayBeRecursive<IModule>> IMayBeRecursive<IModule>.Children => BaseModule.Children;
+
+    /// <inheritdoc/>
     public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals) => BaseModule.GetModulesUsed(recursive, compileDerivedSignals);
 
     /// <inheritdoc/>

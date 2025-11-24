@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -11,7 +10,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule : IEquatable<IModule>, ICompletable
+public interface IModule : IEquatable<IModule>, ICompletable, IMayBeRecursive<IModule>
 {
     /// <summary>
     /// Name of the module

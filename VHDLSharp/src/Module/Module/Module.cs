@@ -195,6 +195,9 @@ public class Module : IModule, IValidityManagedEntity
 
     private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid(out _);
 
+    /// <inheritdoc/>
+    public IEnumerable<IMayBeRecursive<IModule>> Children => GetModulesUsed(false, false);
+
     /// <summary>
     /// Generate a signal with this module as the parent
     /// </summary>
@@ -581,6 +584,10 @@ public class Module : IModule, IValidityManagedEntity
     {
         exception = null;
 
+        // Check for recursion
+        if (((IMayBeRecursive<IModule>)this).CheckRecursion())
+            exception = new IllegalRecursionException("Recursion detected in module usage");
+
         // Check that all module signals have this module as parent
         IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
         foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
@@ -647,7 +654,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Check circular signal assignment
         if (ModuleAlgorithms.CheckForCircularSignals(this, out List<List<IModuleSpecificSignal>> paths))
-            exception = new Exception($"Recursive signal path detected: {string.Join('-', paths.First())}");
+            exception = new CircularSignalException($"Circular signal path detected: {string.Join('-', paths.First())}");
 
         return exception is null;
     }

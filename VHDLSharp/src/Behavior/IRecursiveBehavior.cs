@@ -1,13 +1,13 @@
-using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Dimensions;
 using VHDLSharp.Signals;
 
 namespace VHDLSharp.Behaviors;
 
 /// <summary>
-/// Interface for behaviors that might have recursion, so that must be checked
+/// Interface for behaviors that might have recursion, so that must be checked.
+/// Note that as of now, only combinational behaviors are used by other behaviors (hence DynamicBehavior being exempt)
 /// </summary>
-internal interface IRecursiveBehavior : IBehavior
+internal interface IRecursiveBehavior : IBehavior, IMayBeRecursive<IRecursiveBehavior>
 {
     /// <summary>
     /// Get input signals of behavior, avoiding looking into anything in the <paramref name="behaviorsToIgnore"/> list.
@@ -25,17 +25,4 @@ internal interface IRecursiveBehavior : IBehavior
     /// <param name="behaviorsToIgnore">List of behaviors to avoid looking into</param>
     /// <returns></returns>
     Dimension GetDimension(ISet<IBehavior> behaviorsToIgnore);
-
-    IEnumerable<IBehavior> ChildBehaviors { get; }
-
-    bool CheckRecursion(ISet<IRecursiveBehavior>? parentBehaviors = null)
-    {
-        if (parentBehaviors is not null && parentBehaviors.Contains(this))
-            return true;
-        HashSet<IRecursiveBehavior> childParentBehaviors = parentBehaviors is null ? [this] : [.. parentBehaviors, this];
-        foreach (IRecursiveBehavior behavior in ChildBehaviors.OfType<IRecursiveBehavior>())
-            if (behavior.CheckRecursion(childParentBehaviors))
-                return true;
-        return false;
-    }
 }

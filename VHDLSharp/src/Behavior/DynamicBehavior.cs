@@ -21,7 +21,7 @@ namespace VHDLSharp.Behaviors;
 /// The output signal is assigned the value from the combinational behavior when the condition is met. 
 /// Priority is used for the conditions
 /// </summary>
-public class DynamicBehavior : Behavior, ICompletable, IAllowRecursive
+public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
 {
     private int initialValue = 0;
 
@@ -84,7 +84,7 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowRecursive
     }
 
     /// <inheritdoc/>
-    public IEnumerable<IModuleSpecificSignal> DisallowedRecursiveSignals
+    public IEnumerable<IModuleSpecificSignal> DisallowedCircularSignals
     {
         get
         {
