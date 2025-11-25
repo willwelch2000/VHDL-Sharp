@@ -17,13 +17,13 @@ public record struct SliceParams(int InputBits, int Start, int End) : IEquatable
 public class Slice : ParameterizedModule<SliceParams>
 {
     /// <summary>
-    /// Module to output a slice of an input signal
+    /// Build Slice module--outputs a slice of an input signal
     /// </summary>
     /// <param name="options"></param>
     public Slice(SliceParams options) : base(options) { }
 
     /// <summary>
-    /// Module to output a slice of an input signal
+    /// Build Slice module--outputs a slice of an input signal
     /// </summary>
     /// <param name="inputBits">Number of bits for the input signal</param>
     /// <param name="start">Inclusive start of slice</param>

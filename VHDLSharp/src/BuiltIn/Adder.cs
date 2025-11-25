@@ -19,16 +19,16 @@ public record struct AdderParams(int Bits, bool CarryIn = true, bool CarryOut = 
 public class Adder : ParameterizedModule<AdderParams>
 {
     /// <summary>
-    /// Constructor given parameter set
+    /// Build Adder module given parameter set
     /// </summary>
     /// <param name="options"></param>
     public Adder(AdderParams options) : base(options) { }
 
-    /// <summary>Parameterless constructor</summary>
+    /// <summary>Build Adder module with default settings</summary>
     public Adder() : base(new()) { }
 
     /// <summary>
-    /// Constructor given parameters
+    /// Build Adder module
     /// </summary>
     /// <param name="bits">Number of bits in adder</param>
     /// <param name="carryIn">If true, includes carry-in bit (CIn)</param>

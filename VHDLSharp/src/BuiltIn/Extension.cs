@@ -19,13 +19,13 @@ public record struct ExtensionParams(int InputBits, int OutputBits, bool Signed)
 public class Extension : ParameterizedModule<ExtensionParams>
 {
     /// <summary>
-    /// Constructor given parameter set
+    /// Build Extension module given parameter set
     /// </summary>
     /// <param name="options"></param>
     public Extension(ExtensionParams options) : base(options) { }
 
     /// <summary>
-    /// Constructor given parameters
+    /// Build Extension module
     /// </summary>
     /// <param name="inputBits">Number of bits for the input signal</param>
     /// <param name="outputBits">Number of bits for the output signal</param>
