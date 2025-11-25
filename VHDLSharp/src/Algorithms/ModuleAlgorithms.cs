@@ -26,7 +26,6 @@ public static class ModuleAlgorithms
         if (!circular)
             return false;
 
-        // In future version, first check if there are paths that don't go through instances
         List<List<IModuleSpecificSignal>> connectedPaths = [];
         Dictionary<IPort, Dictionary<IPort, bool>> cache = [];
         // See which of the paths are actually connected through instances
@@ -116,6 +115,7 @@ public static class ModuleAlgorithms
                 // Either fully connected (true) or not at all (nothing assigned to dictionary)
                 if (connected)
                     inputs[pathInputPort] = true;
+                // It's ok if we remove this even if it was marked as false by an alternate path, because it will get fixed when that path goes
                 else
                     inputs.Remove(pathInputPort);
             }
@@ -134,7 +134,8 @@ public static class ModuleAlgorithms
                 // No option to downgrade with secondary path--it either gets marked/left as false or set to true
             }
         }
-        return false;
+        // I think this always works, since it will either be true or nonexistent
+        return inputs.ContainsKey(inputPort);
     }
 
     /// <summary>
@@ -197,7 +198,7 @@ public static class ModuleAlgorithms
                 return;
             visited.Add(node);
             recStack.Push(node);
-            foreach (T neighbor in mapping[node])
+            foreach (T neighbor in mapping.TryGetValue(node, out V? neighbors) ? neighbors.AsEnumerable() : [])
                 Search(neighbor);
             recStack.Pop();
         }

@@ -192,4 +192,35 @@ public class AlgorithmsTests
         Assert.IsFalse(module.ValidityManager.IsValid(out exception));
         Assert.IsInstanceOfType<CircularSignalException>(exception);
     }
+
+    [TestMethod]
+    public void CheckPortConnectionTest()
+    {
+        Module module = new("mod1");
+        Signal s1 = module.GenerateSignal("s1");
+        Signal s2 = module.GenerateSignal("s2");
+        Signal s3 = module.GenerateSignal("s3");
+        Signal s4 = module.GenerateSignal("s4");
+        Signal s5 = module.GenerateSignal("s5");
+        Signal s6 = module.GenerateSignal("s6");
+
+        Port p1 = module.AddNewPort(s1, PortDirection.Input);
+        Port p2 = module.AddNewPort(s2, PortDirection.Input);
+        Port p3 = module.AddNewPort(s3, PortDirection.Output);
+        Port p4 = module.AddNewPort(s4, PortDirection.Output);
+        Port p6 = module.AddNewPort(s6, PortDirection.Output);
+
+        s3.AssignBehavior(s1);
+        s5.AssignBehavior(s3);
+        s4.AssignBehavior(s5);
+        s6.AssignBehavior(1);
+
+        Dictionary<IPort, Dictionary<IPort, bool>> cache = [];
+        Assert.IsTrue(ModuleAlgorithms.CheckPortConnection(p1, p3, cache));
+        Assert.IsTrue(ModuleAlgorithms.CheckPortConnection(p1, p4, cache));
+        Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p1, p6, cache));
+        Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p3, cache));
+        Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p4, cache));
+        Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p6, cache));
+    }
 }
