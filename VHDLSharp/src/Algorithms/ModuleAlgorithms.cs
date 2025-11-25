@@ -32,9 +32,9 @@ public static class ModuleAlgorithms
                 mapping[outputSignal] = [.. inputSignals];
         }
 
-        // Signal behaviors--if it is an IAllowRecursive, just choose the disallowed ones
+        // Signal behaviors--if it is an IAllowCircularSignals, just choose the disallowed ones
         foreach ((IModuleSpecificSignal signal, IBehavior behavior) in module.SignalBehaviors)
-            AddSignals(signal, (behavior as IAllowRecursive)?.DisallowedRecursiveSignals ?? behavior.InputModuleSignals);
+            AddSignals(signal, (behavior as IAllowCircularSignals)?.DisallowedCircularSignals ?? behavior.InputModuleSignals);
 
         // Instantiations--add all input signals for all output signals
         // Maybe explore later to see if there really is a connection
