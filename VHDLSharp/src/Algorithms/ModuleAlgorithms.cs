@@ -18,14 +18,37 @@ public static class ModuleAlgorithms
     public static bool CheckForCircularSignals(IModule module, out List<List<IModuleSpecificSignal>> paths)
     {
         // Find all input-output connections--dictionary maps signal to its immediate inputs
-        // Assume that all inputs to an instance are inputs to all of its outputs
+        // Assumes that all inputs to an instance are inputs to all of its outputs
         var mapping = GetSignalMapping(module, out var connectionsThroughInstantiation);
 
-        // Check if there are circular paths--change findAllPaths to true if checking inside instances
-        return CheckForCircularity(mapping, out paths);
+        // Check if there are circular paths
+        bool circular = CheckForCircularity(mapping, out paths, findAllPaths: true);
+        if (!circular)
+            return false;
 
-        // In future version, check if there are paths that don't go through instances
-        // If all paths go through an instance, look in the instance to see if it really does go in a path through it
+        // In future version, first check if there are paths that don't go through instances
+        List<List<IModuleSpecificSignal>> connectedPaths = [];
+        Dictionary<IPort, Dictionary<IPort, bool>> cache = [];
+        // See which of the paths are actually connected through instances
+        foreach (var path in paths)
+        {
+            bool connected = true;
+            foreach ((IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) in GetPairsInPath(path))
+            {
+                // Connection in path relies on instance--check it
+                if (connectionsThroughInstantiation.TryGetValue((signal1, signal2), out IInstantiation? instantiation))
+                {
+                    // Find ports in instantiation
+                    IPort port1 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal1)).Key;
+                    IPort port2 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal2)).Key;
+                    connected = CheckPortConnection(port1, port2, cache);
+                }
+            }
+            if (connected)
+                connectedPaths.Add(path);
+        }
+        paths = connectedPaths;
+        return paths.Count > 0;
     }
 
     /// <summary>
@@ -33,9 +56,13 @@ public static class ModuleAlgorithms
     /// </summary>
     /// <param name="inputPort"></param>
     /// <param name="outputPort"></param>
-    /// <param name="cache">For already-examined module ports, maps output ports to their input ports</param>
+    /// <param name="cache">
+    /// For already-examined module ports, maps output ports to another dictionary
+    /// where the keys are all the input ports that are connected, assuming all sub-instance ports are connected. 
+    /// The values in that dictionary are whether the connection has been fully determined (through sub-instances).
+    /// </param>
     /// <returns></returns>
-    public static bool CheckPortConnection(IPort inputPort, IPort outputPort, Dictionary<IPort, HashSet<IPort>> cache)
+    public static bool CheckPortConnection(IPort inputPort, IPort outputPort, Dictionary<IPort, Dictionary<IPort, bool>> cache)
     {
         IModule module = inputPort.Signal.ParentModule;
         if (!outputPort.Signal.ParentModule.Equals(module))
@@ -45,9 +72,68 @@ public static class ModuleAlgorithms
 
         // Try cache
         if (cache.TryGetValue(outputPort, out var inputs))
-            return inputs.Contains(inputPort);
+        {
+            // Definitely not an input
+            if (!inputs.TryGetValue(inputPort, out bool explored))
+                return false;
+            // A fully-explored input
+            if (explored)
+                return true;
+            // Might be an input--just continue on
+        }
 
+        // Cache is either nonexistent or port is not fully explored
+        bool noCacheYet = inputs is null;
+        inputs ??= cache[outputPort] = [];
+        Dictionary<IModuleSpecificSignal, IPort> inputSignalToPort = module.Ports.Where(p => p.Direction == PortDirection.Input).Select(p => ((IModuleSpecificSignal)p.Signal, p)).ToDictionary();
         var mapping = GetSignalMapping(module, out var connectionsThroughInstantiation);
+        // Go ahead and check connection to all input ports
+        CheckForConnections(mapping, [outputPort.Signal], [.. module.Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal)], out var paths);
+        // TODO first check for any path that doesn't go through an instance
+        foreach (List<IModuleSpecificSignal> path in paths)
+        {
+            IPort pathInputPort = inputSignalToPort[path.Last()];
+            // Skip if already explored
+            if (inputs.TryGetValue(pathInputPort, out bool explored) && explored)
+                continue;
+            // Fully explore the primary path
+            if (pathInputPort.Equals(inputPort))
+            {
+                bool connected = true;
+                foreach ((IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) in GetPairsInPath(path))
+                {
+                    // Connection in path relies on instance--check it
+                    if (connectionsThroughInstantiation.TryGetValue((signal1, signal2), out IInstantiation? instantiation))
+                    {
+                        // Find ports in instantiation
+                        IPort port1 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal1)).Key;
+                        IPort port2 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal2)).Key;
+                        connected = CheckPortConnection(port1, port2, cache);
+                    }
+                    if (!connected)
+                        break;
+                }
+                // Either fully connected (true) or not at all (nothing assigned to dictionary)
+                if (connected)
+                    inputs[pathInputPort] = true;
+                else
+                    inputs.Remove(pathInputPort);
+            }
+            // Secondary path--don't look in instances, but count as explored if there are no instance-reliant connections
+            else
+            {
+                bool usesInstance = false;
+                foreach ((IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) in GetPairsInPath(path))
+                    if (connectionsThroughInstantiation.ContainsKey((signal1, signal2)))
+                        usesInstance = true;
+                if (!usesInstance)
+                    inputs[pathInputPort] = true;
+                // Add as unexplored only if cache didn't already exist--if it did this would be done already
+                else if (noCacheYet)
+                    inputs[pathInputPort] = false;
+                // No option to downgrade with secondary path--it either gets marked/left as false or set to true
+            }
+        }
         return false;
     }
 
@@ -243,5 +329,15 @@ public static class ModuleAlgorithms
 
         connectionsThroughInstantiation = connections;
         return mapping;
+    }
+
+    private static IEnumerable<(T, T)> GetPairsInPath<T>(List<T> path)
+    {
+        T prev = path.First();
+        foreach (T node in path.Skip(1))
+        {
+            yield return (prev, node);
+            prev = node;
+        }
     }
 }
