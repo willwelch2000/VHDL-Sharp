@@ -327,7 +327,7 @@ public class ModuleTests
         module2.AddNewInstantiation(module1, "inst1");
         Assert.IsFalse(module1.ValidityManager.IsValid(out Exception? issue1));
         Assert.IsFalse(module2.ValidityManager.IsValid(out Exception? issue2));
-        Assert.IsInstanceOfType(issue1, typeof(IllegalRecursionException));
-        Assert.IsInstanceOfType(issue2, typeof(IllegalRecursionException));
+        Assert.IsInstanceOfType<IllegalRecursionException>(issue1);
+        Assert.IsInstanceOfType<IllegalRecursionException>(issue2);
     }
 }

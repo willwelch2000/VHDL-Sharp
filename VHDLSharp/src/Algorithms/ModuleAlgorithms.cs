@@ -19,53 +19,36 @@ public static class ModuleAlgorithms
     {
         // Find all input-output connections--dictionary maps signal to its immediate inputs
         // Assume that all inputs to an instance are inputs to all of its outputs
-        Dictionary<IModuleSpecificSignal, HashSet<IModuleSpecificSignal>> mapping = [];
-        // Following will be used if we check paths through instantiations
-        // Dictionary<(IModuleSpecificSignal, IModuleSpecificSignal), IInstantiation> connectionsThroughInstantiation = [];
-
-        void AddSignals(IModuleSpecificSignal outputSignal, IEnumerable<IModuleSpecificSignal> inputSignals)
-        {
-            if (mapping.TryGetValue(outputSignal, out HashSet<IModuleSpecificSignal>? signals))
-                foreach (var signal in inputSignals)
-                    signals.Add(signal);
-            else
-                mapping[outputSignal] = [.. inputSignals];
-        }
-
-        // Signal behaviors--if it is an IAllowCircularSignals, just choose the disallowed ones
-        foreach ((IModuleSpecificSignal signal, IBehavior behavior) in module.SignalBehaviors)
-            AddSignals(signal, (behavior as IAllowCircularSignals)?.DisallowedCircularSignals ?? behavior.InputModuleSignals);
-
-        // Instantiations--add all input signals for all output signals
-        // Maybe explore later to see if there really is a connection
-        foreach (IInstantiation instantiation in module.Instantiations.Where(i => i is not ICompiledObject))
-        {
-            List<INamedSignal> outputSignals = [];
-            List<INamedSignal> inputSignals = [];
-            foreach ((IPort port, INamedSignal signal) in instantiation.PortMapping)
-                if (port.Direction == PortDirection.Input)
-                    inputSignals.Add(signal);
-                else
-                    outputSignals.Add(signal);
-            foreach (INamedSignal outputSignal in outputSignals)
-                AddSignals(outputSignal, inputSignals);
-        }
-
-        // Derived signals--if derived signals can be recursive in future, check for IAllowRecursive
-        foreach (IDerivedSignal derivedSignal in module.AllDerivedSignals)
-        {
-            // Linked signals
-            if (derivedSignal.LinkedSignal is INamedSignal namedSignal and not ICompiledObject)
-                AddSignals(namedSignal, [derivedSignal]);
-            // Input signals to derived signal
-            AddSignals(derivedSignal, derivedSignal.InputModuleSignals);
-        }
+        var mapping = GetSignalMapping(module, out var connectionsThroughInstantiation);
 
         // Check if there are circular paths--change findAllPaths to true if checking inside instances
         return CheckForCircularity(mapping, out paths);
 
         // In future version, check if there are paths that don't go through instances
         // If all paths go through an instance, look in the instance to see if it really does go in a path through it
+    }
+
+    /// <summary>
+    /// Check if an input and output port are connected
+    /// </summary>
+    /// <param name="inputPort"></param>
+    /// <param name="outputPort"></param>
+    /// <param name="cache">For already-examined module ports, maps output ports to their input ports</param>
+    /// <returns></returns>
+    public static bool CheckPortConnection(IPort inputPort, IPort outputPort, Dictionary<IPort, HashSet<IPort>> cache)
+    {
+        IModule module = inputPort.Signal.ParentModule;
+        if (!outputPort.Signal.ParentModule.Equals(module))
+            throw new Exception("Module of ports must match");
+        if (inputPort.Direction != PortDirection.Input || outputPort.Direction != PortDirection.Output)
+            throw new Exception("Incorrect direction for port");
+
+        // Try cache
+        if (cache.TryGetValue(outputPort, out var inputs))
+            return inputs.Contains(inputPort);
+
+        var mapping = GetSignalMapping(module, out var connectionsThroughInstantiation);
+        return false;
     }
 
     /// <summary>
@@ -123,7 +106,6 @@ public static class ModuleAlgorithms
             {
                 pathFound = true;
                 AddPath(node);
-                return;
             }
             if (visited.Contains(node))
                 return;
@@ -146,5 +128,120 @@ public static class ModuleAlgorithms
                 }
         paths = addedPaths;
         return pathFound;
+    }
+
+    /// <summary>
+    /// Does depth-first search to find all paths from start nodes to end nodes.
+    /// Algorithm based on <see cref="CheckForCircularity"/>
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="V"></typeparam>
+    /// <param name="mapping"></param>
+    /// <param name="startNodes"></param>
+    /// <param name="endNodes"></param>
+    /// <param name="paths">Connections from start nodes to end nodes</param>
+    /// <returns></returns>
+    public static bool CheckForConnections<T, V>(Dictionary<T, V> mapping, List<T> startNodes, HashSet<T> endNodes, out List<List<T>> paths) where T : notnull where V : IEnumerable<T>
+    {
+        HashSet<T> notInPath = [];
+        Stack<T> recStack = [];
+        List<List<T>> addedPaths = [];
+        bool pathFound = false;
+
+        // Considers current recStack and final node
+        void AddPath(T finalNode)
+        {
+            addedPaths.Add([.. recStack.Reverse(), finalNode]);
+            pathFound = true;
+        }
+
+        bool Search(T node)
+        {
+            // Found path
+            if (endNodes.Contains(node))
+            {
+                AddPath(node);
+                return true;
+            }
+            // Already confirmed to not lead to end
+            if (notInPath.Contains(node))
+                return false;
+            // Recurse, tracking if there is a path
+            recStack.Push(node);
+            bool found = false;
+            foreach (T neighbor in mapping[node])
+                if (Search(neighbor))
+                    found = true;
+            recStack.Pop();
+            // Add to set of nodes that don't lead to end
+            if (!found)
+                notInPath.Add(node);
+            return found;
+        }
+
+        foreach (T start in startNodes)
+            Search(start);
+        paths = addedPaths;
+        return pathFound;
+    }
+
+    /// <summary>
+    /// Gets signal mapping of module--maps each signal to all its immediate inputs
+    /// </summary>
+    /// <param name="module"></param>
+    /// <param name="connectionsThroughInstantiation">Input-to-output connections that go through an instance and should be further analyzed</param>
+    /// <returns></returns>
+    private static Dictionary<IModuleSpecificSignal, HashSet<IModuleSpecificSignal>> GetSignalMapping(IModule module, out Dictionary<(IModuleSpecificSignal, IModuleSpecificSignal), IInstantiation> connectionsThroughInstantiation)
+    {
+        // Find all input-output connections--dictionary maps signal to its immediate inputs
+        // Assumes that all inputs to an instance are inputs to all of its outputs
+        Dictionary<IModuleSpecificSignal, HashSet<IModuleSpecificSignal>> mapping = [];
+        // Following will be used if we check paths through instantiations
+        Dictionary<(IModuleSpecificSignal, IModuleSpecificSignal), IInstantiation> connections = [];
+
+        void AddSignals(IModuleSpecificSignal outputSignal, IEnumerable<IModuleSpecificSignal> inputSignals, IInstantiation? instance = null)
+        {
+            if (mapping.TryGetValue(outputSignal, out HashSet<IModuleSpecificSignal>? signals))
+                foreach (var signal in inputSignals)
+                    signals.Add(signal);
+            else
+                mapping[outputSignal] = [.. inputSignals];
+
+            if (instance is not null)
+                foreach (var signal in inputSignals)
+                    connections[(signal, outputSignal)] = instance;
+        }
+
+        // Signal behaviors--if it is an IAllowCircularSignals, just choose the disallowed ones
+        foreach ((IModuleSpecificSignal signal, IBehavior behavior) in module.SignalBehaviors)
+            AddSignals(signal, (behavior as IAllowCircularSignals)?.DisallowedCircularSignals ?? behavior.InputModuleSignals);
+
+        // Instantiations--add all input signals for all output signals
+        // Maybe explore later to see if there really is a connection
+        foreach (IInstantiation instantiation in module.Instantiations.Where(i => i is not ICompiledObject))
+        {
+            List<INamedSignal> outputSignals = [];
+            List<INamedSignal> inputSignals = [];
+            foreach ((IPort port, INamedSignal signal) in instantiation.PortMapping)
+                if (port.Direction == PortDirection.Input)
+                    inputSignals.Add(signal);
+                else
+                    outputSignals.Add(signal);
+            foreach (INamedSignal outputSignal in outputSignals)
+                AddSignals(outputSignal, inputSignals);
+        }
+
+        // Derived signals--if derived signals can be recursive in future, check for IAllowRecursive
+        foreach (IDerivedSignal derivedSignal in module.AllDerivedSignals)
+        {
+            // Linked signals
+            if (derivedSignal.LinkedSignal is INamedSignal namedSignal and not ICompiledObject)
+                AddSignals(namedSignal, [derivedSignal]);
+            // Input signals to derived signal
+            AddSignals(derivedSignal, derivedSignal.InputModuleSignals);
+        }
+
+        connectionsThroughInstantiation = connections;
+        return mapping;
     }
 }

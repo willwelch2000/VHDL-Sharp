@@ -28,6 +28,7 @@ public class AlgorithmsTests
             if (expected)
             {
                 Assert.IsTrue(ModuleAlgorithms.CheckForCircularity(neighbors, out var paths, true));
+                Assert.AreEqual(expectedPaths!.Count, paths.Count);
                 foreach (List<int> path in paths)
                 {
                     bool found = false;
@@ -116,6 +117,56 @@ public class AlgorithmsTests
     }
 
     [TestMethod]
+    public void CheckConnectionsTest()
+    {
+        static void PerformCheck(Dictionary<int, IEnumerable<int>> neighbors, bool expected, List<int> start, HashSet<int> end, List<int[]> expectedPaths)
+        {
+            if (expected)
+            {
+                Assert.IsTrue(ModuleAlgorithms.CheckForConnections(neighbors, start, end, out var paths));
+                Assert.AreEqual(expectedPaths!.Count, paths.Count);
+                foreach (List<int> path in paths)
+                {
+                    bool found = false;
+                    foreach (int[] expectedPath in expectedPaths)
+                    {
+                        if (expectedPath.SequenceEqual(path))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    Assert.IsTrue(found);
+                }
+            }
+            else
+                Assert.IsFalse(ModuleAlgorithms.CheckForConnections(neighbors, start, end, out _));
+        }
+
+        Dictionary<int, IEnumerable<int>> neighbors = new()
+        {
+            {1, [2, 5]},
+            {2, [3, 4]},
+            {3, [6]},
+            {4, []},
+            {5, []},
+            {6, []},
+            {7, [1]}
+        };
+        PerformCheck(neighbors, true, [1, 7], [4, 6], [[1, 2, 3, 6], [1, 2, 4], [7, 1, 2, 3, 6], [7, 1, 2, 4]]);
+        PerformCheck(neighbors, true, [7, 1], [4, 6], [[1, 2, 3, 6], [1, 2, 4], [7, 1, 2, 3, 6], [7, 1, 2, 4]]);
+
+        neighbors = new()
+        {
+            {1, [2]},
+            {2, [3, 4]},
+            {3, []},
+            {4, []}
+        };
+        PerformCheck(neighbors, false, [4], [1], []);
+    }
+
+    [TestMethod]
     public void CircularSignalCheckTest()
     {
         Module module = new("mod1");
@@ -139,6 +190,6 @@ public class AlgorithmsTests
         dynamic.Add(s3.IsHigh(), s2.ToBehavior());
         Assert.IsTrue(ModuleAlgorithms.CheckForCircularSignals(module, out paths));
         Assert.IsFalse(module.ValidityManager.IsValid(out exception));
-        Assert.IsInstanceOfType(exception, typeof(CircularSignalException));
+        Assert.IsInstanceOfType<CircularSignalException>(exception);
     }
 }
