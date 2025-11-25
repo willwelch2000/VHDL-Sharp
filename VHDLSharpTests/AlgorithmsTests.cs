@@ -1,5 +1,6 @@
 using VHDLSharp.Algorithms;
 using VHDLSharp.Behaviors;
+using VHDLSharp.BuiltIn;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
@@ -222,5 +223,29 @@ public class AlgorithmsTests
         Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p3, cache));
         Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p4, cache));
         Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(p2, p6, cache));
+    }
+
+    [TestMethod]
+    public void CircularSignalCheckWithInstanceTest()
+    {
+        IModule dff = new DFlipFlop(new() { Enable = true });
+        Module module = new("module1");
+
+        Port clk = module.AddNewPort("CLK", PortDirection.Input);
+        Port d = module.AddNewPort("D", PortDirection.Input);
+        Port q = module.AddNewPort("Q", PortDirection.Output);
+        Port en = module.AddNewPort("EN", PortDirection.Input);
+
+        Instantiation inst = module.AddNewInstantiation(dff, "Inst1");
+        inst.PortMapping.SetPort("D", d.Signal);
+        inst.PortMapping.SetPort("CLK", clk.Signal);
+        inst.PortMapping.SetPort("Q", q.Signal);
+        inst.PortMapping.SetPort("Enable", en.Signal);
+
+        Dictionary<IPort, Dictionary<IPort, bool>> cache = [];
+        Assert.IsTrue(ModuleAlgorithms.CheckPortConnection(clk, q, cache));
+        // Allowed because it's dynamic
+        Assert.IsFalse(ModuleAlgorithms.CheckPortConnection(d, q, cache));
+        Assert.IsTrue(ModuleAlgorithms.CheckPortConnection(en, q, cache));
     }
 }

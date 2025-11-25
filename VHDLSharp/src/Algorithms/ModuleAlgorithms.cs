@@ -51,7 +51,8 @@ public static class ModuleAlgorithms
     }
 
     /// <summary>
-    /// Check if an input and output port are connected
+    /// Check if an input and output port are connected in a path that doesn't allow circularity
+    /// (for example, some dynamic-behavior connections allow circularity)
     /// </summary>
     /// <param name="inputPort"></param>
     /// <param name="outputPort"></param>
@@ -102,12 +103,13 @@ public static class ModuleAlgorithms
                 foreach ((IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) in GetPairsInPath(path))
                 {
                     // Connection in path relies on instance--check it
-                    if (connectionsThroughInstantiation.TryGetValue((signal1, signal2), out IInstantiation? instantiation))
+                    // Connections dictionary maps input to output, so signal1 and signal2 are switched
+                    if (connectionsThroughInstantiation.TryGetValue((signal2, signal1), out IInstantiation? instantiation))
                     {
                         // Find ports in instantiation
                         IPort port1 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal1)).Key;
                         IPort port2 = instantiation.PortMapping.First(kvp => kvp.Value.Equals(signal2)).Key;
-                        connected = CheckPortConnection(port1, port2, cache);
+                        connected = CheckPortConnection(port2, port1, cache);
                     }
                     if (!connected)
                         break;
@@ -120,18 +122,15 @@ public static class ModuleAlgorithms
                     inputs.Remove(pathInputPort);
             }
             // Secondary path--don't look in instances, but count as explored if there are no instance-reliant connections
-            else
+            // Change only if cache didn't already exist--if it did this would be done already
+            // No option to downgrade with secondary path--it either gets marked/left as false or set to true
+            else if (noCacheYet)
             {
                 bool usesInstance = false;
                 foreach ((IModuleSpecificSignal signal1, IModuleSpecificSignal signal2) in GetPairsInPath(path))
-                    if (connectionsThroughInstantiation.ContainsKey((signal1, signal2)))
+                    if (connectionsThroughInstantiation.ContainsKey((signal2, signal1)))
                         usesInstance = true;
-                if (!usesInstance)
-                    inputs[pathInputPort] = true;
-                // Add as unexplored only if cache didn't already exist--if it did this would be done already
-                else if (noCacheYet)
-                    inputs[pathInputPort] = false;
-                // No option to downgrade with secondary path--it either gets marked/left as false or set to true
+                inputs[pathInputPort] = !usesInstance;
             }
         }
         // I think this always works, since it will either be true or nonexistent
@@ -315,7 +314,7 @@ public static class ModuleAlgorithms
                 else
                     outputSignals.Add(signal);
             foreach (INamedSignal outputSignal in outputSignals)
-                AddSignals(outputSignal, inputSignals);
+                AddSignals(outputSignal, inputSignals, instantiation);
         }
 
         // Derived signals--if derived signals can be recursive in future, check for IAllowRecursive
