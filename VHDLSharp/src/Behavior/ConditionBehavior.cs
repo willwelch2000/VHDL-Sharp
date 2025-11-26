@@ -71,7 +71,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
             // Includes itself (don't want immediate recursion) and sub-behaviors once they've been explored
             if (!childBehaviorsToIgnore.Contains(behavior))
             {
-                IEnumerable<IModuleSpecificSignal> behaviorSignals = behavior is IRecursiveBehavior recursiveBehavior ? 
+                IEnumerable<IModuleSpecificSignal> behaviorSignals = behavior is IRecursiveBehavior recursiveBehavior ?
                     recursiveBehavior.GetInputModuleSignals(childBehaviorsToIgnore) : behavior.InputModuleSignals;
                 foreach (IModuleSpecificSignal signal in behaviorSignals)
                     signals.Add(signal);
@@ -102,7 +102,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
         {
             if (childBehaviorsToIgnore.Contains(behavior))
                 continue;
-            subDimensions.Add(behavior is IRecursiveBehavior recursiveBehavior ? 
+            subDimensions.Add(behavior is IRecursiveBehavior recursiveBehavior ?
                 recursiveBehavior.GetDimension(childBehaviorsToIgnore) : behavior.Dimension);
             childBehaviorsToIgnore.Add(behavior);
         }
@@ -282,4 +282,27 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
                 return behavior.GetOutputValue(state, outputSignal);
         return DefaultBehavior.GetOutputValue(state, outputSignal);
     }
+}
+
+/// <summary>
+/// Class to add a behavior to a condition of a <see cref="ConditionBehavior"/>,
+/// enabling if-then syntax
+/// </summary>
+public class ConditionBehaviorAdder
+{
+    internal ConditionBehaviorAdder(ConditionBehavior behavior, ILogicallyCombinable<IConstantCondition> condition)
+    {
+        Behavior = behavior;
+        Condition = condition;
+    }
+
+    /// <summary>Linked condition behavior</summary>
+    public ConditionBehavior Behavior { get; }
+
+    /// <summary>Condition that a sub-behavior can be added for</summary>
+    public ILogicallyCombinable<IConstantCondition> Condition { get; }
+
+    /// <summary>Link a behavior to this <see cref="Condition"/></summary>
+    /// <param name="behavior"></param>
+    public void Then(ICombinationalBehavior behavior) => Behavior.Add(Condition, behavior);
 }

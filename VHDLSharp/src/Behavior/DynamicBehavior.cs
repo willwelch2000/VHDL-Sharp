@@ -425,3 +425,26 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
         return true;
     }
 }
+
+/// <summary>
+/// Class to add a behavior to a condition of a <see cref="DynamicBehavior"/>,
+/// enabling if-then syntax
+/// </summary>
+public class DynamicBehaviorAdder
+{
+    internal DynamicBehaviorAdder(DynamicBehavior behavior, ILogicallyCombinable<ICondition> condition)
+    {
+        Behavior = behavior;
+        Condition = condition;
+    }
+
+    /// <summary>Linked dynamic behavior</summary>
+    public DynamicBehavior Behavior { get; }
+
+    /// <summary>Condition that a sub-behavior can be added for</summary>
+    public ILogicallyCombinable<ICondition> Condition { get; }
+
+    /// <summary>Link a behavior to this <see cref="Condition"/></summary>
+    /// <param name="behavior"></param>
+    public void Then(ICombinationalBehavior behavior) => Behavior.Add(Condition, behavior);
+}
