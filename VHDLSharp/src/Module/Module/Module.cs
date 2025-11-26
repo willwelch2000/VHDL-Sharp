@@ -214,6 +214,14 @@ public class Module : IModule, IValidityManagedEntity
     public Vector GenerateVector(string name, int dimension) => new(name, this, dimension);
 
     /// <summary>
+    /// Generate a signal or vector (depending on dimension) with this module as the parent
+    /// </summary>
+    /// <param name="name">name of the vector</param>
+    /// <param name="dimension">dimension of the vector</param>
+    /// <returns></returns>
+    public ITopLevelNamedSignal GenerateSignalOrVector(string name, int dimension) => NamedSignal.GenerateSignalOrVector(name, this, dimension);
+
+    /// <summary>
     /// Create a port with a new single-dimension signal and add the new port to the list of ports
     /// </summary>
     /// <param name="name"></param>
@@ -296,6 +304,7 @@ public class Module : IModule, IValidityManagedEntity
 
         // Check that every single-node signal in every port has been assigned
         // This strategy should work for a Vector assigned as multiple VectorSlices
+        // TODO should this be all signals except input ports?
         foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
             if (!port.Signal.ToSingleNodeSignals.All(allAssignedOutputSignals.Contains))
             {
