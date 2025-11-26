@@ -16,8 +16,8 @@ public interface ISingleNodeSignal : ISignal
 
     DefiniteDimension ISignal.Dimension => new(1);
 
-    ISingleNodeSignal ISignal.this[int index] => index == 0 ? this :
-        throw new ArgumentOutOfRangeException(nameof(index), $"Must be 0 for single node signal");
+    ISingleNodeSignal ISignal.this[Index index] => (index.IsFromEnd ? 1 - index.Value : index.Value) == 0 ? this :
+        throw new ArgumentOutOfRangeException(nameof(index), $"Must refer to node 0 for single node signal");
 
     IEnumerable<ISignal> ISignal.ChildSignals => [];
 

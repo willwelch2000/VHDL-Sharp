@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using SpiceSharp.Entities;
+using VHDLSharp.Algorithms;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Exceptions;
 using VHDLSharp.Signals;
@@ -32,6 +33,8 @@ public class Module : IModule, IValidityManagedEntity
     // Used as validity checker, so it should be set false before control leaves the module
     // It is possible for there to be compiled objects even if this is false
     private bool compiled;
+
+    private readonly HashSet<IDerivedSignal> registeredDerivedSignals = [];
 
     /// <summary>Default constructor</summary>
     public Module()
@@ -133,13 +136,14 @@ public class Module : IModule, IValidityManagedEntity
             .Union(SignalBehaviors.Values.SelectMany(b => b.InputModuleSignals)) // Behaviors' input signals
             .Union(SignalBehaviors.Keys) // Assigned signals
             .Union(Instantiations.SelectMany(i => i.PortMapping.Values)) // Signals used in instantations
+            .Union(registeredDerivedSignals) // Registered derived signals
             // From all included signals, get themselves and any used signals + linked signal, if it's a derived signal or derived signal node
             .SelectMany<IModuleSpecificSignal, IModuleSpecificSignal>(s => s switch
             {
                 IDerivedSignal derivedSignal => derivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                    [s, .. derivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignal.UsedModuleSpecificSignals],
+                    [s, .. derivedSignal.RecursiveInputModuleSignals, linkedSignal] : [s, .. derivedSignal.RecursiveInputModuleSignals],
                 IDerivedSignalNode derivedSignalNode => derivedSignalNode.DerivedSignal.LinkedSignal is INamedSignal linkedSignal ?
-                    [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.UsedModuleSpecificSignals],
+                    [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals],
                 _ => [s],
             })
             .Where(s => s.ParentModule == this || includeIncorrectlyAssignedSignals) // Should be true for all, but double check
@@ -166,10 +170,15 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => GetAllModuleSignals(false);
 
     /// <inheritdoc/>
+    public IEnumerable<IDerivedSignal> AllDerivedSignals => [.. registeredDerivedSignals];
+
+    /// <inheritdoc/>
     public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals)
     {
         HashSet<IModule> modulesUsed = [];
-        bool uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
+        bool uncompile = false;
+        if (compileDerivedSignals)
+            uncompile = CompileDerivedSignals(); // undo compilation if it actually changes stuff
         foreach (IModule module in Instantiations.Select(i => i.InstantiatedModule))
         {
             if (!modulesUsed.Add(module))
@@ -185,6 +194,9 @@ public class Module : IModule, IValidityManagedEntity
     }
 
     private bool ConsiderValid => ignoreValidity || ValidityManager.IsValid(out _);
+
+    /// <inheritdoc/>
+    public IEnumerable<IMayBeRecursive<IModule>> Children => GetModulesUsed(false, false);
 
     /// <summary>
     /// Generate a signal with this module as the parent
@@ -278,7 +290,9 @@ public class Module : IModule, IValidityManagedEntity
     {
         // Set of all assigned output signals, broken into their single-node components
         HashSet<ISingleNodeNamedSignal> allAssignedOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)
-            .Concat(SignalBehaviors.Keys).SelectMany(s => s.ToSingleNodeSignals)];
+            .Concat(SignalBehaviors.Keys)
+            .Concat(AllModuleSignals.OfType<IDerivedSignal>().Select(s => s.LinkedSignal).OfType<INamedSignal>())
+            .SelectMany(s => s.ToSingleNodeSignals)];
 
         // Check that every single-node signal in every port has been assigned
         // This strategy should work for a Vector assigned as multiple VectorSlices
@@ -292,6 +306,11 @@ public class Module : IModule, IValidityManagedEntity
         // Check that instantiation collection is complete
         if (!Instantiations.IsComplete(out reason))
             return false;
+
+        // Check all applicable behaviors
+        foreach (ICompletable behavior in SignalBehaviors.Values.OfType<ICompletable>())
+            if (!behavior.IsComplete(out reason))
+                return false;
 
         reason = null;
         return true;
@@ -565,13 +584,23 @@ public class Module : IModule, IValidityManagedEntity
     {
         exception = null;
 
+        // Check for recursion
+        if (((IMayBeRecursive<IModule>)this).CheckRecursion())
+        {
+            exception = new IllegalRecursionException("Recursion detected in module usage");
+            return false;
+        }
+
         // Check that all module signals have this module as parent
         IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
         foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
             if (!((IModule)this).Equals(moduleSignal.ParentModule))
+            {
                 exception = moduleSignal is INamedSignal namedModSignal ?
                     new Exception($"Signal {namedModSignal.Name} must have this module ({Name}) as parent") :
                     new Exception($"Signals must have this module ({Name}) as parent");
+                return false;
+            }
 
         // Check that behaviors have correct dimension and that output signal isn't input port
         INamedSignal[] inputPortSignals = [.. Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal)];
@@ -579,10 +608,12 @@ public class Module : IModule, IValidityManagedEntity
         {
             if (behavior.ParentModule is not null && !((IModule)this).Equals(behavior.ParentModule))
                 exception = new Exception($"Behavior must have this module as parent");
-            if (!behavior.IsCompatible(outputSignal))
+            else if (!behavior.IsCompatible(outputSignal))
                 exception = new Exception($"Behavior must be compatible with output signal");
-            if (inputPortSignals.Contains(outputSignal))
+            else if (inputPortSignals.Contains(outputSignal))
                 exception = new Exception($"Output signal ({outputSignal}) must not be an input port");
+            if (exception is not null)
+                return false;
         }
 
         // This list removes duplicate derived signals (from when a node references a parent),
@@ -599,8 +630,10 @@ public class Module : IModule, IValidityManagedEntity
                 linkedSignals.Add(linkedSignal);
                 if (!derivedSignal.Dimension.Compatible(linkedSignal.Dimension))
                     exception = new Exception($"Linked signal ({linkedSignal}) must have the same dimension as the derived signal it's linked to");
-                if (inputPortSignals.Contains(linkedSignal))
+                else if (inputPortSignals.Contains(linkedSignal))
                     exception = new Exception($"Linked signal ({linkedSignal}) must not be an input port");
+                if (exception is not null)
+                    return false;
             }
         }
 
@@ -618,6 +651,7 @@ public class Module : IModule, IValidityManagedEntity
                 exception = new Exception($"Module defines an overlapping parent ({parent}) and child ({child}) output signal");
             else
                 exception = new Exception($"Module has two declarations for a signal ({child}) either as behavior, instantiation output, or as a used derived signal's linked signal");
+            return false;
         }
 
         // Don't allow ports with the same signal
@@ -626,8 +660,15 @@ public class Module : IModule, IValidityManagedEntity
         {
             string? duplicate = Ports.FirstOrDefault(p => Ports.Count(p2 => p.Signal == p2.Signal) > 1)?.Signal?.Name;
             if (duplicate is not null)
+            {
                 exception = new Exception($"The same signal (\"{duplicate}\") cannot be added as two different ports");
+                return false;
+            }
         }
+
+        // Check circular signal assignment
+        if (ModuleAlgorithms.CheckForCircularSignals(this, out List<List<IModuleSpecificSignal>> paths))
+            exception = new CircularSignalException($"Circular signal path detected: {string.Join('-', paths.First())}");
 
         return exception is null;
     }
@@ -648,24 +689,22 @@ public class Module : IModule, IValidityManagedEntity
         foreach (CompiledInstantiation instantiation in Instantiations.OfType<CompiledInstantiation>().ToArray())
             Instantiations.Remove(instantiation);
 
-        // Loop through all used derived signals and the derived signals whose nodes are used
+        // Gather all used derived signals and the derived signals whose nodes are used
         IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
         IDerivedSignal[] usedDerivedSignals = [.. moduleSignals.OfType<IDerivedSignal>().Distinct()
             .Union(moduleSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal))];
+        // Loop through the derived signals--if the signal is unlinked or previously compiled, link a new named signal
         foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
-        {
-            // If the signal is unlinked or previously compiled, link a new named signal
             if (derivedSignal.LinkedSignal is ICompiledObject or null)
                 derivedSignal.LinkedSignal = derivedSignal.Dimension.NonNullValue switch
                 {
                     1 => new CompiledSignal($"DerivedSignal{i}", this),
                     _ => new CompiledVector($"DerivedSignal{i}", this, derivedSignal.Dimension.NonNullValue),
                 };
-
-            // Add the compiled instantiation, converting to a CompiledInstantiation instance
-            CompiledInstantiation instantiation = new(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}"));
-            Instantiations.Add(instantiation);
-        }
+        // Loop through again and add the compiled instantiation, converting to a CompiledInstantiation instance
+        // These loops cannot be combined because cometimes the instantiation compilation requires another linked signal existing already
+        foreach ((int i, IDerivedSignal derivedSignal) in usedDerivedSignals.Index())
+            Instantiations.Add(new CompiledInstantiation(derivedSignal.Compile($"DerivedModule{i}", $"DerivedInstance{i}")));
 
         compiled = true;
         return true;
@@ -681,5 +720,13 @@ public class Module : IModule, IValidityManagedEntity
         foreach (IDerivedSignal derivedSignal in AllModuleSignals.OfType<IDerivedSignal>().Where(s => s.LinkedSignal is ICompiledObject))
             derivedSignal.LinkedSignal = null;
         compiled = false;
+    }
+
+    /// <inheritdoc/>
+    public void RegisterDerivedSignal(IDerivedSignal signal)
+    {
+        if (!signal.ParentModule.Equals(this))
+            throw new Exception($"The provided derived signal does must have this ({Name}) as its parent module");
+        registeredDerivedSignals.Add(signal);
     }
 }

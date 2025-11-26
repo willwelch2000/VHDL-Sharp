@@ -8,7 +8,7 @@ namespace VHDLSharp.Signals;
 /// <summary>
 /// A slice of a vector that includes some of the nodes, consecutively
 /// </summary>
-public class VectorSlice : NamedSignal
+public class VectorSlice : NamedSignal, IEquatable<VectorSlice>
 {
     /// <summary>
     /// Main constructor
@@ -100,5 +100,22 @@ public class VectorSlice : NamedSignal
             return false;
         equivalentSignal = mapping[port][StartNode..(EndNode+1)];
         return true;
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(VectorSlice? other) => other is not null && 
+        other.Vector.Equals(Vector) && other.StartNode == StartNode && other.EndNode == EndNode;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as VectorSlice);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(Vector);
+        code.Add(StartNode);
+        code.Add(EndNode);
+        return code.ToHashCode();
     }
 }

@@ -96,9 +96,9 @@ public static class SpiceUtil
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
         {
-            // PMOSs go in parallel from VDD to nandSignal
+            // PMOSs go in parallel from VDD to OUT
             circuit.Add(new Mosfet1($"pnand{i}", "OUT", $"IN{i}", "VDD", "VDD", PmosModel.Name));
-            // NMOSs go in series from nandSignal to ground
+            // NMOSs go in series from OUT to ground
             string nDrain = i == 1 ? "OUT" : $"nand{i}";
             string nSource = i == numInputs ? "0" : $"nand{i+1}";
             circuit.Add(new Mosfet1($"nnand{i}", nDrain, $"IN{i}", nSource, nSource, NmosModel.Name));
@@ -158,11 +158,11 @@ public static class SpiceUtil
         // Add a PMOS and NMOS for each input signal
         for (int i = 1; i <= numInputs; i++)
         {
-            // PMOSs go in series from VDD to norSignal
+            // PMOSs go in series from VDD to OUT
             string pDrain = i == 1 ? "OUT" : $"nor{i}";
             string pSource = i == numInputs ? "VDD" : $"nor{i+1}";
             circuit.Add(new Mosfet1($"pnor{i}", pDrain, $"IN{i}", pSource, pSource, PmosModel.Name));
-            // NMOSs go in parallel from norSignal to ground
+            // NMOSs go in parallel from OUT to ground
             circuit.Add(new Mosfet1($"nnor{i}", "OUT", $"IN{i}", "0", "0", NmosModel.Name));
         }
 
@@ -258,7 +258,7 @@ public static class SpiceUtil
     /// <returns></returns>
     internal static INamedSubcircuitDefinition GetMuxSubcircuit(int dim)
     {
-        if (xnorSubcircuits.TryGetValue(dim, out INamedSubcircuitDefinition? subcircuit))
+        if (muxSubcircuits.TryGetValue(dim, out INamedSubcircuitDefinition? subcircuit))
             return subcircuit;
 
         if (dim < 1)

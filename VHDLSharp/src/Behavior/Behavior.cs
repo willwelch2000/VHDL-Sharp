@@ -84,6 +84,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     {
         if (!ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Behavior must be valid to convert to VHDL", issue);
+        if (this is ICompletable completable && !completable.IsComplete(out string? reason))
+            throw new IncompleteException(reason);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetVhdlStatementWithoutCheck(outputSignal);
@@ -94,6 +96,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     {
         if (!ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Behavior must be valid to convert to Spice circuit", issue);
+        if (this is ICompletable completable && !completable.IsComplete(out string? reason))
+            throw new IncompleteException(reason);
         if (!IsCompatible(outputSignal))
             throw new IncompatibleSignalException("Output signal is not compatible with this behavior");
         return GetSpiceWithoutCheck(outputSignal, uniqueId);
@@ -104,6 +108,8 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     {
         if (!ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Logic behavior must be valid to convert to Spice circuit", issue);
+        if (this is ICompletable completable && !completable.IsComplete(out string? reason))
+            throw new IncompleteException(reason);
         if (!((IValidityManagedEntity)outputSignal).ValidityManager.IsValid(out issue))
             throw new InvalidException("Output signal must be valid to use to get simulation rule", issue);
         if (!IsCompatible(outputSignal.Signal))
@@ -184,7 +190,21 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     /// <param name="newSignals"></param>
     protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
     {
+        // Doesn't need to unpack derived signals--just the direct children are followed
         foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
             childEntities.Add(derivedSignal);
+    }
+    
+    /// <summary>
+    /// Should be called by child classes whenever signals are removed. 
+    /// Finds the derived signals and untracks them
+    /// </summary>
+    /// <param name="removedSignals"></param>
+    protected void ManageRemovedSignals(IEnumerable<ISignal> removedSignals)
+    {
+        // The ValidityManager class is built to track the net add/remove count, so it should work to 
+        // remove these even if they are used multiple times
+        foreach (IDerivedSignal derivedSignal in removedSignals.OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Remove(derivedSignal);
     }
 }

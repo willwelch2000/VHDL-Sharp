@@ -108,6 +108,7 @@ public abstract class ValidityManager
             return true;
         if (!entity.CheckTopLevelValidity(out issue))
             return false;
+        checkedEntities.Add(entity); // Add before children in case of recursion
         foreach (IValidityManagedEntity child in ChildrenEntities)
             if (!child.ValidityManager.IsValid(out Exception? innerIssue, checkedEntities))
             {
@@ -115,7 +116,6 @@ public abstract class ValidityManager
                 issue = new InvalidException("Issue with child", innerIssue);
                 return false;
             }
-        checkedEntities.Add(entity);
         return true;
     }
 
@@ -315,7 +315,7 @@ public class ValidityManager<T> : ValidityManager where T : notnull
     /// </summary>
     /// <param name="entity">Main entity to follow</param>
     /// <param name="childrenEntities">List of children to include in validity-checking. Children also trigger updates here when CheckAfterUpdate is activated</param>
-    /// <param name="additionalObservedEntities">List of additional entities that invoke recheck of validity when CheckAfterUpdate is activated</param>
+    /// <param name="additionalObservedEntities">List of additional entities that invoke recheck of validity when CheckAfterUpdate is activated. Are not checked for validity-checking of this object</param>
     public ValidityManager(IValidityManagedEntity entity, ObservableCollection<T> childrenEntities, ObservableCollection<T>? additionalObservedEntities = null) : base(entity)
     {
         childrenEntitiesAsT = childrenEntities;

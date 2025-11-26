@@ -6,8 +6,8 @@ namespace VHDLSharp.Signals;
 /// A basic single-node signal used in a module
 /// </summary>
 /// <param name="name">Name of signal</param>
-/// <param name="parent">Module to which this signal belongs</param>
-public class Signal(string name, IModule parent) : SingleNodeNamedSignal, ITopLevelNamedSignal
+/// <param name="parentModule">Module to which this signal belongs</param>
+public class Signal(string name, IModule parentModule) : SingleNodeNamedSignal, ITopLevelNamedSignal
 {
     /// <summary>
     /// Name of the signal
@@ -17,7 +17,7 @@ public class Signal(string name, IModule parent) : SingleNodeNamedSignal, ITopLe
     /// <summary>
     /// Name of the module the signal is in
     /// </summary>
-    public override IModule ParentModule => parent;
+    public override IModule ParentModule => parentModule;
 
     /// <inheritdoc/>
     public override INamedSignal? ParentSignal => null;

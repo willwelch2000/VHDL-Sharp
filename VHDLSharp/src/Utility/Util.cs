@@ -1,4 +1,6 @@
+using VHDLSharp.Conditions;
 using VHDLSharp.LogicTree;
+using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Utility;
 
@@ -14,7 +16,7 @@ internal static class Util
     internal static string ToBinaryString(this int i, int digits)
     {
         if (i < 0 || i > (1<<digits)-1)
-            throw new ArgumentException("i must be between 0 and 2^digits");
+            throw new ArgumentOutOfRangeException(nameof(i), "i must be between 0 and 2^digits");
         
         string conversion = Convert.ToString(i, 2);
         if (conversion.Length < digits)
@@ -41,5 +43,14 @@ internal static class Util
         }
 
         return true;
+    }
+
+    internal static bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubcircuitReference context)
+    {
+        bool Primary(ICondition condition) => condition.Evaluate(state, context);
+        bool And(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a && b);
+        bool Or(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a || b);
+        bool Not(bool input) => !input;
+        return conditionCombo.PerformFunction(Primary, And, Or, Not);
     }
 }

@@ -47,7 +47,7 @@ public class ValueBehavior : Behavior, ICombinationalBehavior
     /// <inheritdoc/>
     protected override string GetVhdlStatementWithoutCheck(INamedSignal outputSignal)
     {
-        return$"{outputSignal} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
+        return$"{outputSignal.GetVhdlName()} <= \"{Value.ToBinaryString(outputSignal.Dimension.NonNullValue)}\";";
     }
 
     /// <inheritdoc/>

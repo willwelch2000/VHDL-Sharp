@@ -20,20 +20,27 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        // Console.WriteLine("Start");
-        GenerateAddedSignalVhdl();
+        TestSpiceSharp2();
         /* TODO
         1. Do derived signals' modules need to be validity-checked?
             Or do we assume it's ok? The class extended from DerivedSignal would have to be invalid for it to be invalid
             A. Could somehow check at compile time
             B. Or could check a generated instance in CheckTopLevelValidity
         2. Implement derived signals shown in extensions class
-        3. Conditions should allow module-specific signals instead of named signals
+            B. Left and right shifts
+        3. Conditions should allow module-specific signals instead of named signals--completed
             A. Add test of this?
-        4. Add GreaterThan and LessThan conditions
         5. Add a ConditionBehavior that allows an ordered set of condition/ICombinationalBehavior pairs
             A. Very similar to DynamicBehavior but no flip flop, just a mux basically
             B. Only IConstantConditions allowed
+        6. Eventually, derived signals should be made to not require a parent module--maybe make ParentModule nullable in IModuleSpecificSignal
+        7. Add extension methods for INamed signal--put a lot of the stuff that's currently in the individual classes
+        8. Might should deal with recursion in derived signals--signal being input and output
+            A. Might need to apply to instantiations as well
+            B. Module/DerivedSignal classes could have property for if recursion is allowed
+            C. Alternatively, could just make it illegal for a signal to 
+                1. Be input to a derived signal that it's linked to or is an input to its behavior
+                2. Be input and output to the same instantiation
         */
     }
 
@@ -229,28 +236,34 @@ public static class Program
         Vector v1 = module1.GenerateVector("v1", 3);
         Vector v2 = module1.GenerateVector("v2", 3);
 
-        Equality equalitySingle = new(s1, s2);
-        Equality equalityVector = v1.EqualityWith(v2);
-        RisingEdge risingEdge = new(s1);
-        FallingEdge fallingEdge = s1.FallingEdge();
+        // Equality equalitySingle = new(s1, s2);
+        // Equality equalityVector = v1.EqualTo(v2);
+        // RisingEdge risingEdge = new(s1);
+        // FallingEdge fallingEdge = s1.FallingEdge();
+        // High high = s1.IsHigh();
+        // Low low = s1.IsLow();
+        // Comparison greaterThan = s1.GreaterThan(s2);
+        // Comparison greaterThanSigned = s1.GreaterThan(s2, true);
+        // Comparison lessThan = v1.LessThan(v2);
+        Comparison lessThanSigned = v1.LessThan(v2, true);
 
         TimeDefinedStimulus s1Stimulus = new()
         {
-            Points = new() { { 0, false }, { 2, true }, { 3, false } }
+            Points = new() { { 0, false }, { 2e-5, true }, { 3e-5, false } }
         };
         TimeDefinedStimulus s2Stimulus = new()
         {
-            Points = new() { { 0, false }, { 1, true } }
+            Points = new() { { 0, false }, { 1e-5, true } }
         };
         MultiDimensionalStimulus v1Stimulus = new([
-            new PulseStimulus(2, 10, 20),
+            new PulseStimulus(2e-5, 11e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(2, 10, 20),
+            new PulseStimulus(2e-5, 11e-5, 20e-5),
         ]);
         MultiDimensionalStimulus v2Stimulus = new([
-            new PulseStimulus(1, 10, 20),
+            new PulseStimulus(1e-5, 10e-5, 20e-5),
             new ConstantStimulus(false),
-            new PulseStimulus(1, 10, 20),
+            new PulseStimulus(1e-5, 10e-5, 20e-5),
         ]);
         SpiceCircuit stimuliCircuit = SpiceCircuit.Combine([
             s1Stimulus.GetSpice(s1, "s1Stimulus"),
@@ -259,37 +272,18 @@ public static class Program
             v2Stimulus.GetSpice(v2, "v2Stimulus"),
         ]);
 
-        Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
-        Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith([stimuliCircuit]).AsCircuit();
+        // Circuit equalitySingleCircuit = equalitySingle.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit equalityVectorCircuit = equalityVector.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit risingEdgeCircuit = risingEdge.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit fallingEdgeCircuit = fallingEdge.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit highCircuit = high.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit lowCircuit = low.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit greaterThanCircuit = greaterThan.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit greaterThanSignedCircuit = greaterThanSigned.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit lessThanCircuit = lessThan.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
+        // Circuit lessThanSignedCircuit = lessThanSigned.GetSpice("test", s3).CombineWith(stimuliCircuit).AsCircuit();
 
-        var tran = new Transient("Tran 1", 0.1, 5);
-        var s1Exp = new RealVoltageExport(tran, "s1");
-        var s2Exp = new RealVoltageExport(tran, "s2");
-        var s3Exp = new RealVoltageExport(tran, "s3");
-
-        List<double> time = [];
-        List<double> s1Results = [];
-        List<double> s2Results = [];
-        List<double> s3Results = [];
-        int i = 0;
-        foreach (int _ in tran.Run(equalitySingleCircuit, Transient.ExportTransient))
-        {
-            Console.WriteLine(i++);
-            Console.WriteLine($"{tran.Time}: {s1Exp.Value}");
-            Console.WriteLine();
-            time.Add(tran.Time);
-            s1Results.Add(s1Exp.Value);
-            s2Results.Add(s2Exp.Value);
-            s3Results.Add(s3Exp.Value);
-        }
-
-        Plot plot = new();
-        plot.Add.ScatterLine(time, s1Results, Colors.Blue);
-        plot.Add.ScatterLine(time, s2Results, Colors.Red);
-        plot.Add.ScatterLine(time, s3Results, Colors.Green);
-        plot.SavePng("test.png", 1000, 1000);
+        File.WriteAllText("AddedSignalSpice.txt", lessThanSigned.GetSpice("test", s3).CombineWith(stimuliCircuit).AsString());
     }
 
     public static void TestSpiceSharp3()
@@ -571,22 +565,30 @@ public static class Program
         }
     }
 
-    public static void GenerateAddedSignalVhdl()
+    public static void GenerateLogicSignalVhdl()
     {
         ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
         Module module = new("mod1");
-        Vector s1 = module.GenerateVector("s1", 2);
+        Signal s1 = module.GenerateSignal("s1");
         Vector s2 = module.GenerateVector("s2", 2);
-        Vector s3 = module.GenerateVector("s3", 2);
-        s3.AssignBehavior(s1.Plus(s2));
+        Vector s3 = module.GenerateVector("s3", 4);
+        Vector s4 = module.GenerateVector("s4", 5);
         Port s1p = module.AddNewPort(s1, PortDirection.Input);
         Port s2p = module.AddNewPort(s2, PortDirection.Input);
         module.AddNewPort(s3, PortDirection.Output);
+        module.AddNewPort(s4, PortDirection.Output);
 
+        // Assign s3 normally, s4 as linked signal
+        s3.AssignBehavior(s1.Extend(4));
+        ExtendedSignal extensionS2 = new(s2, 5, true)
+        {
+            LinkedSignal = s4
+        };
+        
         string vhdl = module.GetVhdl();
         string spice = module.GetSpice().AsString();
 
         File.WriteAllText("AddedSignalVHDL.txt", vhdl);
-        File.WriteAllText("AddedSignalSpice.txt", spice);
+        // File.WriteAllText("AddedSignalSpice.txt", spice);
     }
 }

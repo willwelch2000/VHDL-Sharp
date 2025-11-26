@@ -43,9 +43,32 @@ public class DFlipFlopParams : IEquatable<DFlipFlopParams>
 /// D flip flop module, with <see cref="DFlipFlopParams"/> object as options.
 /// Ports: D, CLK, Q, AsyncSet (optional), AsyncReset (optional), Enable (optional)
 /// </summary>
-/// <param name="options"></param>
-public class DFlipFlop(DFlipFlopParams options) : ParameterizedModule<DFlipFlopParams>(options)
+public class DFlipFlop : ParameterizedModule<DFlipFlopParams>
 {
+    /// <summary>
+    /// Build D Flip-Flop module given parameter set
+    /// </summary>
+    /// <param name="options"></param>
+    public DFlipFlop(DFlipFlopParams options) : base(options) { }
+
+    /// <summary>Build D Flip-Flop module with default settings</summary>
+    public DFlipFlop() : base(new()) { }
+
+    /// <summary>
+    /// Build D Flip-Flop module
+    /// </summary>
+    /// <param name="negativeEdgeTriggered">Trigger on the negative edge rather than the positive</param>
+    /// <param name="asyncSet">Include asynchronous set pin</param>
+    /// <param name="asyncReset">Include asynchronous reset pin</param>
+    /// <param name="enable">Include enable pin</param>
+    public DFlipFlop(bool negativeEdgeTriggered = false, bool asyncSet = false, bool asyncReset = false, bool enable = false) : base(new()
+    {
+        NegativeEdgeTriggered = negativeEdgeTriggered,
+        AsyncSet = asyncSet,
+        AsyncReset = asyncReset,
+        Enable = enable,
+    }) { }
+
     /// <inheritdoc/>
     public override IModule BuildModule(DFlipFlopParams options)
     {

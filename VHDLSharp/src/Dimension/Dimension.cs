@@ -177,5 +177,11 @@ public class Dimension(int? value, int? minimum, int? maximum) : IEquatable<Dime
     /// <param name="dimension1"></param>
     /// <param name="dimension2"></param>
     /// <returns></returns>
-    public static bool operator!=(Dimension dimension1, Dimension dimension2) => !dimension1.Equals(dimension2);
+    public static bool operator !=(Dimension dimension1, Dimension dimension2) => !dimension1.Equals(dimension2);
+
+    /// <summary>
+    /// Convert integer to dimension
+    /// </summary>
+    /// <param name="dimension"></param>
+    public static implicit operator Dimension(int dimension) => new DefiniteDimension(dimension);
 }

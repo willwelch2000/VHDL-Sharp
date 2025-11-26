@@ -5,8 +5,13 @@ using VHDLSharp.Simulations;
 
 namespace VHDLSharp.Conditions;
 
+// As of now, there are no conditions that allow sub-conditions. If one is added,
+// just don't have a setter for it--this ensures that sub-conditions can't be recursive
 /// <summary>
-/// Interface for a condition that can be combined with others and used in a dynamic behavior
+/// Interface for a condition that can be combined with others and used in a dynamic behavior. 
+/// Recursion with conditions is not supported or checked for, so it should not be allowed by 
+/// implementing classes. This can be ensured by not allowing sub-conditions to be switched out
+/// after construction. 
 /// </summary>
 public interface ICondition : ILogicallyCombinable<ICondition>
 {

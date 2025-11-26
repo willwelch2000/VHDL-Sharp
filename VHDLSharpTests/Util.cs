@@ -185,6 +185,56 @@ internal static partial class Util
         return sb.ToString();
     }
 
+    internal static string GetNandSubcircuitSpice(int numInputs, bool includeModels)
+    {
+        StringBuilder sb = new();
+
+        sb.AppendLine($".subckt NAND{numInputs} {string.Join(' ', Enumerable.Range(1, numInputs).Select(i => $"IN{i}"))} OUT");
+        if (includeModels)
+        {
+            sb.AppendLine($"\t.MODEL NmosMod nmos W=0.0001 L=1E-06");
+            sb.AppendLine($"\t.MODEL PmosMod pmos W=0.0001 L=1E-06");
+        }
+        sb.AppendLine("\tVVDD VDD 0 5");
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in parallel from VDD to OUT
+            sb.AppendLine($"\tMpnand{i} OUT IN{i} VDD VDD PmosMod");
+            // NMOSs go in series from OUT to ground
+            string nDrain = i == 1 ? "OUT" : $"nand{i}";
+            string nSource = i == numInputs ? "0" : $"nand{i+1}";
+            sb.AppendLine($"\tMnnand{i} {nDrain} IN{i} {nSource} {nSource} NmosMod");
+        }
+        sb.AppendLine($".ends NAND{numInputs}");
+
+        return sb.ToString();
+    }
+
+    internal static string GetNorSubcircuitSpice(int numInputs, bool includeModels)
+    {
+        StringBuilder sb = new();
+
+        sb.AppendLine($".subckt NOR{numInputs} {string.Join(' ', Enumerable.Range(1, numInputs).Select(i => $"IN{i}"))} OUT");
+        if (includeModels)
+        {
+            sb.AppendLine($"\t.MODEL NmosMod nmos W=0.0001 L=1E-06");
+            sb.AppendLine($"\t.MODEL PmosMod pmos W=0.0001 L=1E-06");
+        }
+        sb.AppendLine("\tVVDD VDD 0 5");
+        for (int i = 1; i <= numInputs; i++)
+        {
+            // PMOSs go in series from VDD to OUT
+            string pDrain = i == 1 ? "OUT" : $"nor{i}";
+            string pSource = i == numInputs ? "VDD" : $"nor{i+1}";
+            sb.AppendLine($"\tMpnor{i} {pDrain} IN{i} {pSource} {pSource} PmosMod");
+            // NMOSs go in parallel from OUT to ground
+            sb.AppendLine($"\tMnnor{i} OUT IN{i} 0 0 NmosMod");
+        }
+        sb.AppendLine($".ends NOR{numInputs}");
+
+        return sb.ToString();
+    }
+
     internal static string AddIndentation(this string s, int indents)
     {
         return string.Concat(Enumerable.Repeat("\t", indents)) + s.ReplaceLineEndings($"\n{string.Concat(Enumerable.Repeat("\t", indents))}");

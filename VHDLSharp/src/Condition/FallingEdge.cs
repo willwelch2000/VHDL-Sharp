@@ -14,7 +14,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// An event-driven condition that is true on a signal's falling edge
 /// </summary>
-public class FallingEdge : Condition, IEventDrivenCondition
+public class FallingEdge : Condition, IEventDrivenCondition, IEquatable<FallingEdge>
 {
     /// <summary>
     /// Constructor given trigger signal
@@ -61,4 +61,13 @@ public class FallingEdge : Condition, IEventDrivenCondition
     public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal) =>
         !Signal.CanCombine(outputSignal) || !outputSignal.CanCombine(Signal) ? throw new IncompatibleSignalException("Output signal is not compatible with this condition") :
         new SpiceCircuit([new Subcircuit(SpiceUtil.GetSpiceName(uniqueId, 0, "not"), SpiceUtil.GetNotSubcircuit(), Signal.GetSpiceName(), outputSignal.Name)]).WithCommonEntities();
+        
+    /// <inheritdoc/>
+    public bool Equals(FallingEdge? other) => other is not null && Signal.Equals(other.Signal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as FallingEdge);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Signal.GetHashCode();
 }

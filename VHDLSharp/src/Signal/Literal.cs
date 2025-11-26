@@ -1,14 +1,13 @@
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Utility;
-using VHDLSharp.Modules;
 
 namespace VHDLSharp.Signals;
 
 /// <summary>
 /// Literal value that can be used in expressions
 /// </summary>
-public class Literal : ISignalWithKnownValue
+public class Literal : ISignalWithKnownValue, IEquatable<Literal>
 {
     private readonly LiteralNode[] bits;
 
@@ -81,17 +80,18 @@ public class Literal : ISignalWithKnownValue
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public LiteralNode this[int index]
+    public LiteralNode this[Index index]
     {
         get
         {
-            if (index < Dimension.NonNullValue && index >= 0)
-                return bits[index];
-            throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+            int actualIndex = index.IsFromEnd ? Dimension.NonNullValue - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {Dimension.NonNullValue - 1}");
+            return bits[actualIndex];
         }
     }
 
-    ISingleNodeSignal ISignal.this[int index] => this[index];
+    ISingleNodeSignal ISignal.this[Index index] => this[index];
 
     /// <summary>
     /// Just check dimension since this has no parent module
@@ -114,21 +114,20 @@ public class Literal : ISignalWithKnownValue
 
     /// <inheritdoc/>
     public string ToLogicString(LogicStringOptions options) => ToLogicString();
-
-    // The following functions are given here so that they can be accessed without referring to this object as ISignal
     
     /// <inheritdoc/>
-    public And<ISignal> And(ILogicallyCombinable<ISignal> other) => new(this, other);
+    public bool Equals(Literal? other) =>
+        other is not null && other.Dimension.NonNullValue.Equals(Dimension.NonNullValue) && other.Value == Value;
 
     /// <inheritdoc/>
-    public And<ISignal> And(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
+    public override bool Equals(object? obj) => Equals(obj as Literal);
 
     /// <inheritdoc/>
-    public Or<ISignal> Or(ILogicallyCombinable<ISignal> other) => new(this, other);
-
-    /// <inheritdoc/>
-    public Or<ISignal> Or(IEnumerable<ILogicallyCombinable<ISignal>> others) => new([this, .. others]);
-
-    /// <inheritdoc/>
-    public Not<ISignal> Not() => new(this);
+    public override int GetHashCode()
+    {
+        HashCode code = new();
+        code.Add(Dimension.NonNullValue);
+        code.Add(Value);
+        return code.ToHashCode();
+    }
 }
