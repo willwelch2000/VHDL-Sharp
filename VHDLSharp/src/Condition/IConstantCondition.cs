@@ -10,7 +10,7 @@ namespace VHDLSharp.Conditions;
 /// A <see cref="ICondition"/> that can be true for extended periods of time. 
 /// For example, an equality comparison
 /// </summary>
-public interface IConstantCondition : ICondition
+public interface IConstantCondition : ICondition, ILogicallyCombinable<IConstantCondition>
 {
     /// <summary>
     /// Get a <see cref="SpiceCircuit"/> that produces an output signal 

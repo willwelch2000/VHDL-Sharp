@@ -85,7 +85,8 @@ public class RuleBasedSimulationState
             SubcircuitReference subcircuit = signal.Subcircuit;
             SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
             List<int> values = [];
-            for (int i = 0; i < singleNodeSignalValues[singleNodeSignals[0]].Count; i++)
+            // Go through length of first result
+            for (int i = 0; i < GetSingleNodeSignalValues(singleNodeSignals[0]).Count; i++)
                 values.Add(singleNodeSignals.Select((s, j) => GetSingleNodeSignalValues(s)[i] ? 1<<j : 0).Sum());
 
             return values;

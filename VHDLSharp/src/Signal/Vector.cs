@@ -22,7 +22,7 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
     public Vector(string name, IModule parentModule, int dimension)
     {
         if (dimension < 2)
-            throw new ArgumentException("Dimension should be > 1");
+            throw new ArgumentOutOfRangeException(nameof(dimension), "Dimension should be > 1");
         this.dimension = dimension;
         Name = name;
         ParentModule = parentModule;
@@ -66,11 +66,19 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public override VectorNode this[int index] => index < dimension && index >= 0 ? vectorNodes[index] :
-        throw new Exception($"Index ({index}) must be less than dimension ({dimension}) and nonnegative");
+    public override VectorNode this[Index index]
+    {
+        get
+        {
+            int actualIndex = index.IsFromEnd ? dimension - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= dimension)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {dimension - 1}");
+            return vectorNodes[actualIndex];
+        }
+    }
 
     /// <inheritdoc/>
-    public override VectorSlice this[Range range]
+    public override INamedSignal this[Range range]
     {
         get
         {
@@ -78,6 +86,8 @@ public class Vector : NamedSignal, ITopLevelNamedSignal
             int end = range.End.GetOffset(dimension); // exclusive end of range
             if (start > end || start < 0 || end > dimension)
                 throw new ArgumentOutOfRangeException(nameof(range), "Specified range doesn't work for this vector");
+            if (start == end - 1)
+                return this[start];
             return new VectorSlice(this, start, end-1);
         }
     }

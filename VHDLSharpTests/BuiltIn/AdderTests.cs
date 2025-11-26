@@ -122,6 +122,7 @@ public class AdderTests
         for (int i = 0; i < yResults.TimeSteps.Length; i++)
         {
             double timeStep = yResults.TimeSteps[i];
+            // Checks if we're within timeBuffer of a transition point
             if (Math.Abs(timeStep - 1e-5*Math.Round(timeStep / 1e-5, 0)) < timeBuffer)
                 continue;
 

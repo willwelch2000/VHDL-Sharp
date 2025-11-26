@@ -13,7 +13,7 @@ namespace VHDLSharp.Conditions;
 /// <summary>
 /// Condition that is true if this signal is high
 /// </summary>
-public class High : Condition, IConstantCondition
+public class High : ConstantCondition, IEquatable<High>
 {
     /// <summary>
     /// Constructor given trigger signal
@@ -44,7 +44,7 @@ public class High : Condition, IConstantCondition
     public override string ToLogicString(LogicStringOptions options) => ToLogicString();
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
+    public override SpiceCircuit GetSpice(string uniqueId, ISingleNodeNamedSignal outputSignal)
     {
         if (!outputSignal.ParentModule.Equals(ParentModule))
             throw new IncompatibleSignalException("Output signal must have same parent module as condition");
@@ -58,4 +58,13 @@ public class High : Condition, IConstantCondition
 
         return new SpiceCircuit(entities).WithCommonEntities();
     }
+
+    /// <inheritdoc/>
+    public bool Equals(High? other) => other is not null && Signal.Equals(other.Signal);
+        
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as High);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Signal.GetHashCode();
 }

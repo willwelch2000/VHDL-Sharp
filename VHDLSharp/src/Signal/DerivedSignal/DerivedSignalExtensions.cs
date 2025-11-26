@@ -1,3 +1,7 @@
+using VHDLSharp.Behaviors;
+using VHDLSharp.LogicTree;
+using VHDLSharp.Modules;
+
 namespace VHDLSharp.Signals.Derived;
 
 /// <summary>
@@ -28,15 +32,34 @@ public static class DerivedSignalExtensions
     /// </summary>
     /// <param name="signal">Starting signal</param>
     /// <param name="totalBits">The total number of bits for the output signal</param>
-    /// <param name="signed">If true, the added bits will match the MSB</param>
+    /// <param name="signed">If true, the extension is a signed extension,
+    /// so the added bits will match the MSB of the input signal</param>
     /// <returns></returns>
-    public static IDerivedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => throw new NotImplementedException();
+    public static IDerivedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => new ExtendedSignal(signal, totalBits, signed);
 
     /// <summary>
     /// Concatenate this signal with another
     /// </summary>
-    /// <param name="signal">Starting signal</param>
-    /// <param name="other">Other signal to concatenate after the starting signal</param>
+    /// <param name="signal">Starting signal, makes up the upper bits of the output</param>
+    /// <param name="other">Other signal to concatenate after the starting signal, making up the lower bits</param>
     /// <returns></returns>
-    public static IDerivedSignal ConcatWith(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => throw new NotImplementedException();
+    public static IDerivedSignal ConcatWith(this IModuleSpecificSignal signal, IModuleSpecificSignal other) => new ConcatSignal(signal, other);
+
+    /// <summary>
+    /// Convert a logic expression to a derived signal
+    /// </summary>
+    /// <param name="logicExpression"></param>
+    /// <param name="parentModule">Module this signal belongs to. 
+    /// If null, the module is extracted from the expression and an exception is thrown if it isn't found</param>
+    /// <returns></returns>
+    public static LogicSignal ToSignal(this LogicExpression logicExpression, IModule? parentModule = null) => new(logicExpression, parentModule);
+
+    /// <summary>
+    /// Convert a logic expression to a derived signal
+    /// </summary>
+    /// <param name="logicExpression"></param>
+    /// <param name="parentModule">Module this signal belongs to. 
+    /// If null, the module is extracted from the expression and an exception is thrown if it isn't found</param>
+    /// <returns></returns>
+    public static LogicSignal ToSignal(this ILogicallyCombinable<ISignal> logicExpression, IModule? parentModule = null) => LogicExpression.ToLogicExpression(logicExpression).ToSignal(parentModule);
 }

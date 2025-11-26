@@ -39,11 +39,11 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     }
 
     /// <summary>
-    /// Function to build the module given the input object
+    /// Function to build the module given the input options object
     /// </summary>
-    /// <param name="input"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
-    public abstract IModule BuildModule(T input);
+    public abstract IModule BuildModule(T options);
 
     /// <inheritdoc/>
     public string Name => BaseModule.Name;
@@ -59,6 +59,12 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals => BaseModule.AllModuleSignals;
+
+    /// <inheritdoc/>
+    public IEnumerable<IDerivedSignal> AllDerivedSignals => BaseModule.AllDerivedSignals;
+
+    /// <inheritdoc/>
+    IEnumerable<IMayBeRecursive<IModule>> IMayBeRecursive<IModule>.Children => BaseModule.Children;
 
     /// <inheritdoc/>
     public ISet<IModule> GetModulesUsed(bool recursive, bool compileDerivedSignals) => BaseModule.GetModulesUsed(recursive, compileDerivedSignals);
@@ -101,4 +107,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
 
     /// <inheritdoc/>
     public void UndoDerivedSignalCompilation() => BaseModule.UndoDerivedSignalCompilation();
+
+    /// <inheritdoc/>
+    public void RegisterDerivedSignal(IDerivedSignal signal) => BaseModule.RegisterDerivedSignal(signal);
 }

@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Behaviors;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -11,7 +10,7 @@ namespace VHDLSharp.Modules;
 /// <summary>
 /// Interface for a digital module--a circuit that has some functionality
 /// </summary>
-public interface IModule : IEquatable<IModule>, ICompletable
+public interface IModule : IEquatable<IModule>, ICompletable, IMayBeRecursive<IModule>
 {
     /// <summary>
     /// Name of the module
@@ -40,6 +39,11 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// Otherwise, only the used children are returned. 
     /// </summary>
     public IEnumerable<IModuleSpecificSignal> AllModuleSignals { get; }
+
+    /// <summary>
+    /// Get all derived signals that are used in this module
+    /// </summary>
+    public IEnumerable<IDerivedSignal> AllDerivedSignals { get; }
 
     /// <summary>
     /// Get all modules used by this module as instantiations
@@ -119,4 +123,11 @@ public interface IModule : IEquatable<IModule>, ICompletable
     /// which happens whenever a code-production or simulation function is run
     /// </summary>
     public void UndoDerivedSignalCompilation();
+
+    /// <summary>
+    /// Method to ensure that this module knows about a derived signal. 
+    /// This is called by the derived signal class when created
+    /// </summary>
+    /// <param name="signal"></param>
+    public void RegisterDerivedSignal(IDerivedSignal signal);
 }

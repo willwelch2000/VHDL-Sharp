@@ -1,4 +1,5 @@
 using VHDLSharp.Behaviors;
+using VHDLSharp.Exceptions;
 using VHDLSharp.Modules;
 using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
@@ -311,5 +312,22 @@ public class ModuleTests
         Assert.ThrowsException<Exception>(() => s2.AssignBehavior(true));
         s2.RemoveBehavior(); // Undo
         s1.AssignBehavior(false); // Should work since it's an input of instantiation, not output
+    }
+
+    [TestMethod]
+    public void ModuleRecursionTest()
+    {
+        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
+        Module module1 = new("module1");
+
+        Module module2 = new("module2");
+
+        module1.AddNewInstantiation(module2, "inst1");
+        Assert.IsTrue(module1.ValidityManager.IsValid(out _));
+        module2.AddNewInstantiation(module1, "inst1");
+        Assert.IsFalse(module1.ValidityManager.IsValid(out Exception? issue1));
+        Assert.IsFalse(module2.ValidityManager.IsValid(out Exception? issue2));
+        Assert.IsInstanceOfType<IllegalRecursionException>(issue1);
+        Assert.IsInstanceOfType<IllegalRecursionException>(issue2);
     }
 }

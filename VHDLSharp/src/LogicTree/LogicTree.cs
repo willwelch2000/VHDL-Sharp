@@ -119,4 +119,21 @@ public abstract class LogicTree<T> : ILogicallyCombinable<T> where T : ILogicall
     /// </summary>
     /// <returns></returns>
     public Not<T> Not() => new(this);
+
+    bool IEquatable<ILogicallyCombinable<T>>.Equals(ILogicallyCombinable<T>? other) => Equals(other);
+
+    /// <summary>
+    /// Check equality with another <see cref="ILogicallyCombinable{T}"/>
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public abstract bool Equals(ILogicallyCombinable<T>? other);
+
+    internal static int ExpressionHashType(ILogicallyCombinable<T> expression) => expression switch
+    {
+        And<T> => 1,
+        Or<T> => 2,
+        Not<T> => 3,
+        _ => 0,
+    };
 }

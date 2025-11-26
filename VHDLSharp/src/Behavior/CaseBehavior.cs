@@ -35,7 +35,7 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => caseExpressions.OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<IModuleSpecificSignal>()).Append(Selector).Distinct();
+    public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => caseExpressions.Append(DefaultExpression).OfType<LogicExpression>().SelectMany(c => c.BaseObjects.OfType<IModuleSpecificSignal>()).Append(Selector).Distinct();
 
     /// <summary>
     /// Since signals have definite dimensions, the first non-null expression can be used
@@ -62,7 +62,7 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
             if (expression is null)
                 continue;
             sb.AppendLine($"\t\twhen \"{i.ToBinaryString(Selector.Dimension.NonNullValue)}\" =>");
-            sb.AppendLine($"\t\t\t{outputSignal} <= {expression.GetVhdl()};");
+            sb.AppendLine($"\t\t\t{outputSignal.GetVhdlName()} <= {expression.GetVhdl()};");
         }
 
         // Default
@@ -84,15 +84,17 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public LogicExpression? this[int index]
+    public LogicExpression? this[Index index]
     {
         get
         {
-            if (index < 0 || index >= caseExpressions.Length)
-                throw new ArgumentException($"Case value must be between 0 and {caseExpressions.Length-1}");
-            return caseExpressions[index];
+            int actualIndex = index.IsFromEnd ? caseExpressions.Length - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= caseExpressions.Length)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Case value must refer to an index between 0 and {caseExpressions.Length-1}");
+            return caseExpressions[actualIndex];
         }
-        set => AddCase(index, value);
+        // Index expression from ChatGPT
+        set => AddCase(index.IsFromEnd ? caseExpressions.Length - index.Value : index.Value, value);
     }
 
     /// <summary>
@@ -142,9 +144,13 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     public void AddCase(int value, ILogicallyCombinable<ISignal>? logicExpression)
     {
         if (value < 0 || value >= caseExpressions.Length)
-            throw new Exception($"Case value must be between 0 and {caseExpressions.Length-1}");
+            throw new Exception($"Case value must be between 0 and {caseExpressions.Length - 1}");
         CheckCompatibleNewExpression(logicExpression);
+        LogicExpression? oldExpression = caseExpressions[value];
         caseExpressions[value] = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
+        // Remove no-longer used signals from being tracked
+        if (oldExpression is not null)
+            ManageRemovedSignals(oldExpression.BaseObjects);
         InvokeBehaviorUpdated(this, EventArgs.Empty);
     }
 
@@ -169,7 +175,11 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
     public void SetDefault(ILogicallyCombinable<ISignal>? logicExpression)
     {
         CheckCompatibleNewExpression(logicExpression);
+        LogicExpression? oldExpression = defaultExpression;
         defaultExpression = logicExpression is null ? null : LogicExpression.ToLogicExpression(logicExpression);
+        // Remove no-longer used signals from being tracked
+        if (oldExpression is not null)
+            ManageRemovedSignals(oldExpression.BaseObjects);
     }
 
     /// <summary>

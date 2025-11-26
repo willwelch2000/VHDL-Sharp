@@ -27,7 +27,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public ISingleNodeSignal this[int index] { get; }
+    public ISingleNodeSignal this[Index index] { get; }
 
     /// <summary>
     /// If this is part of a larger group (e.g. vector node), get the parent signal (one layer up)

@@ -193,8 +193,8 @@ public class AddedSignalTests
                 port map (
                     A => s1,
                     B => s2,
-                    Y => DerivedSignal0[0],
-                    COut => DerivedSignal0[1]
+                    Y => DerivedSignal0(0),
+                    COut => DerivedSignal0(1)
                 );
             
             s3 <= DerivedSignal0;
@@ -384,17 +384,17 @@ public class AddedSignalTests
         begin
             Adder0 : Adder_1bit_noCIn
                 port map (
-                    A => A[0],
-                    B => B[0],
-                    Y => Y[0],
+                    A => A(0),
+                    B => B(0),
+                    Y => Y(0),
                     COut => COut0
                 );
             
             Adder1 : Adder_1bit_noCOut
                 port map (
-                    A => A[1],
-                    B => B[1],
-                    Y => Y[1],
+                    A => A(1),
+                    B => B(1),
+                    Y => Y(1),
                     CIn => COut0
                 );
             

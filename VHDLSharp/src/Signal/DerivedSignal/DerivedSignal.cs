@@ -1,16 +1,24 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Dimensions;
 using VHDLSharp.LogicTree;
 using VHDLSharp.Modules;
+using VHDLSharp.Signals.Derived;
 using VHDLSharp.Validation;
 
 namespace VHDLSharp.Signals;
 
+// Look at existing DerivedSignal child classes--all sub-signals must be added during construction,
+// ensuring that recursion doesn't happen. If this rule changes, recursion will need to be managed
+// like it is for behaviors. 
 /// <summary>
 /// Interface for a signal that uses more complicated logic (in the form of an <see cref="IInstantiation"/>)
 /// to assign a value to a signal. A <see cref="LinkedSignal"/> should be assigned the value determined
 /// by the relevant logic. 
-/// This is treated
+/// Any implementing class must be in charge of registering itself in the module that it's in. 
+/// Recursion with derived signals is not allowed or checked for, so it should not be allowed by 
+/// implementing classes. This can be ensured by not allowing sub-signals to be switched out
+/// after construction. 
 /// </summary>
 public interface IDerivedSignal : IModuleSpecificSignal
 {
@@ -44,10 +52,17 @@ public interface IDerivedSignal : IModuleSpecificSignal
     public IInstantiation Compile(string moduleName, string instanceName);
 
     /// <summary>
-    /// Get all the module-specific signals that are used (recursively) by this, 
-    /// so that they can be included in the module
+    /// All the direct input signals that implement <see cref="IModuleSpecificSignal"/>. 
+    /// Used to generate the <see cref="RecursiveInputModuleSignals"/> list.
+    /// Not recursive
     /// </summary>
-    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals { get; }
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
+
+    /// <summary>
+    /// Get all the module-specific signals that are used (recursively through derived signals)
+    /// by this, so that they can be included in the module
+    /// </summary>
+    public IEnumerable<IModuleSpecificSignal> RecursiveInputModuleSignals { get; }
 
     /// <summary>
     /// Convert to single-node signals, as type <see cref="IDerivedSignalNode"/>
@@ -55,6 +70,13 @@ public interface IDerivedSignal : IModuleSpecificSignal
     public new IEnumerable<IDerivedSignalNode> ToSingleNodeSignals { get; }
 
     IEnumerable<ISingleNodeModuleSpecificSignal> IModuleSpecificSignal.ToSingleNodeSignals => ToSingleNodeSignals;
+
+    /// <summary>
+    /// Get a slice of this derived signal
+    /// </summary>
+    /// <param name="range"></param>
+    /// <returns></returns>
+    public abstract SliceSignal this[Range range] { get; }
 }
 
 /// <summary>
@@ -64,14 +86,18 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
 {
     private EventHandler? updated;
 
+    private readonly ObservableCollection<object> childEntities;
+    
     /// <summary>
     /// Constructor given parent module
     /// </summary>
     /// <param name="parentModule"></param>
     public DerivedSignal(IModule parentModule)
     {
-        ValidityManager = new ValidityManager<object>(this, [], []);
+        childEntities = [];
+        ValidityManager = new ValidityManager<object>(this, childEntities);
         ParentModule = parentModule;
+        parentModule.RegisterDerivedSignal(this);
     }
 
     /// <summary>Module to which this signal belongs</summary>
@@ -109,19 +135,20 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     protected abstract IInstantiation CompileWithoutCheck(string moduleName, string instanceName);
 
     /// <inheritdoc/>
-    public IEnumerable<IModuleSpecificSignal> UsedModuleSpecificSignals
+    public IEnumerable<IModuleSpecificSignal> RecursiveInputModuleSignals
     {
         get
         {
             HashSet<IModuleSpecificSignal> foundSignals = [];
-            foreach (IModuleSpecificSignal signal in InputSignalsWithAssignedModule)
+            foreach (IModuleSpecificSignal signal in InputModuleSignals)
             {
                 if (foundSignals.Contains(signal)) // Skip if already found
                     continue;
                 yield return signal; // Return the signal itself
-                // If it's a derived signal, return all its used signals recursively as well
-                if (signal is IDerivedSignal derivedSignal)
-                    foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.UsedModuleSpecificSignals)
+                // If it's a derived signal or derived signal node, return all its used signals recursively as well
+                IDerivedSignal? derivedSignal = signal as IDerivedSignal ?? (signal as IDerivedSignalNode)?.DerivedSignal;
+                if (derivedSignal is not null)
+                    foreach (IModuleSpecificSignal subNamedSignal in derivedSignal.RecursiveInputModuleSignals)
                         if (!foundSignals.Contains(subNamedSignal))
                             yield return subNamedSignal;
                 // Remember signal to avoid returning it again
@@ -130,11 +157,8 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
         }
     }
 
-    /// <summary>
-    /// All the input signals that implement <see cref="IModuleSpecificSignal"/>. 
-    /// Used to generate the <see cref="UsedModuleSpecificSignals"/> list.
-    /// </summary>
-    protected abstract IEnumerable<IModuleSpecificSignal> InputSignalsWithAssignedModule { get; }
+    /// <inheritdoc/>
+    public abstract IEnumerable<IModuleSpecificSignal> InputModuleSignals { get; }
 
     /// <inheritdoc/>
     public abstract DefiniteDimension Dimension { get; }
@@ -143,9 +167,16 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public IModuleSpecificSignal? ParentSignal => null;
 
     /// <inheritdoc/>
-    public ISingleNodeSignal this[int index] => index < Dimension.NonNullValue && index >= 0 ?
-        new DerivedSignalNode(this, index) :
-        throw new Exception($"Index ({index}) must be less than dimension ({Dimension.NonNullValue}) and nonnegative");
+    public ISingleNodeSignal this[Index index]
+    {
+        get
+        {
+            int actualIndex = index.IsFromEnd ? Dimension.NonNullValue - index.Value : index.Value; // From ChatGPT
+            if (actualIndex < 0 || actualIndex >= Dimension.NonNullValue)
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index ({actualIndex}) must refer to a node between 0 and {Dimension.NonNullValue - 1}");
+            return new DerivedSignalNode(this, actualIndex);
+        }
+    }
 
     /// <inheritdoc/>
     public IEnumerable<ISignal> ChildSignals => ToSingleNodeSignals;
@@ -176,6 +207,16 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     public ValidityManager ValidityManager { get; }
 
     /// <inheritdoc/>
+    public SliceSignal this[Range range]
+    {
+        get
+        {
+            int dimension = Dimension.NonNullValue;
+            return new(this, range.Start.GetOffset(dimension), range.End.GetOffset(dimension));
+        }
+    }
+
+    /// <inheritdoc/>
     public event EventHandler? Updated
     {
         add
@@ -192,7 +233,7 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
         // TODO parent-module check might be redundant with check in LinkedSignal setter
         exception = LinkedSignal is INamedSignal namedLinkedSignal && !namedLinkedSignal.ParentModule.Equals(ParentModule) ?
             new Exception($"Linked signal ({namedLinkedSignal.Name}) must share a parent module ({ParentModule.Name}) with this") :
-            UsedModuleSpecificSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
+            RecursiveInputModuleSignals.Any(s => s.ParentModule != ParentModule) ? new Exception($"All used module-specific signals must belong to the correct module ({ParentModule.Name})") : null;
         return exception is null;
     }
 
@@ -204,5 +245,30 @@ public abstract class DerivedSignal : IDerivedSignal, IValidityManagedEntity
     protected void InvokeUpdated(object? sender, EventArgs e)
     {
         updated?.Invoke(sender, e);
+    }
+
+    /// <summary>
+    /// Should be called by child classes whenever new signals are added. 
+    /// Finds the derived signals and tracks them
+    /// </summary>
+    /// <param name="newSignals"></param>
+    protected void ManageNewSignals(IEnumerable<ISignal> newSignals)
+    {
+        // Doesn't need to unpack derived signals--just the direct children are followed
+        foreach (IDerivedSignal derivedSignal in newSignals.OfType<IDerivedSignal>().Concat(newSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Add(derivedSignal);
+    }
+    
+    /// <summary>
+    /// Should be called by child classes whenever signals are removed. 
+    /// Finds the derived signals and untracks them
+    /// </summary>
+    /// <param name="removedSignals"></param>
+    protected void ManageRemovedSignals(IEnumerable<ISignal> removedSignals)
+    {
+        // The ValidityManager class is built to track the net add/remove count, so it should work to 
+        // remove these even if they are used multiple times
+        foreach (IDerivedSignal derivedSignal in removedSignals.OfType<IDerivedSignal>().Concat(removedSignals.OfType<IDerivedSignalNode>().Select(s => s.DerivedSignal)))
+            childEntities.Remove(derivedSignal);
     }
 }
