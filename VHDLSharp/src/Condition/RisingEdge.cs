@@ -40,8 +40,8 @@ public class RisingEdge : Condition, IEventDrivenCondition, IEquatable<RisingEdg
         if (!((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue))
             throw new InvalidException("Subcircuit context must be valid to evluate condition", issue);
         SignalReference signalReference = context.GetChildSignalReference(Signal.AsNamedSignal());
-        bool[] values = [.. state.GetSingleNodeSignalValues(signalReference)];
-        return values.Length > 1 && !values[^2] && values[^1];
+        List<bool> values = state.GetSingleNodeSignalValuesWithoutNewList(signalReference);
+        return values.Count > 1 && !values[^2] && values[^1];
     }
 
     /// <inheritdoc/>

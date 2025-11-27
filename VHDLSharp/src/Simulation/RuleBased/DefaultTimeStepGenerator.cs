@@ -36,7 +36,7 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
     {
         // If state (any signal) has changed between the last two timesteps, move min time step
         if (state.AllSingleNodeSignals
-            .Select(state.GetSingleNodeSignalValues)
+            .Select(state.GetSingleNodeSignalValuesWithoutNewList)
             .Any(vals => vals.Count < 2 || vals.TakeLast(2).Distinct().Count() > 1))
         {
             yield return state.CurrentTimeStep + MinTimeStep;

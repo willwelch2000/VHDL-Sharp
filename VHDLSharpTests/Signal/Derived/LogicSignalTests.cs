@@ -6,7 +6,6 @@ using VHDLSharp.Validation;
 
 namespace VHDLSharpTests;
 
-// 24 seconds!
 [TestClass]
 public class LogicSignalTests
 {

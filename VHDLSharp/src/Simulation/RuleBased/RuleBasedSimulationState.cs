@@ -60,8 +60,14 @@ public class RuleBasedSimulationState
     /// <exception cref="Exception"></exception>
     public List<bool> GetSingleNodeSignalValues(SignalReference signal) => [.. GetSingleNodeSignalValuesWithoutNewList(signal)];
 
-    // Version that can be used internally and doesn't make a new list
-    private List<bool> GetSingleNodeSignalValuesWithoutNewList(SignalReference signal)
+    /// <summary>
+    /// Get values as booleans for a single-node signal.
+    /// Version that can be used internally and doesn't make a new list
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    internal List<bool> GetSingleNodeSignalValuesWithoutNewList(SignalReference signal)
     {
         // Ascend to higher module, if necessary
         SignalReference ascended = signal.Ascend();
