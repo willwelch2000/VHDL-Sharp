@@ -100,11 +100,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
                     _ => throw new("Impossible"),
                 };
                 // Find most-recent value of the signal
-                return state.GetSignalValues(context.GetChildSignalReference(signalToUse)) switch
-                {
-                    List<int> values when values.Count > (lastIndex ?? state.CurrentTimeStepIndex - 1) => values[lastIndex ?? state.CurrentTimeStepIndex - 1],
-                    _ => throw new Exception("Values list not long enough"),
-                };
+                return state.GetLastSignalValue(context.GetChildSignalReference(signalToUse), lastIndex);
             default:
                 throw new Exception("Signals used must extend either INamedSignal or ISignalWithKnownValue");
         }

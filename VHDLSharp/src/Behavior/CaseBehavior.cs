@@ -306,7 +306,7 @@ public class CaseBehavior(IModuleSpecificSignal selector) : Behavior, ICombinati
             _ => throw new Exception($"Selector must implement {nameof(INamedSignal)} or {nameof(IDerivedSignal)}"),
         };
         SignalReference selectorReference = context.GetChildSignalReference(selectorNamedSignal);
-        int lastSelectorValue = state.GetSignalValues(selectorReference)[lastIndex];
+        int lastSelectorValue = selectorNamedSignal.GetLastOutputValue(state, selectorReference.Subcircuit, lastIndex);
 
         // If case expression is filled in for that, return that value
         // Otherwise, use default expression

@@ -386,7 +386,7 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
                 return behavior.GetOutputValue(state, outputSignal);
 
         // Otherwise, use the previous value from the state
-        return state.GetSignalValues(outputSignal)[lastIndex];
+        return outputSignal.Signal.GetLastOutputValue(state, outputSignal.Subcircuit, lastIndex);
     }
 
     private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)
