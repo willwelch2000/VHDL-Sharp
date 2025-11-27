@@ -12,7 +12,6 @@ using VHDLSharp.SpiceCircuits;
 using ScottPlot;
 using VHDLSharp.BuiltIn;
 using VHDLSharp.Validation;
-using VHDLSharp.Signals.Derived;
 
 namespace VHDLSharp;
 
@@ -20,7 +19,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        TestSpiceSharp2();
+        GenerateAllFigures(args[0]);
         /* TODO
         1. Do derived signals' modules need to be validity-checked?
             Or do we assume it's ok? The class extended from DerivedSignal would have to be invalid for it to be invalid
@@ -28,19 +27,7 @@ public static class Program
             B. Or could check a generated instance in CheckTopLevelValidity
         2. Implement derived signals shown in extensions class
             B. Left and right shifts
-        3. Conditions should allow module-specific signals instead of named signals--completed
-            A. Add test of this?
-        5. Add a ConditionBehavior that allows an ordered set of condition/ICombinationalBehavior pairs
-            A. Very similar to DynamicBehavior but no flip flop, just a mux basically
-            B. Only IConstantConditions allowed
         6. Eventually, derived signals should be made to not require a parent module--maybe make ParentModule nullable in IModuleSpecificSignal
-        7. Add extension methods for INamed signal--put a lot of the stuff that's currently in the individual classes
-        8. Might should deal with recursion in derived signals--signal being input and output
-            A. Might need to apply to instantiations as well
-            B. Module/DerivedSignal classes could have property for if recursion is allowed
-            C. Alternatively, could just make it illegal for a signal to 
-                1. Be input to a derived signal that it's linked to or is an input to its behavior
-                2. Be input and output to the same instantiation
         */
     }
 
@@ -565,30 +552,40 @@ public static class Program
         }
     }
 
-    public static void GenerateLogicSignalVhdl()
+    public static void GenerateTestFile()
     {
-        ValidityManager.GlobalSettings.MonitorMode = MonitorMode.Inactive;
-        Module module = new("mod1");
-        Signal s1 = module.GenerateSignal("s1");
-        Vector s2 = module.GenerateVector("s2", 2);
-        Vector s3 = module.GenerateVector("s3", 4);
-        Vector s4 = module.GenerateVector("s4", 5);
-        Port s1p = module.AddNewPort(s1, PortDirection.Input);
-        Port s2p = module.AddNewPort(s2, PortDirection.Input);
-        module.AddNewPort(s3, PortDirection.Output);
-        module.AddNewPort(s4, PortDirection.Output);
+        Module parentMod = new("parentMod");
+        Module instanceMod = new("instanceMod");
+        Port p1 = instanceMod.AddNewPort("p1", PortDirection.Input);
+        Port p2 = instanceMod.AddNewPort("p2", 2, PortDirection.Output);
 
-        // Assign s3 normally, s4 as linked signal
-        s3.AssignBehavior(s1.Extend(4));
-        ExtendedSignal extensionS2 = new(s2, 5, true)
-        {
-            LinkedSignal = s4
-        };
-        
-        string vhdl = module.GetVhdl();
-        string spice = module.GetSpice().AsString();
+        Instantiation instantiation = new(instanceMod, parentMod, "i1");
 
-        File.WriteAllText("AddedSignalVHDL.txt", vhdl);
-        // File.WriteAllText("AddedSignalSpice.txt", spice);
+        HashSet<IModuleLinkedSubcircuitDefinition> definitions = new([new ModuleLinkedSubcircuitDefinition(instanceMod, new EntityCollection(), [])]);
+        definitions.Clear();
+
+        Signal s1 = parentMod.GenerateSignal("s1");
+        Vector v1 = parentMod.GenerateVector("v1", 2);
+        instantiation.PortMapping.SetPort("p1", s1);
+        instantiation.PortMapping.SetPort("p2", v1);
+        instanceMod.SignalBehaviors[p2.Signal] = new ValueBehavior(3);
+
+        parentMod.Instantiations.Add(instantiation);
+        definitions.Add(instanceMod.GetSpice().AsModuleLinkedSubcircuit());
+        string spice = instantiation.GetSpice(definitions).AsString();
+
+        // Check module Spice
+        parentMod.AddNewPort(s1, PortDirection.Input);
+        parentMod.AddNewPort(v1, PortDirection.Output);
+        spice = parentMod.GetSpice().AsString();
+
+        // File.WriteAllText("AddedSignalVHDL.txt", vhdl);
+        File.WriteAllText("TestSpice.txt", spice);
+    }
+
+    public static void GenerateAllFigures(string path)
+    {
+        // GenerateFigures.DffFigure().SavePng($"{path}/DFF.png", 1000, 1000);
+        GenerateFigures.Addition2Bit().SavePng($"{path}/Adder.png", 1000, 1000);
     }
 }
