@@ -2,6 +2,7 @@ using ScottPlot;
 using ScottPlot.Plottables;
 using VHDLSharp.BuiltIn;
 using VHDLSharp.Modules;
+using VHDLSharp.Signals;
 using VHDLSharp.Simulations;
 
 namespace VHDLSharp;
@@ -81,6 +82,54 @@ public static class GenerateFigures
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(y.Signal));
         if (carryOut)
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cout!.Signal));
+        ISimulationResult[] results = [.. simulation.Simulate()];
+        return CreatePlot(results);
+    }
+
+    public static Multiplot ShiftRegister()
+    {
+        Module module = new("module");
+        Signals.Signal clk = module.GenerateSignal("CLK");
+        Signals.Signal s1 = module.GenerateSignal("S1");
+        Signals.Signal s2 = module.GenerateSignal("S2");
+        Signals.Signal s3 = module.GenerateSignal("S3");
+        Signals.Signal s4 = module.GenerateSignal("S4");
+        Port pClk = module.AddNewPort(clk, PortDirection.Input);
+        Port p1 = module.AddNewPort(s1, PortDirection.Input);
+        module.AddNewPort(s2, PortDirection.Output);
+        module.AddNewPort(s3, PortDirection.Output);
+        module.AddNewPort(s4, PortDirection.Output);
+
+        IModule dff = new DFlipFlop();
+        IEnumerable<(Signals.Signal, Signals.Signal)> path = [(s1, s2), (s2, s3), (s3, s4)];
+        int i = 0;
+        foreach ((Signals.Signal d, Signals.Signal q) in path)
+        {
+            Instantiation inst = module.AddNewInstantiation(dff, $"Inst{i++}");
+            inst.PortMapping.SetPort("D", d);
+            inst.PortMapping.SetPort("Q", q);
+            inst.PortMapping.SetPort("CLK", clk);
+        }
+
+        RuleBasedSimulation simulation = new(module, new DefaultTimeStepGenerator())
+        {
+            Length = 32e-5,
+        };
+        simulation.StimulusMapping[pClk] = new PulseStimulus(1e-5, 1e-5, 2e-5);
+        simulation.StimulusMapping[p1] = new TimeDefinedStimulus()
+        {
+            Points = new()
+            {
+                {0, false}, {4e-5, true}, {10e-5, false}, {12e-5, true}, {14e-5, false}, {16e-5, true},
+            }
+        };
+
+        SubcircuitReference moduleRef = new(module, []);
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(clk));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3));
+        simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s4));
         ISimulationResult[] results = [.. simulation.Simulate()];
         return CreatePlot(results);
     }

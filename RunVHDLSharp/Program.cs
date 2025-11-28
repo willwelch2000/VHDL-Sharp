@@ -585,7 +585,8 @@ public static class Program
 
     public static void GenerateAllFigures(string path)
     {
-        // GenerateFigures.DffFigure().SavePng($"{path}/DFF.png", 1000, 1000);
+        GenerateFigures.DffFigure().SavePng($"{path}/DFF.png", 1000, 1000);
         GenerateFigures.Addition2Bit().SavePng($"{path}/Adder.png", 1000, 1000);
+        GenerateFigures.ShiftRegister().SavePng($"{path}/ShiftRegister.png", 1000, 1000);
     }
 }
