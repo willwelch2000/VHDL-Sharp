@@ -12,17 +12,16 @@ public class MultiDimensionalConstantStimulus : MultiDimensionalStimulus
     private int value = 0;
 
     /// <summary>
-    /// Default constructor
-    /// </summary>
-    public MultiDimensionalConstantStimulus() {}
-
-    /// <summary>
     /// Constructor given value
     /// </summary>
     /// <param name="value"></param>
     /// <param name="dimension"></param>
     public MultiDimensionalConstantStimulus(int value, int dimension) : base()
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(dimension, 1, nameof(dimension));
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, 0, nameof(value));
+        if (value >= 1 << dimension)
+            throw new Exception("Value must be less than 2^dimension");
         this.value = value;
         this.dimension = dimension;
         SetStimuli();
@@ -36,6 +35,9 @@ public class MultiDimensionalConstantStimulus : MultiDimensionalStimulus
         get => value;
         set
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0, nameof(value));
+            if (value >= 1 << dimension)
+                throw new Exception("Value must be less than 2^dimension");
             this.value = value;
             SetStimuli();
         }

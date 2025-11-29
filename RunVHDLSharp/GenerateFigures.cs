@@ -63,14 +63,8 @@ public static class GenerateFigures
         {
             Length = 32e-5,
         };
-        simulation.StimulusMapping[a] = new MultiDimensionalStimulus([
-            new PulseStimulus(1e-5, 1e-5, 2e-5),
-            new PulseStimulus(2e-5, 2e-5, 4e-5),
-        ]);
-        simulation.StimulusMapping[b] = new MultiDimensionalStimulus([
-            new PulseStimulus(4e-5, 4e-5, 8e-5),
-            new PulseStimulus(8e-5, 8e-5, 16e-5),
-        ]);
+        simulation.StimulusMapping[a] = new MultiDimensionalStepStimulus(1e-5, 2);
+        simulation.StimulusMapping[b] = new MultiDimensionalStepStimulus(4e-5, 2);
         if (carryIn)
             simulation.StimulusMapping[cin!] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
