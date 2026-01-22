@@ -5,7 +5,7 @@ using VHDLSharp.Simulations;
 namespace VHDLSharpTests;
 
 [TestClass]
-public class CircuitReferenceTests
+public class ModuleReferenceTests
 {
     [TestMethod]
     public void EqualityTest()
