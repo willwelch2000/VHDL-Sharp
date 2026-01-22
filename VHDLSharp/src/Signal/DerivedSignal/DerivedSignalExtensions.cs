@@ -25,7 +25,7 @@ public static class DerivedSignalExtensions
     /// <param name="other">Signal to subtract</param>
     /// <param name="extraBit">If true, the resulting signal has an additional bit to avoid overflow</param>
     /// <returns>Signed signal that is the subtraction of the two inputs</returns>
-    public static IDerivedSignal Minus(this IModuleSpecificSignal signal, IModuleSpecificSignal other, bool extraBit = false) => throw new NotImplementedException();
+    public static SubtractedSignal Minus(this IModuleSpecificSignal signal, IModuleSpecificSignal other, bool extraBit = false) => new(signal, other);
 
     /// <summary>
     /// Extend this signal to become a larger-dimension signal
@@ -35,7 +35,7 @@ public static class DerivedSignalExtensions
     /// <param name="signed">If true, the extension is a signed extension,
     /// so the added bits will match the MSB of the input signal</param>
     /// <returns></returns>
-    public static IDerivedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => new ExtendedSignal(signal, totalBits, signed);
+    public static ExtendedSignal Extend(this IModuleSpecificSignal signal, int totalBits, bool signed = false) => new ExtendedSignal(signal, totalBits, signed);
 
     /// <summary>
     /// Concatenate this signal with another

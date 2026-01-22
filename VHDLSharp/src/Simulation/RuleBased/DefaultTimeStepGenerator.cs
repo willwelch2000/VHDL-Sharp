@@ -6,6 +6,22 @@ namespace VHDLSharp.Simulations;
 public class DefaultTimeStepGenerator : ITimeStepGenerator
 {
     /// <summary>
+    /// Create default time-step generator
+    /// </summary>
+    public DefaultTimeStepGenerator() { }
+
+    /// <summary>
+    /// Create default time-step generator
+    /// </summary>
+    /// <param name="minTimeStep">Minimum time step that will be used</param>
+    /// <param name="maxTimeStep">Maximum time step that will be used. Null means no limit</param>
+    public DefaultTimeStepGenerator(double minTimeStep, double? maxTimeStep = null)
+    {
+        MinTimeStep = minTimeStep;
+        MaxTimeStep = maxTimeStep;
+    }
+
+    /// <summary>
     /// Minimum time step that will be used
     /// </summary>
     public double MinTimeStep { get; set; } = 1e-7;
@@ -20,7 +36,7 @@ public class DefaultTimeStepGenerator : ITimeStepGenerator
     {
         // If state (any signal) has changed between the last two timesteps, move min time step
         if (state.AllSingleNodeSignals
-            .Select(state.GetSingleNodeSignalValues)
+            .Select(state.GetSingleNodeSignalValuesWithoutNewList)
             .Any(vals => vals.Count < 2 || vals.TakeLast(2).Distinct().Count() > 1))
         {
             yield return state.CurrentTimeStep + MinTimeStep;

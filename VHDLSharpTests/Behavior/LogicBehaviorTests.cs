@@ -102,10 +102,10 @@ public class LogicBehaviorTests
         Assert.AreEqual(module1, behavior.ParentModule);
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module1, []);
-        SignalReference s1Ref = new(subcircuitRef, s1);
-        SignalReference s2Ref = new(subcircuitRef, s2);
-        SignalReference s3Ref = new(subcircuitRef, s3);
+        SubmoduleReference submoduleRef = new(module1, []);
+        SignalReference s1Ref = new(submoduleRef, s1);
+        SignalReference s2Ref = new(submoduleRef, s2);
+        SignalReference s3Ref = new(submoduleRef, s3);
         SimulationRule simRule = behavior.GetSimulationRule(s3Ref);
         Assert.AreEqual(s3Ref, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
@@ -189,10 +189,10 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module1, []);
-        SignalReference v1Ref = new(subcircuitRef, v1);
-        SignalReference v2Ref = new(subcircuitRef, v2);
-        SignalReference v3Ref = new(subcircuitRef, v3);
+        SubmoduleReference submoduleRef = new(module1, []);
+        SignalReference v1Ref = new(submoduleRef, v1);
+        SignalReference v2Ref = new(submoduleRef, v2);
+        SignalReference v3Ref = new(submoduleRef, v3);
         SimulationRule simRule = behavior.GetSimulationRule(v3Ref);
         Assert.AreEqual(v3Ref, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
@@ -249,9 +249,9 @@ public class LogicBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(spice, expectedSpice));
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(m1, []);
-        SignalReference inputRef = new(subcircuitRef, input);
-        SignalReference outputRef = new(subcircuitRef, output);
+        SubmoduleReference submoduleRef = new(m1, []);
+        SignalReference inputRef = new(submoduleRef, input);
+        SignalReference outputRef = new(submoduleRef, output);
         SimulationRule simRule = output.Behavior!.GetSimulationRule(outputRef);
         Assert.AreEqual(outputRef, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());

@@ -37,9 +37,9 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Simulation setup must be complete to convert to circuit: {reason}");
 
-        SubcircuitReference topLevelSubcircuit = new(Module, []);
+        SubmoduleReference topLevelSubmodule = new(Module, []);
         return Module.GetSimulationRules()
-        .Concat(StimulusMapping.Select(kvp => kvp.Value.GetSimulationRule(new(topLevelSubcircuit, kvp.Key.Signal))));
+        .Concat(StimulusMapping.Select(kvp => kvp.Value.GetSimulationRule(new(topLevelSubmodule, kvp.Key.Signal))));
     }
 
     /// <inheritdoc/>

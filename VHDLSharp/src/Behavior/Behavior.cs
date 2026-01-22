@@ -145,11 +145,11 @@ public abstract class Behavior : IBehavior, IValidityManagedEntity
     }
     
     /// <summary>
-    /// Get output value given simulation state and subcircuit context. 
+    /// Get output value given simulation state and submodule context. 
     /// Validity check has already been performed when this is called
     /// </summary>
     /// <param name="state">Current state of the simulation</param>
-    /// <param name="outputSignal">Reference to output signal--subcircuit can be used as context</param>
+    /// <param name="outputSignal">Reference to output signal--submodule can be used as context</param>
     /// <returns></returns>
     protected abstract int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal);
     

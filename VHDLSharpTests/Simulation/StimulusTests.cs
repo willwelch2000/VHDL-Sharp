@@ -139,7 +139,7 @@ public class StimulusTests
         Assert.AreEqual(5, source2.Parameters.DcValue);
 
         // Sim rule
-        SubcircuitReference m1Ref = new(m1, []);
+        SubmoduleReference m1Ref = new(m1, []);
         SignalReference v1Ref = m1Ref.GetChildSignalReference(v1);
         SimulationRule rule = stimulus.GetSimulationRule(v1Ref);
         Assert.AreEqual(rule.OutputSignal, v1Ref);

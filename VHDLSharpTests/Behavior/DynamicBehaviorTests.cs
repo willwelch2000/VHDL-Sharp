@@ -23,13 +23,13 @@ public class DynamicBehaviorTests
         Assert.IsTrue(behavior.ValidityManager.IsValid(out _));
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(flipFlopMod, []);
-        SignalReference outRef = subcircuitRef.GetChildSignalReference("OUT");
+        SubmoduleReference submoduleRef = new(flipFlopMod, []);
+        SignalReference outRef = submoduleRef.GetChildSignalReference("OUT");
         SimulationRule simRule = behavior.GetSimulationRule(outRef);
         Assert.AreEqual(outRef, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
-        SignalReference loadRef = subcircuitRef.GetChildSignalReference("LOAD");
-        SignalReference inRef = subcircuitRef.GetChildSignalReference("IN");
+        SignalReference loadRef = submoduleRef.GetChildSignalReference("LOAD");
+        SignalReference inRef = submoduleRef.GetChildSignalReference("IN");
         RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint([], [0], 0);
         Assert.AreEqual(0, simRule.OutputValueCalculation(state));
         state = RuleBasedSimulationState.GivenStartingPoint(new()

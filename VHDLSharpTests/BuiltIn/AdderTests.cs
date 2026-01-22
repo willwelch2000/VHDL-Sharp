@@ -43,7 +43,7 @@ public class AdderTests
             if (carryIn)
                 simulation.StimulusMapping[cin!] = new PulseStimulus(4e-5, 4e-5, 8e-5);
 
-            SubcircuitReference moduleRef = new(module, []);
+            SubmoduleReference moduleRef = new(module, []);
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
             if (carryIn)
@@ -97,7 +97,7 @@ public class AdderTests
             if (carryIn)
                 simulation.StimulusMapping[cin!] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
-            SubcircuitReference moduleRef = new(module, []);
+            SubmoduleReference moduleRef = new(module, []);
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
             if (carryIn)

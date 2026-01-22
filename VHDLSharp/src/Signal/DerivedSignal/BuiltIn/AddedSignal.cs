@@ -10,7 +10,7 @@ namespace VHDLSharp.Signals.Derived;
 public class AddedSignal : DerivedSignal
 {
     /// <summary>
-    /// Constructor given two signals
+    /// Add two signals
     /// </summary>
     /// <param name="signal1">First signal</param>
     /// <param name="signal2">Second signal</param>

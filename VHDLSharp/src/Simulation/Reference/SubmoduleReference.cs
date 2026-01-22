@@ -8,20 +8,20 @@ using VHDLSharp.Validation;
 namespace VHDLSharp.Simulations;
 
 /// <summary>
-/// Reference to a subcircuit instantiation in the circuit hierarchy
+/// Reference to a module instantiation in the circuit hierarchy
 /// </summary>
-public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitReference, IValidityManagedEntity
+public class SubmoduleReference : IEquatable<SubmoduleReference>, IModuleReference, IValidityManagedEntity
 {
     private EventHandler? updated;
 
     private readonly ValidityManager manager;
 
     /// <summary>
-    /// Create subcircuit reference given top-level module and path to subcircuit
+    /// Create submodule reference given top-level module and path to submodule
     /// </summary>
     /// <param name="topLevelModule"></param>
     /// <param name="path"></param>
-    public SubcircuitReference(IModule topLevelModule, IEnumerable<IInstantiation> path)
+    public SubmoduleReference(IModule topLevelModule, IEnumerable<IInstantiation> path)
     {
         TopLevelModule = topLevelModule;
         Path = new([.. path]);
@@ -56,49 +56,49 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     public IModule FinalModule => Path.Select(i => i.InstantiatedModule).LastOrDefault(TopLevelModule);
 
     /// <summary>
-    /// Gets subcircuit or signal reference inside this subcircuit
-    /// If there are names of both, the subcircuit is returned
+    /// Gets submodule or signal reference inside this submodule
+    /// If there are names of both, the submodule is returned
     /// </summary>
-    /// <param name="name">Name of signal or subcircuit</param>
+    /// <param name="name">Name of signal or submodule</param>
     /// <returns></returns>
-    public ICircuitReference this[string name]
+    public IModuleReference this[string name]
     {
         get
         {
             // Try to find instantiation
             IInstantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
             if (instantiation is not null)
-                return new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
+                return new SubmoduleReference(TopLevelModule, [.. Path, instantiation]);
 
             // Try to find signal
             ISingleNodeNamedSignal? signal = FinalModule.AllModuleSignals.OfType<INamedSignal>().SelectMany(s => s.ToSingleNodeSignals).FirstOrDefault(s => s.Name == name);
             if (signal is not null)
                 return new SignalReference(this, signal);
 
-            throw new SubcircuitPathException($"Could not find {name} in module {FinalModule}");
+            throw new SubmodulePathException($"Could not find {name} in module {FinalModule}");
         }
     }
 
     /// <summary>
-    /// Get child subcircuit reference given instantiation
+    /// Get child submodule reference given instantiation
     /// </summary>
     /// <param name="instantiation"></param>
     /// <returns></returns>
-    public SubcircuitReference GetChildSubcircuitReference(IInstantiation instantiation) => new(TopLevelModule, [.. Path, instantiation]);
+    public SubmoduleReference GetChildSubmoduleReference(IInstantiation instantiation) => new(TopLevelModule, [.. Path, instantiation]);
 
     /// <summary>
-    /// Try to get child subcircuit reference given instantiation name
+    /// Try to get child submodule reference given instantiation name
     /// </summary>
     /// <param name="name"></param>
     /// <param name="reference">Output reference</param>
     /// <returns>True if successful, false otherwise</returns>
-    public bool TryGetChildSubcircuitReference(string name, out SubcircuitReference? reference)
+    public bool TryGetChildSubmoduleReference(string name, out SubmoduleReference? reference)
     {
         // Try to find instantiation
         IInstantiation? instantiation = FinalModule.Instantiations.FirstOrDefault(i => i.Name == name);
         if (instantiation is not null)
         {
-            reference = new SubcircuitReference(TopLevelModule, [.. Path, instantiation]);
+            reference = new SubmoduleReference(TopLevelModule, [.. Path, instantiation]);
             return true;
         }
 
@@ -107,13 +107,13 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     }
 
     /// <summary>
-    /// Get child subcircuit reference given instantiation name
+    /// Get child submodule reference given instantiation name
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    /// <exception cref="SubcircuitPathException">Thrown if not found</exception>
-    public SubcircuitReference GetChildSubcircuitReference(string name) =>
-        TryGetChildSubcircuitReference(name, out SubcircuitReference? reference) && reference is not null ? reference : throw new SubcircuitPathException($"Could not find instantiation {name} in module {FinalModule}");
+    /// <exception cref="SubmodulePathException">Thrown if not found</exception>
+    public SubmoduleReference GetChildSubmoduleReference(string name) =>
+        TryGetChildSubmoduleReference(name, out SubmoduleReference? reference) && reference is not null ? reference : throw new SubmodulePathException($"Could not find instantiation {name} in module {FinalModule}");
 
     /// <summary>
     /// Get child signal reference given signal
@@ -147,22 +147,22 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    /// <exception cref="SubcircuitPathException">Thrown if not found</exception>
+    /// <exception cref="SubmodulePathException">Thrown if not found</exception>
     public SignalReference GetChildSignalReference(string name) =>
-        TryGetChildSignalReference(name, out SignalReference? reference) && reference is not null ? reference : throw new SubcircuitPathException($"Could not find signal {name} in module {FinalModule}");
+        TryGetChildSignalReference(name, out SignalReference? reference) && reference is not null ? reference : throw new SubmodulePathException($"Could not find signal {name} in module {FinalModule}");
 
     /// <summary>
-    /// Compare to another subcircuit reference
+    /// Compare to another submodule reference
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public bool Equals(SubcircuitReference? other)
+    public bool Equals(SubmoduleReference? other)
     {
         return other is not null && TopLevelModule.Equals(other.TopLevelModule) && Path.SequenceEqual(other.Path);
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is SubcircuitReference subcircuit && Equals(subcircuit);
+    public override bool Equals(object? obj) => obj is SubmoduleReference submodule && Equals(submodule);
 
     /// <summary>
     /// Returns true if two references are equal
@@ -170,7 +170,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// <param name="reference1"></param>
     /// <param name="reference2"></param>
     /// <returns></returns>
-    public static bool operator==(SubcircuitReference reference1, SubcircuitReference reference2) => reference1.Equals(reference2);
+    public static bool operator==(SubmoduleReference reference1, SubmoduleReference reference2) => reference1.Equals(reference2);
     
     /// <summary>
     /// Returns true if two references are not equal
@@ -178,7 +178,7 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
     /// <param name="reference1"></param>
     /// <param name="reference2"></param>
     /// <returns></returns>
-    public static bool operator!=(SubcircuitReference reference1, SubcircuitReference reference2) => !reference1.Equals(reference2);
+    public static bool operator!=(SubmoduleReference reference1, SubmoduleReference reference2) => !reference1.Equals(reference2);
     
     /// <inheritdoc/>
     public override int GetHashCode()
@@ -197,9 +197,9 @@ public class SubcircuitReference : IEquatable<SubcircuitReference>, ICircuitRefe
         foreach (IInstantiation instantiation in Path)
         {
             if (!instantiation.ParentModule.Equals(module))
-                exception = new SubcircuitPathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
+                exception = new SubmodulePathException($"Parent module of instantiation ({instantiation}) doesn't match {module}");
             if (!module.Instantiations.Contains(instantiation))
-                exception = new SubcircuitPathException($"Module {module} does not contain given instantiation ({instantiation})");
+                exception = new SubmodulePathException($"Module {module} does not contain given instantiation ({instantiation})");
             module = instantiation.InstantiatedModule;
         }
         return exception is null;

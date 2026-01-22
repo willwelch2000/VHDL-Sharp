@@ -8,7 +8,8 @@ namespace VHDLSharp.Simulations;
 public class RuleBasedSimulationState
 {
     /// <summary>
-    /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps
+    /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps.
+    /// This is the ultimate source of truth
     /// </summary>
     private Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
 
@@ -57,16 +58,37 @@ public class RuleBasedSimulationState
     /// <param name="signal"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public List<bool> GetSingleNodeSignalValues(SignalReference signal)
+    public List<bool> GetSingleNodeSignalValues(SignalReference signal) => [.. GetSingleNodeSignalValuesWithoutNewList(signal)];
+
+    /// <summary>
+    /// Get values as booleans for a single-node signal.
+    /// Version that can be used internally and doesn't make a new list
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    internal List<bool> GetSingleNodeSignalValuesWithoutNewList(SignalReference signal)
     {
         // Ascend to higher module, if necessary
         SignalReference ascended = signal.Ascend();
         return ascended.Signal switch
         {
-            ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(ascended, out List<bool>? vals) ? [.. vals] : 
+            ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(ascended, out List<bool>? vals) ? vals :
                 CurrentTimeStepIndex == 0 ? singleNodeSignalValues[ascended] = [] : throw new Exception("New signals can't be added after first timestep complete"),
             _ => throw new Exception("Signal reference must be to a single-node signal")
         };
+    }
+
+    internal bool GetLastSingleNodeSignalValue(SignalReference signal, int? lastIndex = null)
+    {
+        try
+        {
+            return GetSingleNodeSignalValuesWithoutNewList(signal)[lastIndex ?? CurrentTimeStepIndex - 1];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            throw new Exception("Signal does not have a value from the previous time step");
+        }
     }
 
     /// <summary>
@@ -80,14 +102,14 @@ public class RuleBasedSimulationState
         try
         {
             if (signal.Signal is ISingleNodeNamedSignal)
-                return [.. GetSingleNodeSignalValues(signal).Select(val => val ? 1 : 0)];
+                return [.. GetSingleNodeSignalValuesWithoutNewList(signal).Select(val => val ? 1 : 0)];
 
-            SubcircuitReference subcircuit = signal.Subcircuit;
-            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
+            SubmoduleReference submodule = signal.Submodule;
+            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(submodule.GetChildSignalReference)];
             List<int> values = [];
             // Go through length of first result
-            for (int i = 0; i < GetSingleNodeSignalValues(singleNodeSignals[0]).Count; i++)
-                values.Add(singleNodeSignals.Select((s, j) => GetSingleNodeSignalValues(s)[i] ? 1<<j : 0).Sum());
+            for (int i = 0; i < GetSingleNodeSignalValuesWithoutNewList(singleNodeSignals[0]).Count; i++)
+                values.Add(singleNodeSignals.Select((s, j) => GetSingleNodeSignalValuesWithoutNewList(s)[i] ? 1 << j : 0).Sum());
 
             return values;
         }
@@ -98,6 +120,20 @@ public class RuleBasedSimulationState
         catch (IndexOutOfRangeException indexEx)
         {
             throw new Exception($"Child signals not same length", indexEx);
+        }
+    }
+
+    internal int GetLastSignalValue(SignalReference signal, int? lastIndex = null)
+    {
+        try
+        {
+            SubmoduleReference submodule = signal.Submodule;
+            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(submodule.GetChildSignalReference)];
+            return singleNodeSignals.Select((s, j) => GetLastSingleNodeSignalValue(s, lastIndex) ? 1 << j : 0).Sum();
+        }
+        catch (KeyNotFoundException keyEx)
+        {
+            throw new Exception($"Signal not added to simulation state", keyEx);
         }
     }
 
@@ -133,7 +169,6 @@ public class RuleBasedSimulationState
     /// <param name="value"></param>
     internal void AddSignalValue(SignalReference signal, int value)
     {
-        SubcircuitReference subcircuit = signal.Subcircuit;
         foreach ((int i, SignalReference singleNodeSignal) in signal.GetSingleNodeReferences().Index())
             AddSignalValue(singleNodeSignal, (value & 1<<i) > 0);
     }

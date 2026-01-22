@@ -59,8 +59,8 @@ public class MultiDimensionalStimulus : IStimulusSet
 
         // Pair each stimulus with corresponding signal
         List<SimulationRule> rules = [];
-        SubcircuitReference subcircuit = signal.Subcircuit;
-        foreach ((int i, SignalReference singleNodeSignal) in signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference).Index())
+        SubmoduleReference submodule = signal.Submodule;
+        foreach ((int i, SignalReference singleNodeSignal) in signal.Signal.ToSingleNodeSignals.Select(submodule.GetChildSignalReference).Index())
             rules.Add(Stimuli[i].GetSimulationRule(singleNodeSignal));
 
         return new(signal, state => GetValue(rules, state))

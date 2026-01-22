@@ -382,11 +382,11 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
 
         // Check if any condition set is satisfied--if so, use the corresponding value
         foreach ((ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
-            if (Util.EvaluateConditionCombo(condition, state, outputSignal.Subcircuit))
+            if (Util.EvaluateConditionCombo(condition, state, outputSignal.Submodule))
                 return behavior.GetOutputValue(state, outputSignal);
 
         // Otherwise, use the previous value from the state
-        return state.GetSignalValues(outputSignal)[lastIndex];
+        return outputSignal.Signal.GetLastOutputValue(state, outputSignal.Submodule, lastIndex);
     }
 
     private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)
@@ -424,4 +424,27 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
         reason = null;
         return true;
     }
+}
+
+/// <summary>
+/// Class to add a behavior to a condition of a <see cref="DynamicBehavior"/>,
+/// enabling if-then syntax
+/// </summary>
+public class DynamicBehaviorAdder
+{
+    internal DynamicBehaviorAdder(DynamicBehavior behavior, ILogicallyCombinable<ICondition> condition)
+    {
+        Behavior = behavior;
+        Condition = condition;
+    }
+
+    /// <summary>Linked dynamic behavior</summary>
+    public DynamicBehavior Behavior { get; }
+
+    /// <summary>Condition that a sub-behavior can be added for</summary>
+    public ILogicallyCombinable<ICondition> Condition { get; }
+
+    /// <summary>Link a behavior to this <see cref="Condition"/></summary>
+    /// <param name="behavior"></param>
+    public void Then(ICombinationalBehavior behavior) => Behavior.Add(Condition, behavior);
 }

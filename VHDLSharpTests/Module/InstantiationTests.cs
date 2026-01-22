@@ -70,6 +70,8 @@ public class InstantiationTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedVhdl, vhdl));
 
         // Check module Spice
+        parentMod.AddNewPort(s1, PortDirection.Input);
+        parentMod.AddNewPort(v1, PortDirection.Output);
         spice = parentMod.GetSpice().AsString();
         expectedSpice = 
         """
@@ -85,12 +87,12 @@ public class InstantiationTests
         .MODEL PmosMod pmos W=0.0001 L=1E-06
         VVDD VDD 0 5
         Xi1 s1 v1_0 v1_1 instanceMod
+        Rn0x0_floating v1_0 0 1000000000
+        Rn1x1_floating v1_1 0 1000000000
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
 
         // Check module VHDL
-        parentMod.AddNewPort(s1, PortDirection.Input);
-        parentMod.AddNewPort(v1, PortDirection.Output);
         vhdl = parentMod.GetVhdl();
         expectedVhdl =
         """
@@ -137,8 +139,8 @@ public class InstantiationTests
 
         // Check simulation rule and its output values
         SimulationRule simRule = parentMod.GetSimulationRules().First();
-        SubcircuitReference parentModRef = new(parentMod, []);
-        SubcircuitReference instanceRef = parentModRef.GetChildSubcircuitReference(instantiation);
+        SubmoduleReference parentModRef = new(parentMod, []);
+        SubmoduleReference instanceRef = parentModRef.GetChildSubmoduleReference(instantiation);
         SignalReference v1Ref = new(parentModRef, v1);
         SignalReference p2Ref = instanceRef.GetChildSignalReference(p2.Signal);
         Assert.AreEqual(v1Ref.Ascend(), simRule.OutputSignal.Ascend());
@@ -162,6 +164,10 @@ public class InstantiationTests
         Signal out1 = parentMod.GenerateSignal("out1");
         Signal out2 = parentMod.GenerateSignal("out2");
         Signal out3 = parentMod.GenerateSignal("out3");
+
+        parentMod.AddNewPort(in1, PortDirection.Input);
+        parentMod.AddNewPort(in2, PortDirection.Input);
+        parentMod.AddNewPort(in3, PortDirection.Input);
 
         Instantiation instance1 = parentMod.AddNewInstantiation(andMod, "and1");
         instance1.PortMapping.SetPort("IN1", in1);
@@ -244,7 +250,7 @@ public class InstantiationTests
 
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
-        SubcircuitReference parentModRef = new(parentMod, []);
+        SubmoduleReference parentModRef = new(parentMod, []);
         Assert.AreEqual(3, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
@@ -261,6 +267,10 @@ public class InstantiationTests
         Signal in3 = parentMod.GenerateSignal("in3");
         Signal out1 = parentMod.GenerateSignal("out1");
         Signal out2 = parentMod.GenerateSignal("out2");
+
+        parentMod.AddNewPort(in1, PortDirection.Input);
+        parentMod.AddNewPort(in2, PortDirection.Input);
+        parentMod.AddNewPort(in3, PortDirection.Input);
         
         Module middleMod = new("middle");
         Port midPIn = middleMod.AddNewPort("IN", PortDirection.Input);
@@ -310,14 +320,14 @@ public class InstantiationTests
         
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
-        SubcircuitReference parentModRef = new(parentMod, []);
+        SubmoduleReference parentModRef = new(parentMod, []);
         Assert.AreEqual(2, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
     }
 
     [TestMethod]
-    public void HierarchicalInstanceTestWhereInnerModuleIsUsedByAnotherSubcircuit()
+    public void HierarchicalInstanceTestWhereInnerModuleIsUsedByAnotherSubmodule()
     {
         Module parentMod = new("parentMod");
         Module andMod = Util.GetAndModule();
@@ -325,6 +335,9 @@ public class InstantiationTests
         Signal in2 = parentMod.GenerateSignal("in2");
         Signal out1 = parentMod.GenerateSignal("out1");
         Signal out2 = parentMod.GenerateSignal("out2");
+
+        parentMod.AddNewPort(in1, PortDirection.Input);
+        parentMod.AddNewPort(in2, PortDirection.Input);
         
         Module middle1Mod = new("middle1");
         Port mid1PIn = middle1Mod.AddNewPort("IN", PortDirection.Input);

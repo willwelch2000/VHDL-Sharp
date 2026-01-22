@@ -42,7 +42,7 @@ public abstract class Condition : ICondition, IValidityManagedEntity
     public abstract string ToLogicString(LogicStringOptions options);
 
     /// <inheritdoc/>
-    public abstract bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context);
+    public abstract bool Evaluate(RuleBasedSimulationState state, SubmoduleReference context);
 
     /// <summary>
     /// Get parent module based on named input signals

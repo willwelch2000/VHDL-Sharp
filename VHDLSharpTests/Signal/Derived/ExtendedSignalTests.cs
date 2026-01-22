@@ -120,7 +120,7 @@ public class ExtendedSignalTests
             new PulseStimulus(4e-5, 4e-5, 8e-5),
         ]);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3));

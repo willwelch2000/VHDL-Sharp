@@ -48,5 +48,5 @@ public class LogicBehavior : Behavior, ICombinationalBehavior
 
     /// <inheritdoc/>
     protected override int GetOutputValueWithoutCheck(RuleBasedSimulationState state, SignalReference outputSignal) =>
-        LogicExpression.GetOutputValue(state, outputSignal.Subcircuit);
+        LogicExpression.GetOutputValue(state, outputSignal.Submodule);
 }

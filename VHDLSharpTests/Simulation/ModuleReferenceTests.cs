@@ -5,7 +5,7 @@ using VHDLSharp.Simulations;
 namespace VHDLSharpTests;
 
 [TestClass]
-public class CircuitReferenceTests
+public class ModuleReferenceTests
 {
     [TestMethod]
     public void EqualityTest()
@@ -18,8 +18,8 @@ public class CircuitReferenceTests
         i1.PortMapping.SetPort("s1", top1);
         i1.PortMapping.SetPort("s3", top2);
 
-        SubcircuitReference subcktRef1 = new(top, [i1]);
-        SubcircuitReference subcktRef2 = new(top, [i1]);
+        SubmoduleReference subcktRef1 = new(top, [i1]);
+        SubmoduleReference subcktRef2 = new(top, [i1]);
         Assert.AreEqual(subcktRef1, subcktRef2);
 
         SignalReference sigRef1 = subcktRef1.GetChildSignalReference("s1");
@@ -37,8 +37,8 @@ public class CircuitReferenceTests
         var i1 = top.AddNewInstantiation(child, "child1");
         i1.PortMapping.SetPort("s1", top1);
         i1.PortMapping.SetPort("s3", top2);
-        SubcircuitReference subcktRef1 = new(top, []);
-        SubcircuitReference subcktRef2 = new(top, [i1]);
+        SubmoduleReference subcktRef1 = new(top, []);
+        SubmoduleReference subcktRef2 = new(top, [i1]);
 
         SignalReference sigRef1 = subcktRef1.GetChildSignalReference("top1");
         SignalReference sigRef2 = subcktRef2.GetChildSignalReference("s1");
@@ -58,8 +58,8 @@ public class CircuitReferenceTests
         var i1 = top.AddNewInstantiation(child1, "child1");
         i1.PortMapping.SetPort("s1", top1[1]);
         i1.PortMapping.SetPort("s3", top2);
-        SubcircuitReference subcktRefTop = new(top, []);
-        SubcircuitReference subcktRefChild1 = new(top, [i1]);
+        SubmoduleReference subcktRefTop = new(top, []);
+        SubmoduleReference subcktRefChild1 = new(top, [i1]);
 
         SignalReference sigRef1 = subcktRefTop.GetChildSignalReference(top1[1]);
         SignalReference sigRef2 = subcktRefChild1.GetChildSignalReference("s1");
@@ -72,7 +72,7 @@ public class CircuitReferenceTests
         var i2 = top.AddNewInstantiation(child2, "child2");
         i2.PortMapping.SetPort("s1", top1[1]);
         i2.PortMapping.SetPort("s3", top3);
-        SubcircuitReference subcktRefChild2 = new(top, [i2]);
+        SubmoduleReference subcktRefChild2 = new(top, [i2]);
 
         SignalReference sigRef3 = subcktRefTop.GetChildSignalReference(top3);
         SignalReference sigRef4 = subcktRefChild2.GetChildSignalReference("s3");

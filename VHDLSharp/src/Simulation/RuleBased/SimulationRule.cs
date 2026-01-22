@@ -52,7 +52,7 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
         {
             // Try to add the output signal's (ascended) child signals, return true if duplicates exist
             SignalReference outputSignal = rule.OutputSignal;
-            IEnumerable<SignalReference> singleNodeOutputSignals = outputSignal.Signal.ToSingleNodeSignals.Select(outputSignal.Subcircuit.GetChildSignalReference);
+            IEnumerable<SignalReference> singleNodeOutputSignals = outputSignal.Signal.ToSingleNodeSignals.Select(outputSignal.Submodule.GetChildSignalReference);
             foreach (SignalReference singleNodeOutputSignal in singleNodeOutputSignals)
                 if (!singleNodeAscendedOutputs.Add(singleNodeOutputSignal.Ascend()))
                     return true;

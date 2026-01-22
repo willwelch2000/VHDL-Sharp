@@ -36,6 +36,9 @@ public class Module : IModule, IValidityManagedEntity
 
     private readonly HashSet<IDerivedSignal> registeredDerivedSignals = [];
 
+    // Cache for module signals--doesn't check correct module 
+    private IModuleSpecificSignal[]? cachedModuleSignals = null;
+
     /// <summary>Default constructor</summary>
     public Module()
     {
@@ -146,7 +149,7 @@ public class Module : IModule, IValidityManagedEntity
                     [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals, linkedSignal] : [s, .. derivedSignalNode.DerivedSignal.RecursiveInputModuleSignals],
                 _ => [s],
             })
-            .Where(s => s.ParentModule == this || includeIncorrectlyAssignedSignals) // Should be true for all, but double check
+            .Where(s => s.ParentModule.Equals(this) || includeIncorrectlyAssignedSignals) // Should be true for all, but double check
             .SelectMany(s => s.ToSingleNodeSignals)]; // Convert to the single-node signals
 
         HashSet<IModuleSpecificSignal> topLevelSignals = [.. allSingleNodeSignals.Select(s => s.TopLevelSignal)];
@@ -212,6 +215,14 @@ public class Module : IModule, IValidityManagedEntity
     /// <param name="dimension">dimension of the vector</param>
     /// <returns></returns>
     public Vector GenerateVector(string name, int dimension) => new(name, this, dimension);
+
+    /// <summary>
+    /// Generate a signal or vector (depending on dimension) with this module as the parent
+    /// </summary>
+    /// <param name="name">name of the vector</param>
+    /// <param name="dimension">dimension of the vector</param>
+    /// <returns></returns>
+    public ITopLevelNamedSignal GenerateSignalOrVector(string name, int dimension) => NamedSignal.GenerateSignalOrVector(name, this, dimension);
 
     /// <summary>
     /// Create a port with a new single-dimension signal and add the new port to the list of ports
@@ -288,20 +299,23 @@ public class Module : IModule, IValidityManagedEntity
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason)
     {
-        // Set of all assigned output signals, broken into their single-node components
-        HashSet<ISingleNodeNamedSignal> allAssignedOutputSignals = [.. Instantiations.GetSignals(PortDirection.Output)
+        // Set of all assigned output signals and input ports, broken into their single-node components
+        HashSet<ISingleNodeNamedSignal> allAssignedOutputSignalsAndInputPorts = [.. Instantiations.GetSignals(PortDirection.Output)
             .Concat(SignalBehaviors.Keys)
             .Concat(AllModuleSignals.OfType<IDerivedSignal>().Select(s => s.LinkedSignal).OfType<INamedSignal>())
+            .Concat(Ports.Where(p => p.Direction == PortDirection.Input).Select(p => p.Signal))
             .SelectMany(s => s.ToSingleNodeSignals)];
 
-        // Check that every single-node signal in every port has been assigned
+        // Check that every single-node signal in every signal except for input ports has been assigned
         // This strategy should work for a Vector assigned as multiple VectorSlices
-        foreach (IPort port in Ports.Where(p => p.Direction == PortDirection.Output))
-            if (!port.Signal.ToSingleNodeSignals.All(allAssignedOutputSignals.Contains))
+        foreach (INamedSignal signal in (cachedModuleSignals?.Where(s => s.ParentModule.Equals(this)) ?? GetAllModuleSignals(false)).OfType<INamedSignal>())
+        {
+            if (!signal.ToSingleNodeSignals.All(allAssignedOutputSignalsAndInputPorts.Contains))
             {
-                reason = $"Port {port} has not been assigned";
+                reason = $"Signal {signal} has not been assigned and is not input port";
                 return false;
             }
+        }
 
         // Check that instantiation collection is complete
         if (!Instantiations.IsComplete(out reason))
@@ -328,6 +342,9 @@ public class Module : IModule, IValidityManagedEntity
     /// <returns></returns>
     public string GetVhdl()
     {
+        // Cache input signals before checking validity or complete-ness
+        cachedModuleSignals = [.. GetAllModuleSignals(true)];
+
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
@@ -340,7 +357,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("library ieee");
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
-        // Subcircuits and this already checked
+        // Submodules and this already checked
         ignoreValidity = true;
 
         // Main module
@@ -359,12 +376,17 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         ignoreValidity = false;
+        cachedModuleSignals = null;
         return sb.ToString().TrimEnd();
     }
 
     /// <inheritdoc/>
     public string GetVhdlNoSubmodules()
     {
+        // Cache input signals before checking validity or complete-ness
+        bool removeCachedSignals = cachedModuleSignals is null;
+        cachedModuleSignals ??= [.. GetAllModuleSignals(true)];
+
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
@@ -388,7 +410,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine($"architecture rtl of {Name} is");
 
         // Signals
-        IModuleSpecificSignal[] moduleSignals = [.. AllModuleSignals];
+        IModuleSpecificSignal[] moduleSignals = [.. cachedModuleSignals.Where(s => s.ParentModule.Equals(this))];
         foreach (INamedSignal signal in moduleSignals.OfType<INamedSignal>()
             .Union(moduleSignals.OfType<IDerivedSignal>().Select(d => d.LinkedSignal ??
                 throw new Exception("Derived signal must be linked to named signal before getting VHDL")))
@@ -429,6 +451,8 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("end rtl;");
 
         compiled = false;
+        if (removeCachedSignals)
+            cachedModuleSignals = null;
         return sb.ToString();
     }
 
@@ -438,6 +462,9 @@ public class Module : IModule, IValidityManagedEntity
     /// <inheritdoc/>
     public SpiceSubcircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits)
     {
+        // Cache input signals before checking validity or complete-ness
+        cachedModuleSignals = [.. GetAllModuleSignals(true)];
+
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
 
@@ -477,6 +504,7 @@ public class Module : IModule, IValidityManagedEntity
         SpiceSubcircuit subcircuit = SpiceCircuit.Combine(circuits).WithCommonEntities().ToSpiceSubcircuit(this, pins);
 
         compiled = false;
+        cachedModuleSignals = null;
         return subcircuit;
     }
 
@@ -484,27 +512,31 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<SimulationRule> GetSimulationRules() => GetSimulationRules(new(this, []));
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit)
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule)
     {
+        // Cache input signals before checking validity or complete-ness
+        cachedModuleSignals = [.. GetAllModuleSignals(true)];
+
         if (!ConsiderValid)
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
-        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid(out Exception? issue))
-            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule", issue);
-        if (!((IModule)this).Equals(subcircuit.FinalModule))
-            throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
+        if (!((IValidityManagedEntity)submodule).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Submodule reference must be valid to use to get simulation rule", issue);
+        if (!((IModule)this).Equals(submodule.FinalModule))
+            throw new Exception($"The provided submodule reference must reference this ({ToString()}), not {submodule.FinalModule.ToString()}");
 
         CompileDerivedSignals();
 
         // Behaviors
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
-            yield return behavior.GetSimulationRule(subcircuit.GetChildSignalReference(signal));
+            yield return behavior.GetSimulationRule(submodule.GetChildSignalReference(signal));
 
         // Instantiations
-        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
+        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(submodule.GetChildSubmoduleReference(i))))
             yield return rule;
 
+        cachedModuleSignals = null;
         compiled = false;
     }
 
@@ -592,7 +624,7 @@ public class Module : IModule, IValidityManagedEntity
         }
 
         // Check that all module signals have this module as parent
-        IModuleSpecificSignal[] moduleSignals = [.. GetAllModuleSignals(true)];
+        IModuleSpecificSignal[] moduleSignals = cachedModuleSignals ?? [.. GetAllModuleSignals(true)];
         foreach (IModuleSpecificSignal moduleSignal in moduleSignals)
             if (!((IModule)this).Equals(moduleSignal.ParentModule))
             {

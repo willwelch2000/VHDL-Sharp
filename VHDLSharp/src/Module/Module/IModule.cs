@@ -93,11 +93,11 @@ public interface IModule : IEquatable<IModule>, ICompletable, IMayBeRecursive<IM
     public IEnumerable<SimulationRule> GetSimulationRules();
 
     /// <summary>
-    /// Get simulation rules, given a subcircuit reference that has this as the bottom level
+    /// Get simulation rules, given a submodule reference that has this as the bottom level
     /// </summary>
-    /// <param name="subcircuit"></param>
+    /// <param name="submodule"></param>
     /// <returns></returns>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit);
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule);
 
     /// <summary>
     /// Test if the module contains a signal
