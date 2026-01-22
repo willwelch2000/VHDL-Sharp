@@ -278,7 +278,7 @@ public class ConditionBehavior : Behavior, ICombinationalBehavior, IRecursiveBeh
     {
         // Get output from behavior with highest-priority true condition, or default
         foreach ((ILogicallyCombinable<IConstantCondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
-            if (Util.EvaluateConditionCombo(condition.ToBasicCondition(), state, outputSignal.Subcircuit))
+            if (Util.EvaluateConditionCombo(condition.ToBasicCondition(), state, outputSignal.Submodule))
                 return behavior.GetOutputValue(state, outputSignal);
         return DefaultBehavior.GetOutputValue(state, outputSignal);
     }

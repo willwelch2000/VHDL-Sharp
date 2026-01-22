@@ -45,7 +45,7 @@ internal static class Util
         return true;
     }
 
-    internal static bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubcircuitReference context)
+    internal static bool EvaluateConditionCombo(ILogicallyCombinable<ICondition> conditionCombo, RuleBasedSimulationState state, SubmoduleReference context)
     {
         bool Primary(ICondition condition) => condition.Evaluate(state, context);
         bool And(IEnumerable<bool> inputs) => inputs.Aggregate((a, b) => a && b);

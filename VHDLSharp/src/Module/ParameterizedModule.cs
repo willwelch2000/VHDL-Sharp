@@ -76,7 +76,7 @@ public abstract class ParameterizedModule<T> : IModule where T : notnull, IEquat
     public IEnumerable<SimulationRule> GetSimulationRules() => BaseModule.GetSimulationRules();
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit) => BaseModule.GetSimulationRules(subcircuit);
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule) => BaseModule.GetSimulationRules(submodule);
 
     /// <inheritdoc/>
     public SpiceSubcircuit GetSpice() => BaseModule.GetSpice();

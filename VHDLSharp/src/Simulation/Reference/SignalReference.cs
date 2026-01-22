@@ -11,22 +11,22 @@ namespace VHDLSharp.Simulations;
 /// <summary>
 /// Reference to a single-node named signal in the circuit hierarchy
 /// </summary>
-public class SignalReference : IEquatable<SignalReference>, ICircuitReference, IValidityManagedEntity
+public class SignalReference : IEquatable<SignalReference>, IModuleReference, IValidityManagedEntity
 {
     private EventHandler? updated;
 
     private readonly ValidityManager manager;
 
     /// <summary>
-    /// Create signal reference given subcircuit reference and signal in that subcircuit
+    /// Create signal reference given submodule reference and signal in that submodule
     /// </summary>
-    /// <param name="subcircuitReference"></param>
+    /// <param name="submoduleReference"></param>
     /// <param name="signal"></param>
-    public SignalReference(SubcircuitReference subcircuitReference, INamedSignal signal)
+    public SignalReference(SubmoduleReference submoduleReference, INamedSignal signal)
     {
-        Subcircuit = subcircuitReference;
+        Submodule = submoduleReference;
         Signal = signal;
-        manager = new ValidityManager<SubcircuitReference>(this, [subcircuitReference]);
+        manager = new ValidityManager<SubmoduleReference>(this, [submoduleReference]);
         // Check after construction
         if (!((IValidityManagedEntity)this).CheckTopLevelValidity(out Exception? exception))
             throw exception;
@@ -45,20 +45,20 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     }
 
     /// <summary>
-    /// Reference to subcircuit that contains this signal
+    /// Reference to submodule that contains this signal
     /// </summary>
-    public SubcircuitReference Subcircuit { get; }
+    public SubmoduleReference Submodule { get; }
 
     /// <summary>
-    /// Signal being referenced--must be in <see cref="Subcircuit"/>
+    /// Signal being referenced--must be in <see cref="Submodule"/>
     /// </summary>
     public INamedSignal Signal { get; }
 
     /// <inheritdoc/>
-    public IModule TopLevelModule => Subcircuit.TopLevelModule;
+    public IModule TopLevelModule => Submodule.TopLevelModule;
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<IInstantiation> Path => Subcircuit.Path;
+    public ReadOnlyCollection<IInstantiation> Path => Submodule.Path;
 
     /// <summary>
     /// Compare to another signal reference
@@ -67,7 +67,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     /// <returns></returns>
     public bool Equals(SignalReference? other)
     {
-        return other is not null && Subcircuit.Equals(other.Subcircuit) && Signal == other.Signal;
+        return other is not null && Submodule.Equals(other.Submodule) && Signal == other.Signal;
     }
 
     /// <inheritdoc/>
@@ -90,7 +90,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     public static bool operator !=(SignalReference reference1, SignalReference reference2) => !reference1.Equals(reference2);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Subcircuit, Signal);
+    public override int GetHashCode() => HashCode.Combine(Submodule, Signal);
 
     /// <summary>
     /// Get references to this signal that can be used in a Spice# simulation
@@ -100,7 +100,7 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
         if (!manager.IsValid(out Exception? issue))
             throw new InvalidException("Signal reference is invalid", issue);
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
-            yield return new([.. Subcircuit.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
+            yield return new([.. Submodule.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
     /// <summary>
@@ -115,13 +115,13 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
             return this;
 
         IInstantiation lastInstantiation = Path.Last();
-        SubcircuitReference ascendedSubcircuit = new(TopLevelModule, Path.SkipLast(1));
+        SubmoduleReference ascendedSubmodule = new(TopLevelModule, Path.SkipLast(1));
 
         // Test if this signal is part of the port mapping of the last instance
         // If so, go to that connection and continue to ascend from there
         if (Signal.IsPartOfPortMapping(lastInstantiation.PortMapping, out INamedSignal? connection))
         {
-            SignalReference singleAscend = new(ascendedSubcircuit, connection);
+            SignalReference singleAscend = new(ascendedSubmodule, connection);
             return singleAscend.Ascend();
         }
 
@@ -136,16 +136,16 @@ public class SignalReference : IEquatable<SignalReference>, ICircuitReference, I
     public IEnumerable<SignalReference> GetSingleNodeReferences()
     {
         foreach (ISingleNodeNamedSignal singleNodeSignal in Signal.ToSingleNodeSignals)
-            yield return Subcircuit.GetChildSignalReference(singleNodeSignal);
+            yield return Submodule.GetChildSignalReference(singleNodeSignal);
     }
 
     bool IValidityManagedEntity.CheckTopLevelValidity([MaybeNullWhen(true)] out Exception exception)
     {
         exception = null;
         // Problem if last module doesn't contain signal
-        IModule lastModule = Subcircuit.FinalModule;
+        IModule lastModule = Submodule.FinalModule;
         if (!Signal.ParentModule.Equals(lastModule))
-            exception = new SubcircuitPathException($"Module {lastModule} does not contain given signal ({Signal})");
+            exception = new SubmodulePathException($"Module {lastModule} does not contain given signal ({Signal})");
         return exception is null;
     }
 

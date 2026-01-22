@@ -10,8 +10,8 @@ public class TimeStepGeneratorTests
     public void MainTest()
     {
         Module module1 = Util.GetSampleModule1();
-        SubcircuitReference subcircuit = new(module1, []);
-        SignalReference s1 = subcircuit.GetChildSignalReference("s1");
+        SubmoduleReference submodule = new(module1, []);
+        SignalReference s1 = submodule.GetChildSignalReference("s1");
         var generator = new DefaultTimeStepGenerator {MinTimeStep = 1e-6, MaxTimeStep = null};
         double[] independentEventTimes = [1e-4, 2e-4];
 

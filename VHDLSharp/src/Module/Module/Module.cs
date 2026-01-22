@@ -357,7 +357,7 @@ public class Module : IModule, IValidityManagedEntity
         sb.AppendLine("library ieee");
         sb.AppendLine("use ieee.std_logic_1164.all;\n");
 
-        // Subcircuits and this already checked
+        // Submodules and this already checked
         ignoreValidity = true;
 
         // Main module
@@ -512,7 +512,7 @@ public class Module : IModule, IValidityManagedEntity
     public IEnumerable<SimulationRule> GetSimulationRules() => GetSimulationRules(new(this, []));
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubcircuitReference subcircuit)
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule)
     {
         // Cache input signals before checking validity or complete-ness
         cachedModuleSignals = [.. GetAllModuleSignals(true)];
@@ -521,19 +521,19 @@ public class Module : IModule, IValidityManagedEntity
             throw new InvalidException("Module is invalid", ValidityManager.Issues().First().Exception);
         if (!IsComplete(out string? reason))
             throw new IncompleteException($"Module not yet complete: {reason}");
-        if (!((IValidityManagedEntity)subcircuit).ValidityManager.IsValid(out Exception? issue))
-            throw new InvalidException("Subcircuit reference must be valid to use to get simulation rule", issue);
-        if (!((IModule)this).Equals(subcircuit.FinalModule))
-            throw new Exception($"The provided subcircuit reference must reference this ({ToString()}), not {subcircuit.FinalModule.ToString()}");
+        if (!((IValidityManagedEntity)submodule).ValidityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Submodule reference must be valid to use to get simulation rule", issue);
+        if (!((IModule)this).Equals(submodule.FinalModule))
+            throw new Exception($"The provided submodule reference must reference this ({ToString()}), not {submodule.FinalModule.ToString()}");
 
         CompileDerivedSignals();
 
         // Behaviors
         foreach ((INamedSignal signal, IBehavior behavior) in SignalBehaviors)
-            yield return behavior.GetSimulationRule(subcircuit.GetChildSignalReference(signal));
+            yield return behavior.GetSimulationRule(submodule.GetChildSignalReference(signal));
 
         // Instantiations
-        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(subcircuit.GetChildSubcircuitReference(i))))
+        foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(submodule.GetChildSubmoduleReference(i))))
             yield return rule;
 
         cachedModuleSignals = null;

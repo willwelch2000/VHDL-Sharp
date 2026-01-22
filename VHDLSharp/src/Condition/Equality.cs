@@ -47,9 +47,9 @@ public class Equality : ConstantCondition, IEquatable<Equality>
     public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => ComparisonSignal is IModuleSpecificSignal namedComparison ? [MainSignal, namedComparison] : [MainSignal];
 
     /// <inheritdoc/>
-    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) =>
+    public override bool Evaluate(RuleBasedSimulationState state, SubmoduleReference context) =>
         !ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Condition must be valid to evaluate", issue) :
-        !((IValidityManagedEntity)context).ValidityManager.IsValid(out issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
+        !((IValidityManagedEntity)context).ValidityManager.IsValid(out issue) ? throw new InvalidException("Submodule context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         MainSignal.GetLastOutputValue(state, context) == ComparisonSignal.GetLastOutputValue(state, context);
 

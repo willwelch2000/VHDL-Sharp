@@ -40,9 +40,9 @@ public class ValueBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
         
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module1, []);
-        SignalReference s1Ref = new(subcircuitRef, s1);
-        SignalReference v2Ref = new(subcircuitRef, v2);
+        SubmoduleReference submoduleRef = new(module1, []);
+        SignalReference s1Ref = new(submoduleRef, s1);
+        SignalReference v2Ref = new(submoduleRef, v2);
         SimulationRule simRule = behavior.GetSimulationRule(v2Ref);
         Assert.AreEqual(v2Ref, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
@@ -103,8 +103,8 @@ public class ValueBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
         
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module1, []);
-        SignalReference v2Ref = new(subcircuitRef, v2);
+        SubmoduleReference submoduleRef = new(module1, []);
+        SignalReference v2Ref = new(submoduleRef, v2);
         SimulationRule simRule = behavior1.GetSimulationRule(v2Ref);
         Assert.AreEqual(v2Ref, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());

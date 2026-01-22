@@ -104,8 +104,8 @@ public class RuleBasedSimulationState
             if (signal.Signal is ISingleNodeNamedSignal)
                 return [.. GetSingleNodeSignalValuesWithoutNewList(signal).Select(val => val ? 1 : 0)];
 
-            SubcircuitReference subcircuit = signal.Subcircuit;
-            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
+            SubmoduleReference submodule = signal.Submodule;
+            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(submodule.GetChildSignalReference)];
             List<int> values = [];
             // Go through length of first result
             for (int i = 0; i < GetSingleNodeSignalValuesWithoutNewList(singleNodeSignals[0]).Count; i++)
@@ -127,8 +127,8 @@ public class RuleBasedSimulationState
     {
         try
         {
-            SubcircuitReference subcircuit = signal.Subcircuit;
-            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(subcircuit.GetChildSignalReference)];
+            SubmoduleReference submodule = signal.Submodule;
+            SignalReference[] singleNodeSignals = [.. signal.Signal.ToSingleNodeSignals.Select(submodule.GetChildSignalReference)];
             return singleNodeSignals.Select((s, j) => GetLastSingleNodeSignalValue(s, lastIndex) ? 1 << j : 0).Sum();
         }
         catch (KeyNotFoundException keyEx)

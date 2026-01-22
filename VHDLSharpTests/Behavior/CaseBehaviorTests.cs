@@ -210,12 +210,12 @@ public class CaseBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(vhdl, expectedVhdl));
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module1, []);
-        SignalReference v1Ref = new(subcircuitRef, v1);
+        SubmoduleReference submoduleRef = new(module1, []);
+        SignalReference v1Ref = new(submoduleRef, v1);
         SimulationRule simRule = behavior.GetSimulationRule(v1Ref);
         Assert.AreEqual(v1Ref, simRule.OutputSignal);
         Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
-        SignalReference selectorRef = new(subcircuitRef, selector);
+        SignalReference selectorRef = new(submoduleRef, selector);
         for (int i = 0; i < 4; i++)
         {
             RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint(new()

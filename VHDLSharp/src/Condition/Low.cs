@@ -32,8 +32,8 @@ public class Low : ConstantCondition, IEquatable<Low>
     public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [Signal];
 
     /// <inheritdoc/>
-    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context) =>
-        !((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Subcircuit context must be valid to evluate condition", issue) :
+    public override bool Evaluate(RuleBasedSimulationState state, SubmoduleReference context) =>
+        !((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue) ? throw new InvalidException("Submodule context must be valid to evluate condition", issue) :
         state.CurrentTimeStepIndex > 0 &&
         Signal.GetLastOutputValue(state, context) == 0;
 

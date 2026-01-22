@@ -382,11 +382,11 @@ public class DynamicBehavior : Behavior, ICompletable, IAllowCircularSignals
 
         // Check if any condition set is satisfied--if so, use the corresponding value
         foreach ((ILogicallyCombinable<ICondition> condition, ICombinationalBehavior behavior) in ConditionMappings)
-            if (Util.EvaluateConditionCombo(condition, state, outputSignal.Subcircuit))
+            if (Util.EvaluateConditionCombo(condition, state, outputSignal.Submodule))
                 return behavior.GetOutputValue(state, outputSignal);
 
         // Otherwise, use the previous value from the state
-        return outputSignal.Signal.GetLastOutputValue(state, outputSignal.Subcircuit, lastIndex);
+        return outputSignal.Signal.GetLastOutputValue(state, outputSignal.Submodule, lastIndex);
     }
 
     private void ConditionMappingUpdated(object? sender, NotifyCollectionChangedEventArgs e)

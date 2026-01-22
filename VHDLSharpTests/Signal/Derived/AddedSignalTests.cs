@@ -129,7 +129,7 @@ public class AddedSignalTests
 
         // Check rules
         SimulationRule[] rules = [.. module.GetSimulationRules()];
-        SubcircuitReference modRef = new(module, []);
+        SubmoduleReference modRef = new(module, []);
         Assert.AreEqual(2, rules.Length); // One for s3, one for derived signal
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == modRef.GetChildSignalReference(s3)));
 
@@ -141,7 +141,7 @@ public class AddedSignalTests
         simulation.StimulusMapping[s1p] = new PulseStimulus(1e-5, 1e-5, 2e-5);
         simulation.StimulusMapping[s2p] = new PulseStimulus(2e-5, 2e-5, 4e-5);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3));
@@ -281,7 +281,7 @@ public class AddedSignalTests
 
         // Check rules
         SimulationRule[] rules = [.. module.GetSimulationRules()];
-        SubcircuitReference modRef = new(module, []);
+        SubmoduleReference modRef = new(module, []);
         Assert.AreEqual(3, rules.Length); // One for s3, one for derived signal's two bits
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == modRef.GetChildSignalReference(s3)));
 
@@ -293,7 +293,7 @@ public class AddedSignalTests
         simulation.StimulusMapping[s1p] = new PulseStimulus(1e-5, 1e-5, 2e-5);
         simulation.StimulusMapping[s2p] = new PulseStimulus(2e-5, 2e-5, 4e-5);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3[0])); // Y
@@ -554,7 +554,7 @@ public class AddedSignalTests
 
         // Check rules
         SimulationRule[] rules = [.. module.GetSimulationRules()];
-        SubcircuitReference modRef = new(module, []);
+        SubmoduleReference modRef = new(module, []);
         Assert.AreEqual(5, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == modRef.GetChildSignalReference(s3)));
 
@@ -566,7 +566,7 @@ public class AddedSignalTests
         simulation.StimulusMapping[s1p] = new MultiDimensionalStimulus([new PulseStimulus(1e-5, 1e-5, 2e-5), new PulseStimulus(2e-5, 2e-5, 4e-5)]);
         simulation.StimulusMapping[s2p] = new MultiDimensionalStimulus([new PulseStimulus(4e-5, 4e-5, 8e-5), new PulseStimulus(8e-5, 8e-5, 16e-5)]);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3));
@@ -655,7 +655,7 @@ public class AddedSignalTests
         simulation.StimulusMapping[topP1] = new PulseStimulus(1e-5, 1e-5, 2e-5);
         simulation.StimulusMapping[topP2] = new PulseStimulus(2e-5, 2e-5, 4e-5);
 
-        SubcircuitReference moduleRef = new(mainMod, []);
+        SubmoduleReference moduleRef = new(mainMod, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(topS3));

@@ -129,9 +129,9 @@ public class ConditionBehaviorTests
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedSpice, spice));
 
         // Check simulation rule and its output values
-        SubcircuitReference subcircuitRef = new(module, []);
-        SignalReference outputRef = new(subcircuitRef, output);
-        SignalReference inputRef = new(subcircuitRef, input);
+        SubmoduleReference submoduleRef = new(module, []);
+        SignalReference outputRef = new(submoduleRef, output);
+        SignalReference inputRef = new(submoduleRef, input);
         SimulationRule simRule = behavior.GetSimulationRule(outputRef);
         for (int i = 0; i < 8; i++)
         {

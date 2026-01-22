@@ -96,12 +96,12 @@ public class LogicExpression(ILogicallyCombinable<ISignal> expression) : ILogica
     }
 
     /// <summary>
-    /// Get output value given simulation state and subcircuit context
+    /// Get output value given simulation state and submodule context
     /// </summary>
     /// <param name="state">Current state of the simulation</param>
-    /// <param name="context">Subcircuit in which this expression exists</param>
+    /// <param name="context">Submodule in which this expression exists</param>
     /// <returns></returns>
-    public int GetOutputValue(RuleBasedSimulationState state, SubcircuitReference context)
+    public int GetOutputValue(RuleBasedSimulationState state, SubmoduleReference context)
     {
         int lastIndex = state.CurrentTimeStepIndex - 1;
         if (lastIndex < 0)

@@ -32,5 +32,5 @@ public interface ICondition : ILogicallyCombinable<ICondition>
     /// <param name="state"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    public bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context);
+    public bool Evaluate(RuleBasedSimulationState state, SubmoduleReference context);
 }

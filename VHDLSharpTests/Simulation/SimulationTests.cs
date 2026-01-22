@@ -31,10 +31,10 @@ public class SimulationTests
         }, new RuleBasedSimulation(module1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-4}) {Length = 1e-3}];
         foreach (Simulation setup in setups)
         {
-            SubcircuitReference subcircuit = new(module1, []);
-            setup.SignalsToMonitor.Add(new(subcircuit, s1));
-            setup.SignalsToMonitor.Add(new(subcircuit, s2));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3));
+            SubmoduleReference submodule = new(module1, []);
+            setup.SignalsToMonitor.Add(new(submodule, s1));
+            setup.SignalsToMonitor.Add(new(submodule, s2));
+            setup.SignalsToMonitor.Add(new(submodule, s3));
             
             TimeDefinedStimulus s1Stimulus = new();
             s1Stimulus.Points[0.1e-3] = false;
@@ -90,14 +90,14 @@ public class SimulationTests
         }, new RuleBasedSimulation(module1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-4}) {Length = 1e-3}];
         foreach (Simulation setup in setups)
         {
-            SubcircuitReference subcircuit = new(module1, []);
+            SubmoduleReference submodule = new(module1, []);
             SingleNodeNamedSignal[] s3SingleNodes = [.. s3.ToSingleNodeSignals];
-            setup.SignalsToMonitor.Add(new(subcircuit, s2));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[0]));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[1]));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[2]));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3SingleNodes[3]));
-            setup.SignalsToMonitor.Add(new(subcircuit, s3));
+            setup.SignalsToMonitor.Add(new(submodule, s2));
+            setup.SignalsToMonitor.Add(new(submodule, s3SingleNodes[0]));
+            setup.SignalsToMonitor.Add(new(submodule, s3SingleNodes[1]));
+            setup.SignalsToMonitor.Add(new(submodule, s3SingleNodes[2]));
+            setup.SignalsToMonitor.Add(new(submodule, s3SingleNodes[3]));
+            setup.SignalsToMonitor.Add(new(submodule, s3));
             
             setup.AssignStimulus(p1, new PulseStimulus(0.25e-3, 0.25e-3, 0.5e-3));
             ISimulationResult[] results = [.. setup.Simulate()];
@@ -159,8 +159,8 @@ public class SimulationTests
                 new PulseStimulus(2e-3, 2e-3, 4e-3),
             ];
             setup.AssignStimulus(pSelector, new MultiDimensionalStimulus(selectorStimuli));
-            SubcircuitReference subcircuit = new(module1, []);
-            setup.SignalsToMonitor.Add(new(subcircuit, output));
+            SubmoduleReference submodule = new(module1, []);
+            setup.SignalsToMonitor.Add(new(submodule, output));
             ISimulationResult[] results = [.. setup.Simulate()];
             ISimulationResult outputResults = results[0];
             double[] timeSteps = outputResults.TimeSteps;
@@ -199,9 +199,9 @@ public class SimulationTests
         }, new RuleBasedSimulation(m1, new DefaultTimeStepGenerator {MaxTimeStep = 1e-5}) {Length = 1e-3}];
         foreach (Simulation setup in setups)
         {
-            SubcircuitReference subcircuit = new(m1, []);
-            setup.SignalsToMonitor.Add(new(subcircuit, input));
-            setup.SignalsToMonitor.Add(new(subcircuit, output));
+            SubmoduleReference submodule = new(m1, []);
+            setup.SignalsToMonitor.Add(new(submodule, input));
+            setup.SignalsToMonitor.Add(new(submodule, output));
 
             PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
             PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);

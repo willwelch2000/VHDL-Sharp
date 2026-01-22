@@ -73,10 +73,10 @@ public static class Program
             Length = 1e-3,
             StepSize = 1e-4,
         };
-        SubcircuitReference subcircuit = new(module1, []);
-        SignalReference reference1 = new(subcircuit, s1);
-        SignalReference reference2 = new(subcircuit, s2);
-        SignalReference reference3 = new(subcircuit, s3);
+        SubmoduleReference submodule = new(module1, []);
+        SignalReference reference1 = new(submodule, s1);
+        SignalReference reference2 = new(submodule, s2);
+        SignalReference reference3 = new(submodule, s3);
         setup.SignalsToMonitor.Add(reference1);
         setup.SignalsToMonitor.Add(reference2);
         setup.SignalsToMonitor.Add(reference3);
@@ -124,9 +124,9 @@ public static class Program
             new PulseStimulus(2e-3, 2e-3, 4e-3),
         ];
         setup.AssignStimulus(pSelector, new MultiDimensionalStimulus(selectorStimuli));
-        SubcircuitReference subcircuit = new(module1, []);
-        setup.SignalsToMonitor.Add(new(subcircuit, output));
-        setup.SignalsToMonitor.Add(new(subcircuit, selector));
+        SubmoduleReference submodule = new(module1, []);
+        setup.SignalsToMonitor.Add(new(submodule, output));
+        setup.SignalsToMonitor.Add(new(submodule, selector));
         ISimulationResult[] results = [.. setup.Simulate()];
         ISimulationResult outputResults = results[0];
         ISimulationResult selectorResults = results[1];
@@ -374,9 +374,9 @@ public static class Program
             StepSize = 1e-5,
         };
 
-        SubcircuitReference subcircuit = new(m1, []);
-        setup.SignalsToMonitor.Add(new(subcircuit, input));
-        setup.SignalsToMonitor.Add(new(subcircuit, output));
+        SubmoduleReference submodule = new(m1, []);
+        setup.SignalsToMonitor.Add(new(submodule, input));
+        setup.SignalsToMonitor.Add(new(submodule, output));
 
         PulseStimulus stimulus2 = new(0.5e-3, 0.5e-3, 1e-3);
         PulseStimulus stimulus1 = new(0.25e-3, 0.25e-3, 0.5e-3);
@@ -424,10 +424,10 @@ public static class Program
         {
             Length = 10e-5,
         };
-        SubcircuitReference subcircuit = new(module1, []);
-        SignalReference clkRef = subcircuit.GetChildSignalReference(clk.Signal);
-        SignalReference dRef = subcircuit.GetChildSignalReference(d.Signal);
-        SignalReference qRef = subcircuit.GetChildSignalReference(q.Signal);
+        SubmoduleReference submodule = new(module1, []);
+        SignalReference clkRef = submodule.GetChildSignalReference(clk.Signal);
+        SignalReference dRef = submodule.GetChildSignalReference(d.Signal);
+        SignalReference qRef = submodule.GetChildSignalReference(q.Signal);
         setup.SignalsToMonitor.Add(clkRef);
         setup.SignalsToMonitor.Add(dRef);
         setup.SignalsToMonitor.Add(qRef);
@@ -477,7 +477,7 @@ public static class Program
         ]);
         simulation.StimulusMapping[cin] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(cin.Signal));
@@ -540,7 +540,7 @@ public static class Program
             if (carryIn)
                 simulation.StimulusMapping[cin!] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
-            SubcircuitReference moduleRef = new(module, []);
+            SubmoduleReference moduleRef = new(module, []);
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
             simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
             if (carryIn)

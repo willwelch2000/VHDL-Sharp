@@ -84,7 +84,7 @@ public interface ISignal : ILogicallyCombinable<ISignal>
     /// <returns>Value if possible</returns>
     /// <exception cref="Exception">If signal doesn't implement <see cref="INamedSignal"/>, <see cref="ISignalWithKnownValue"/>, <see cref="IDerivedSignal"/>, or <see cref="IDerivedSignalNode"/>
     /// or if it doesn't have a value in the state yet</exception>
-    internal int GetLastOutputValue(RuleBasedSimulationState state, SubcircuitReference context, int? lastIndex = null)
+    internal int GetLastOutputValue(RuleBasedSimulationState state, SubmoduleReference context, int? lastIndex = null)
     {
         switch (this)
         {

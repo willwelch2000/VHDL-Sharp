@@ -192,7 +192,7 @@ public class LogicSignalTests
             new PulseStimulus(32e-5, 32e-5, 64e-5),
         ]);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s3));

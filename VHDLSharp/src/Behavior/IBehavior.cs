@@ -49,10 +49,10 @@ public interface IBehavior
     public SimulationRule GetSimulationRule(SignalReference outputSignal);
 
     /// <summary>
-    /// Get output value given simulation state and subcircuit context. 
+    /// Get output value given simulation state and submodule context. 
     /// </summary>
     /// <param name="state">Current state of the simulation</param>
-    /// <param name="outputSignal">Reference to output signal--subcircuit can be used as context</param>
+    /// <param name="outputSignal">Reference to output signal--submodule can be used as context</param>
     /// <returns></returns>
     public int GetOutputValue(RuleBasedSimulationState state, SignalReference outputSignal);
 

@@ -35,10 +35,10 @@ public class RisingEdge : Condition, IEventDrivenCondition, IEquatable<RisingEdg
     public override IEnumerable<IModuleSpecificSignal> InputModuleSignals => [Signal];
 
     /// <inheritdoc/>
-    public override bool Evaluate(RuleBasedSimulationState state, SubcircuitReference context)
+    public override bool Evaluate(RuleBasedSimulationState state, SubmoduleReference context)
     {
         if (!((IValidityManagedEntity)context).ValidityManager.IsValid(out Exception? issue))
-            throw new InvalidException("Subcircuit context must be valid to evluate condition", issue);
+            throw new InvalidException("Submodule context must be valid to evluate condition", issue);
         SignalReference signalReference = context.GetChildSignalReference(Signal.AsNamedSignal());
         List<bool> values = state.GetSingleNodeSignalValuesWithoutNewList(signalReference);
         return values.Count > 1 && !values[^2] && values[^1];

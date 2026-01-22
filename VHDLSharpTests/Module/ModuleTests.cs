@@ -97,7 +97,7 @@ public class ModuleTests
         
         // Check rules
         SimulationRule[] rules = [.. m1.GetSimulationRules()];
-        SubcircuitReference m1Ref = new(m1, []);
+        SubmoduleReference m1Ref = new(m1, []);
         Assert.AreEqual(2, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s3)));
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s4)));

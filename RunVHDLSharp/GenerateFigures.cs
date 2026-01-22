@@ -25,10 +25,10 @@ public static class GenerateFigures
         {
             Length = 10e-5,
         };
-        SubcircuitReference subcircuit = new(mainModule, []);
-        SignalReference clkRef = subcircuit.GetChildSignalReference(clk.Signal);
-        SignalReference dRef = subcircuit.GetChildSignalReference(d.Signal);
-        SignalReference qRef = subcircuit.GetChildSignalReference(q.Signal);
+        SubmoduleReference submodule = new(mainModule, []);
+        SignalReference clkRef = submodule.GetChildSignalReference(clk.Signal);
+        SignalReference dRef = submodule.GetChildSignalReference(d.Signal);
+        SignalReference qRef = submodule.GetChildSignalReference(q.Signal);
         simulation.SignalsToMonitor.Add(clkRef);
         simulation.SignalsToMonitor.Add(dRef);
         simulation.SignalsToMonitor.Add(qRef);
@@ -68,7 +68,7 @@ public static class GenerateFigures
         if (carryIn)
             simulation.StimulusMapping[cin!] = new PulseStimulus(16e-5, 16e-5, 32e-5);
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(a.Signal));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(b.Signal));
         if (carryIn)
@@ -118,7 +118,7 @@ public static class GenerateFigures
             }
         };
 
-        SubcircuitReference moduleRef = new(module, []);
+        SubmoduleReference moduleRef = new(module, []);
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(clk));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s1));
         simulation.SignalsToMonitor.Add(moduleRef.GetChildSignalReference(s2));

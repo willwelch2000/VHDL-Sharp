@@ -139,8 +139,8 @@ public class InstantiationTests
 
         // Check simulation rule and its output values
         SimulationRule simRule = parentMod.GetSimulationRules().First();
-        SubcircuitReference parentModRef = new(parentMod, []);
-        SubcircuitReference instanceRef = parentModRef.GetChildSubcircuitReference(instantiation);
+        SubmoduleReference parentModRef = new(parentMod, []);
+        SubmoduleReference instanceRef = parentModRef.GetChildSubmoduleReference(instantiation);
         SignalReference v1Ref = new(parentModRef, v1);
         SignalReference p2Ref = instanceRef.GetChildSignalReference(p2.Signal);
         Assert.AreEqual(v1Ref.Ascend(), simRule.OutputSignal.Ascend());
@@ -250,7 +250,7 @@ public class InstantiationTests
 
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
-        SubcircuitReference parentModRef = new(parentMod, []);
+        SubmoduleReference parentModRef = new(parentMod, []);
         Assert.AreEqual(3, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
@@ -320,14 +320,14 @@ public class InstantiationTests
         
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
-        SubcircuitReference parentModRef = new(parentMod, []);
+        SubmoduleReference parentModRef = new(parentMod, []);
         Assert.AreEqual(2, rules.Length);
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
         Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
     }
 
     [TestMethod]
-    public void HierarchicalInstanceTestWhereInnerModuleIsUsedByAnotherSubcircuit()
+    public void HierarchicalInstanceTestWhereInnerModuleIsUsedByAnotherSubmodule()
     {
         Module parentMod = new("parentMod");
         Module andMod = Util.GetAndModule();

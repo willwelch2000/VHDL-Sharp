@@ -37,7 +37,7 @@ public class ConditionTests
         Comparison lessThan = v1.LessThan(v2);
         Comparison lessThanSigned = v1.LessThan(v2, true);
 
-        SubcircuitReference context = new(module1, []);
+        SubmoduleReference context = new(module1, []);
         SignalReference s1Ref = context.GetChildSignalReference(s1);
         SignalReference s2Ref = context.GetChildSignalReference(s2);
         SignalReference v1Ref = context.GetChildSignalReference(v1);
