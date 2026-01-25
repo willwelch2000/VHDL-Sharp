@@ -40,7 +40,7 @@ public class SimulationRule
     {
         OutputSignal = outputSignal;
         Redirect = redirect;
-        if (outputSignal.Signal.Dimension.NonNullValue == redirect.Signal.Dimension.NonNullValue)
+        if (outputSignal.Signal.Dimension.NonNullValue != redirect.Signal.Dimension.NonNullValue)
             throw new Exception("Output signal and redirect signal must have the same dimension");
         // Just add default value calculation--not used
         OutputValueCalculation = state => 0;

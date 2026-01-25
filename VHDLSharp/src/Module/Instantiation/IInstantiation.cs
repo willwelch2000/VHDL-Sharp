@@ -52,11 +52,20 @@ public interface IInstantiation : IValidityManagedEntity, ICompletable
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
 
     /// <summary>
+    /// Get simulation rules for this instantiation, using the <see cref="ParentModule"/> as the top level. 
+    /// Responsible for producing the instantiated module's rules at the correct level, 
+    /// and the rules that redirect signals at ports from one level to the other. 
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules();
+
+    /// <summary>
     /// Get simulation rules for this instantiation. Responsible for producing the 
     /// instantiated module's rules at the correct level, and the rules that redirect
     /// signals at ports from one level to the other. 
     /// </summary>
-    /// <param name="submodule">The submodule in which this instantiation exists</param>
+    /// <param name="submodule">The submodule in which this instantiation exists
+    /// (Not the path to the instantiation itself)</param>
     /// <returns></returns>
     public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule);
 

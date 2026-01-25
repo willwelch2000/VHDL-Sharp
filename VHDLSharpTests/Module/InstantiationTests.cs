@@ -137,19 +137,27 @@ public class InstantiationTests
         """;
         Assert.IsTrue(Util.AreEqualIgnoringWhitespace(expectedVhdl, vhdl));
 
-        // Check simulation rule and its output values
-        SimulationRule simRule = parentMod.GetSimulationRules().First();
+        // Check main simulation rule and its output values
+        SimulationRule[] simRules = [.. parentMod.GetSimulationRules()];
+        Assert.AreEqual(3, simRules.Length);
         SubmoduleReference parentModRef = new(parentMod, []);
         SubmoduleReference instanceRef = parentModRef.GetChildSubmoduleReference(instantiation);
-        SignalReference v1Ref = new(parentModRef, v1);
-        SignalReference p2Ref = instanceRef.GetChildSignalReference(p2.Signal);
-        Assert.AreEqual(v1Ref.Ascend(), simRule.OutputSignal.Ascend());
-        Assert.AreEqual(p2Ref.Ascend(), simRule.OutputSignal.Ascend());
-        Assert.AreEqual(0, simRule.IndependentEventTimeGenerator(1).Count());
+        SimulationRule mainSimRule = simRules.First(r => r.Redirect is null);
+        Assert.AreEqual(0, mainSimRule.IndependentEventTimeGenerator(1).Count());
         RuleBasedSimulationState state = RuleBasedSimulationState.GivenStartingPoint([], [0, 1], 1);
-        int value = simRule.OutputValueCalculation(state);
+        int value = mainSimRule.OutputValueCalculation(state);
         int expectedValue = 3;
         Assert.AreEqual(expectedValue, value);
+
+        // Check redirection sim rules
+        SignalReference s1Ref = new(parentModRef, s1);
+        SignalReference v1Ref = new(parentModRef, v1);
+        SignalReference p1Ref = instanceRef.GetChildSignalReference(p1.Signal);
+        SignalReference p2Ref = instanceRef.GetChildSignalReference(p2.Signal);
+        Assert.IsTrue(simRules.Any(r => r.OutputSignal.Equals(p1Ref) && 
+            r.Redirect is not null && r.Redirect.Equals(s1Ref)));
+        Assert.IsTrue(simRules.Any(r => r.OutputSignal.Equals(v1Ref) && 
+            r.Redirect is not null && r.Redirect.Equals(p2Ref)));
     }
 
     [TestMethod]
@@ -250,11 +258,25 @@ public class InstantiationTests
 
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
+        Assert.AreEqual(12, rules.Length);
+        SimulationRule[] regularRules = [.. rules.Where(r => r.Redirect is null)];
+        SimulationRule[] redirectRules = [.. rules.Where(r => r.Redirect is not null)];
         SubmoduleReference parentModRef = new(parentMod, []);
-        Assert.AreEqual(3, rules.Length);
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out3)));
+        SubmoduleReference inst1Ref = parentModRef.GetChildSubmoduleReference(instance1);
+        SubmoduleReference inst2Ref = parentModRef.GetChildSubmoduleReference(instance2);
+        SubmoduleReference inst3Ref = parentModRef.GetChildSubmoduleReference(instance3);
+
+        // Check regular outputs--all the inner outputs
+        Assert.IsTrue(regularRules.Any(r => r.OutputSignal.Equals(inst1Ref.GetChildSignalReference("OUT"))));
+        Assert.IsTrue(regularRules.Any(r => r.OutputSignal.Equals(inst2Ref.GetChildSignalReference("OUT"))));
+        Assert.IsTrue(regularRules.Any(r => r.OutputSignal.Equals(inst3Ref.GetChildSignalReference("OUT"))));
+
+        // Check some of the redirects
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst1Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in1))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst2Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in2))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst2Ref.GetChildSignalReference("IN2")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(out2))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out1)) && r.Redirect!.Equals(inst1Ref.GetChildSignalReference("OUT"))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out3)) && r.Redirect!.Equals(inst3Ref.GetChildSignalReference("OUT"))));
     }
 
     [TestMethod]
@@ -320,10 +342,22 @@ public class InstantiationTests
         
         // Check rules
         SimulationRule[] rules = [.. parentMod.GetSimulationRules()];
+        Assert.AreEqual(10, rules.Length);
+        SimulationRule[] regularRules = [.. rules.Where(r => r.Redirect is null)];
+        SimulationRule[] redirectRules = [.. rules.Where(r => r.Redirect is not null)];
         SubmoduleReference parentModRef = new(parentMod, []);
-        Assert.AreEqual(2, rules.Length);
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out1)));
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == parentModRef.GetChildSignalReference(out2)));
+        SubmoduleReference and1Ref = parentModRef.GetChildSubmoduleReference(and1);
+        SubmoduleReference middleRef = parentModRef.GetChildSubmoduleReference(instMiddle);
+        SubmoduleReference middleAnd1Ref = middleRef.GetChildSubmoduleReference(middleAnd1);
+        // Check regular rules
+        foreach (SubmoduleReference submodule in new SubmoduleReference[] {and1Ref, middleAnd1Ref})
+            Assert.IsTrue(regularRules.Any(r => r.OutputSignal.Equals(submodule.GetChildSignalReference("OUT"))));
+        // Check some redirects
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(and1Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in1))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out1)) && r.Redirect!.Equals(and1Ref.GetChildSignalReference("OUT"))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(middleRef.GetChildSignalReference("IN")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in3))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out2)) && r.Redirect!.Equals(middleRef.GetChildSignalReference("OUT"))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(middleAnd1Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(middleRef.GetChildSignalReference("IN"))));
     }
 
     [TestMethod]

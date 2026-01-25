@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
@@ -24,6 +25,12 @@ public class CompiledInstantiation : IInstantiation, ICompiledObject
 
     /// <inheritdoc/>
     public ValidityManager ValidityManager => baseInstantiation.ValidityManager;
+
+    /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules() => baseInstantiation.GetSimulationRules();
+
+    /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule) => baseInstantiation.GetSimulationRules(submodule);
 
     /// <inheritdoc/>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits) => baseInstantiation.GetSpice(existingModuleLinkedSubcircuits);

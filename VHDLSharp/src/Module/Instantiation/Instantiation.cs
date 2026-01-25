@@ -105,6 +105,9 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
     }
 
     /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules() => GetSimulationRules(new(ParentModule, []));
+
+    /// <inheritdoc/>
     public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule)
     {
         if (!validityManager.IsValid(out Exception? issue))
@@ -115,13 +118,14 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
             throw new Exception($"The provided submodule reference must reference this instantiated module ({InstantiatedModule.ToString()}), not {submodule.FinalModule.ToString()}");
 
         // Get rules from instantiated module
-        foreach (SimulationRule rule in InstantiatedModule.GetSimulationRules(submodule.GetChildSubmoduleReference(this)))
+        SubmoduleReference instantiationRef = submodule.GetChildSubmoduleReference(this);
+        foreach (SimulationRule rule in InstantiatedModule.GetSimulationRules(instantiationRef))
             yield return rule;
 
         // Redirect rules for ports
         foreach ((IPort port, INamedSignal signal) in PortMapping)
         {
-            SignalReference portRef = submodule.GetChildSignalReference(port.Signal);
+            SignalReference portRef = instantiationRef.GetChildSignalReference(port.Signal);
             SignalReference signalRef = submodule.GetChildSignalReference(signal);
             yield return port.Direction switch
             {
