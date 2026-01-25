@@ -18,14 +18,38 @@ public delegate int ValueCalculation(RuleBasedSimulationState state);
 /// <summary>
 /// A rule that makes up a rule-based simulation
 /// </summary>>
-/// <param name="outputSignal">Output signal controlled by this rule</param>
-/// <param name="outputValueCalculation">Method for getting value of output signal given the current simulation state</param>
-public class SimulationRule(SignalReference outputSignal, ValueCalculation outputValueCalculation)
+public class SimulationRule
 {
+    /// <summary>
+    /// <see cref="SimulationRule"/> given an output signal and the method for calculating its value
+    /// </summary>
+    /// <param name="outputSignal">Output signal controlled by this rule</param>
+    /// <param name="outputValueCalculation">Method for getting value of output signal given the current simulation state</param>
+    public SimulationRule(SignalReference outputSignal, ValueCalculation outputValueCalculation)
+    {
+        OutputSignal = outputSignal;
+        OutputValueCalculation = outputValueCalculation;
+    }
+
+    /// <summary>
+    /// <see cref="SimulationRule"/> given an output signal and a <see cref="SimulationRule"/> to redirect to
+    /// </summary>
+    /// <param name="outputSignal"></param>
+    /// <param name="redirect"></param>
+    public SimulationRule(SignalReference outputSignal, SignalReference redirect)
+    {
+        OutputSignal = outputSignal;
+        Redirect = redirect;
+        if (outputSignal.Signal.Dimension.NonNullValue == redirect.Signal.Dimension.NonNullValue)
+            throw new Exception("Output signal and redirect signal must have the same dimension");
+        // Just add default value calculation--not used
+        OutputValueCalculation = state => 0;
+    }
+
     /// <summary>
     /// Output signal controlled by this rule
     /// </summary>
-    public SignalReference OutputSignal { get; } = outputSignal;
+    public SignalReference OutputSignal { get; }
 
     /// <summary>
     /// Function to generate the times at which this rule independently changes its output values,
@@ -35,10 +59,17 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
     public TimeGenerator IndependentEventTimeGenerator { get; init; } = length => [];
 
     /// <summary>
-    /// Method for getting value of output signal given the current simulation state
+    /// Optionally, another <see cref="SignalReference"/> that this should mirror.
+    /// If given, this is used instead of the <see cref="OutputValueCalculation"/>
+    /// </summary>
+    public SignalReference? Redirect { get; }
+
+    /// <summary>
+    /// Method for getting value of output signal given the current simulation state.
+    /// If <see cref="Redirect"/> is specified, this is not used
     /// </summary>
     /// <returns></returns>
-    public ValueCalculation OutputValueCalculation { get; } = outputValueCalculation;
+    public ValueCalculation OutputValueCalculation { get; }
 
     /// <summary>
     /// Tests if rules have any overlapping output signals
@@ -47,14 +78,14 @@ public class SimulationRule(SignalReference outputSignal, ValueCalculation outpu
     /// <returns></returns>
     internal static bool RulesOverlap(IEnumerable<SimulationRule> rules)
     {
-        HashSet<SignalReference> singleNodeAscendedOutputs = [];
+        HashSet<SignalReference> singleNodeOutputs = [];
         foreach (SimulationRule rule in rules)
         {
-            // Try to add the output signal's (ascended) child signals, return true if duplicates exist
+            // Try to add the output signal's child (single-node) signals, return true if duplicates exist
             SignalReference outputSignal = rule.OutputSignal;
             IEnumerable<SignalReference> singleNodeOutputSignals = outputSignal.Signal.ToSingleNodeSignals.Select(outputSignal.Submodule.GetChildSignalReference);
             foreach (SignalReference singleNodeOutputSignal in singleNodeOutputSignals)
-                if (!singleNodeAscendedOutputs.Add(singleNodeOutputSignal.Ascend()))
+                if (!singleNodeOutputs.Add(singleNodeOutputSignal))
                     return true;
         }
         return false;

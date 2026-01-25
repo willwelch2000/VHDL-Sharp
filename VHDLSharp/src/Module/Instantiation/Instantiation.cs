@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpiceSharp.Components;
 using VHDLSharp.Exceptions;
+using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Utility;
 using VHDLSharp.Validation;
@@ -100,6 +102,34 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
         Subcircuit entity = new(Name, subcircuitDef, nodes);
 
         return new([entity]);
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule)
+    {
+        if (!validityManager.IsValid(out Exception? issue))
+            throw new InvalidException("Instantiation is invalid", issue);
+        if (!IsComplete(out string? reason))
+            throw new IncompleteException($"Instantiation not yet complete: {reason}");
+        if (!ParentModule.Equals(submodule.FinalModule))
+            throw new Exception($"The provided submodule reference must reference this instantiated module ({InstantiatedModule.ToString()}), not {submodule.FinalModule.ToString()}");
+
+        // Get rules from instantiated module
+        foreach (SimulationRule rule in InstantiatedModule.GetSimulationRules(submodule.GetChildSubmoduleReference(this)))
+            yield return rule;
+
+        // Redirect rules for ports
+        foreach ((IPort port, INamedSignal signal) in PortMapping)
+        {
+            SignalReference portRef = submodule.GetChildSignalReference(port.Signal);
+            SignalReference signalRef = submodule.GetChildSignalReference(signal);
+            yield return port.Direction switch
+            {
+                PortDirection.Input => new(portRef, signalRef),
+                PortDirection.Output => new(signalRef, portRef),
+                _ => throw new Exception("Unknown port direction"),
+            };
+        }
     }
 
     /// <inheritdoc/>

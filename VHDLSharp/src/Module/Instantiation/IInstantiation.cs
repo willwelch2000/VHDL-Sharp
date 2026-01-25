@@ -1,4 +1,5 @@
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
@@ -49,6 +50,15 @@ public interface IInstantiation : IValidityManagedEntity, ICompletable
     /// <param name="existingModuleLinkedSubcircuits">Set of all module-linked subcircuit definitions that already exist, so that this can point to one of those if applicable instead of making a new one</param>
     /// <returns></returns>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
+
+    /// <summary>
+    /// Get simulation rules for this instantiation. Responsible for producing the 
+    /// instantiated module's rules at the correct level, and the rules that redirect
+    /// signals at ports from one level to the other. 
+    /// </summary>
+    /// <param name="submodule">The submodule in which this instantiation exists</param>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule);
 
     /// <inheritdoc/>
     public string ToString();
