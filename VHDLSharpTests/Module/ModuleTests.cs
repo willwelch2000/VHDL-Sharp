@@ -99,8 +99,8 @@ public class ModuleTests
         SimulationRule[] rules = [.. m1.GetSimulationRules()];
         SubmoduleReference m1Ref = new(m1, []);
         Assert.AreEqual(2, rules.Length);
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s3)));
-        Assert.IsTrue(rules.Any(r => r.OutputSignal.Ascend() == m1Ref.GetChildSignalReference(s4)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal == m1Ref.GetChildSignalReference(s3)));
+        Assert.IsTrue(rules.Any(r => r.OutputSignal == m1Ref.GetChildSignalReference(s4)));
     }
 
     [TestMethod]

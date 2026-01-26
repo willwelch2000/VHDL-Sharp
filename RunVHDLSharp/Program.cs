@@ -27,7 +27,8 @@ public static class Program
             B. Or could check a generated instance in CheckTopLevelValidity
         2. Implement derived signals shown in extensions class
             B. Left and right shifts
-        6. Eventually, derived signals should be made to not require a parent module--maybe make ParentModule nullable in IModuleSpecificSignal
+        3. Include plot that uses derived signal
+        4. Eventually, derived signals should be made to not require a parent module--maybe make ParentModule nullable in IModuleSpecificSignal
         */
     }
 
@@ -585,8 +586,10 @@ public static class Program
 
     public static void GenerateAllFigures(string path)
     {
-        // GenerateFigures.DffFigure().SavePng($"{path}/DFF.png", 1000, 1000);
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+        GenerateFigures.DffFigure().SavePng($"{path}/DFF.png", 1000, 1000);
         GenerateFigures.Addition2Bit().SavePng($"{path}/Adder.png", 1000, 1000);
-        // GenerateFigures.ShiftRegister().SavePng($"{path}/ShiftRegister.png", 1000, 1000);
+        GenerateFigures.ShiftRegister().SavePng($"{path}/ShiftRegister.png", 1000, 1000);
     }
 }

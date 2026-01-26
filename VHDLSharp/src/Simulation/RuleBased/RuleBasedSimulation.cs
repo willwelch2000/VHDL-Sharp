@@ -46,7 +46,12 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
         SimulationRule[] rules = [.. GetSimulationRules()];
-        RuleBasedSimulationState state = new();
+        SimulationRule[] nonRedirectRules = [.. rules.Where(r => r.Redirect is null)];
+        Dictionary<SignalReference, SignalReference> redirects = GetRedirectDictionary(rules);
+        RuleBasedSimulationState state = new()
+        {
+            Redirects = new(redirects), 
+        };
         double[] independentEventTimes = [.. rules.SelectMany(r => r.IndependentEventTimeGenerator(Length)).Order()];
         if (SimulationRule.RulesOverlap(rules))
             throw new Exception("Rules have overlapping output signals");
@@ -55,7 +60,7 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
         while (true)
         {
             // Apply rules
-            foreach (SimulationRule rule in rules)
+            foreach (SimulationRule rule in nonRedirectRules)
                 state.AddSignalValue(rule.OutputSignal, rule.OutputValueCalculation(state));
             
             // Go to next time step, if within length
@@ -76,5 +81,32 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
                 Values = [.. state.GetSignalValues(signal)],
             };
         }
+    }
+
+    // Generates "redirect dictionary," which maps signals to the signal that they ultimately mirror
+    // Follows several steps, not just first
+    // 1->2, 2->3, 4->5 becomes 1->3, 2->3, 4->5
+    private static Dictionary<SignalReference, SignalReference> GetRedirectDictionary(SimulationRule[] rules)
+    {
+        // Dictionary mapping signal to the next-step redirect
+        Dictionary<SignalReference, SignalReference> oneStepRedirects = rules.Where(r => r.Redirect is not null)
+            .SelectMany(r => r.OutputSignal.GetSingleNodeReferences().Zip(r.Redirect!.GetSingleNodeReferences())).ToDictionary();
+
+        // New dictionary that follows the steps to the end
+        Dictionary<SignalReference, SignalReference> finalRedirects = [];
+        foreach (SignalReference signal in oneStepRedirects.Keys)
+        {
+            HashSet<SignalReference> steps = [signal];
+            SignalReference currentStep = signal;
+            while (oneStepRedirects.TryGetValue(currentStep, out SignalReference? next))
+            {
+                if (!steps.Add(next))
+                    throw new Exception("Circular redirects detected");
+                currentStep = next;
+            }
+            finalRedirects[signal] = currentStep;
+        }
+
+        return finalRedirects;
     }
 }

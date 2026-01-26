@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using VHDLSharp.Signals;
 
 namespace VHDLSharp.Simulations;
@@ -8,7 +9,7 @@ namespace VHDLSharp.Simulations;
 public class RuleBasedSimulationState
 {
     /// <summary>
-    /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps.
+    /// Map of single-node (and fully redirected, if necessary) signal references to their boolean values for the timesteps.
     /// This is the ultimate source of truth
     /// </summary>
     private Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
@@ -31,6 +32,12 @@ public class RuleBasedSimulationState
             allTimeSteps.Add(value);
         }
     }
+
+    /// <summary>
+    /// Mapping of single-node signals to the single-node signals that they are set to mirror.
+    /// This should be set by the <see cref="RuleBasedSimulation"/> controlling this.
+    /// </summary>
+    internal ReadOnlyDictionary<SignalReference, SignalReference> Redirects { get; init; } = new(new Dictionary<SignalReference, SignalReference>());
 
     /// <summary>
     /// Current index of time step in the list
@@ -69,12 +76,12 @@ public class RuleBasedSimulationState
     /// <exception cref="Exception"></exception>
     internal List<bool> GetSingleNodeSignalValuesWithoutNewList(SignalReference signal)
     {
-        // Ascend to higher module, if necessary
-        SignalReference ascended = signal.Ascend();
-        return ascended.Signal switch
+        // Redirect to another signal, if necessary
+        SignalReference redirected = Redirects.TryGetValue(signal, out SignalReference? val) ? val : signal;
+        return redirected.Signal switch
         {
-            ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(ascended, out List<bool>? vals) ? vals :
-                CurrentTimeStepIndex == 0 ? singleNodeSignalValues[ascended] = [] : throw new Exception("New signals can't be added after first timestep complete"),
+            ISingleNodeNamedSignal => singleNodeSignalValues.TryGetValue(redirected, out List<bool>? vals) ? vals :
+                CurrentTimeStepIndex == 0 ? singleNodeSignalValues[redirected] = [] : throw new Exception("New signals can't be added after first timestep complete"),
             _ => throw new Exception("Signal reference must be to a single-node signal")
         };
     }
@@ -152,12 +159,12 @@ public class RuleBasedSimulationState
         if (signal.Signal is not ISingleNodeNamedSignal)
             throw new Exception("Must be a single-node signal to add a bool value");
 
-        // Ascend to higher module, if necessary
-        SignalReference ascended = signal.Ascend();
-        if (singleNodeSignalValues.TryGetValue(ascended, out List<bool>? values))
+        // Redirect to another signal, if necessary
+        SignalReference redirected = Redirects.TryGetValue(signal, out SignalReference? val) ? val : signal;
+        if (singleNodeSignalValues.TryGetValue(redirected, out List<bool>? values))
             values.Add(value);
         else if (CurrentTimeStepIndex == 0)
-            singleNodeSignalValues[ascended] = [value];
+            singleNodeSignalValues[redirected] = [value];
         else
             throw new Exception("New signals can't be added after first timestep complete");
     }

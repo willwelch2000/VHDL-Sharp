@@ -60,7 +60,7 @@ public class SimulationTests
             for (int i = 0; i < s1Values.Length; i++)
             {
                 // Skip points around time buffer
-                if (transitionPoints.Select(p => Math.Abs(timeSteps[i] - p)).Min() < Util.TimeBuffer)
+                if (transitionPoints.Min(p => Math.Abs(timeSteps[i] - p)) < Util.TimeBuffer)
                     continue;
                 Assert.AreEqual(s1Values[i] * s2Values[i], s3Values[i]); // ANDing = multiplication
             }

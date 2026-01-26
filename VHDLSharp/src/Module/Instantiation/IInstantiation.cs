@@ -1,4 +1,5 @@
 using VHDLSharp.Signals;
+using VHDLSharp.Simulations;
 using VHDLSharp.SpiceCircuits;
 using VHDLSharp.Validation;
 
@@ -8,7 +9,7 @@ namespace VHDLSharp.Modules;
 /// Interface for an instantiation of one module inside of another (parent).
 /// It is assumed that the parent module and instantiated module won't change
 /// </summary>
-public interface IInstantiation : IValidityManagedEntity, ICompletable
+public interface IInstantiation : IValidityManagedEntity, ICompletable, IEquatable<IInstantiation>
 {
     /// <summary>
     /// Module that is instantiated
@@ -50,6 +51,24 @@ public interface IInstantiation : IValidityManagedEntity, ICompletable
     /// <returns></returns>
     public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits);
 
+    /// <summary>
+    /// Get simulation rules for this instantiation, using the <see cref="ParentModule"/> as the top level. 
+    /// Responsible for producing the instantiated module's rules at the correct level, 
+    /// and the rules that redirect signals at ports from one level to the other. 
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules();
+
+    /// <summary>
+    /// Get simulation rules for this instantiation. Responsible for producing the 
+    /// instantiated module's rules at the correct level, and the rules that redirect
+    /// signals at ports from one level to the other. 
+    /// </summary>
+    /// <param name="submodule">The submodule in which this instantiation exists
+    /// (Not the path to the instantiation itself)</param>
+    /// <returns></returns>
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule);
+
     /// <inheritdoc/>
     public string ToString();
 
@@ -59,4 +78,11 @@ public interface IInstantiation : IValidityManagedEntity, ICompletable
     /// <param name="portDirection"></param>
     /// <returns></returns>
     public IEnumerable<INamedSignal> GetSignals(PortDirection portDirection) => PortMapping.Where(kvp => kvp.Key.Direction == portDirection).Select(kvp => kvp.Value);
+
+
+    /// <summary>
+    /// If this is a type of instantiation that links to another instantiation (ex. <see cref="CompiledInstantiation"/>),
+    /// this should be a link to that instantiation
+    /// </summary>
+    public IInstantiation BaseInstantiation => this;
 }
