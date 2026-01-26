@@ -103,32 +103,6 @@ public class SignalReference : IEquatable<SignalReference>, IModuleReference, IV
             yield return new([.. Submodule.Path.Select(i => i.SpiceName), singleNodeSignal.GetSpiceName()]);
     }
 
-    // /// <summary>
-    // /// If this signal reference is another name for a higher-level signal (connected via module port),
-    // /// get that signal reference instead
-    // /// </summary>
-    // /// <returns></returns>
-    // public SignalReference Ascend()
-    // {
-    //     // No higher-level module
-    //     if (Path.Count == 0)
-    //         return this;
-
-    //     IInstantiation lastInstantiation = Path.Last();
-    //     SubmoduleReference ascendedSubmodule = new(TopLevelModule, Path.SkipLast(1));
-
-    //     // Test if this signal is part of the port mapping of the last instance
-    //     // If so, go to that connection and continue to ascend from there
-    //     if (Signal.IsPartOfPortMapping(lastInstantiation.PortMapping, out INamedSignal? connection))
-    //     {
-    //         SignalReference singleAscend = new(ascendedSubmodule, connection);
-    //         return singleAscend.Ascend();
-    //     }
-
-    //     // This isn't port
-    //     return this;
-    // }
-
     /// <summary>
     /// Get this reference as all of its single-node signal references
     /// </summary>

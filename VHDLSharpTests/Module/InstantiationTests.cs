@@ -274,7 +274,7 @@ public class InstantiationTests
         // Check some of the redirects
         Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst1Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in1))));
         Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst2Ref.GetChildSignalReference("IN1")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(in2))));
-        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst2Ref.GetChildSignalReference("IN2")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(out2))));
+        Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(inst3Ref.GetChildSignalReference("IN2")) && r.Redirect!.Equals(parentModRef.GetChildSignalReference(out2))));
         Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out1)) && r.Redirect!.Equals(inst1Ref.GetChildSignalReference("OUT"))));
         Assert.IsTrue(redirectRules.Any(r => r.OutputSignal.Equals(parentModRef.GetChildSignalReference(out3)) && r.Redirect!.Equals(inst3Ref.GetChildSignalReference("OUT"))));
     }

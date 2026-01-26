@@ -533,6 +533,7 @@ public class Module : IModule, IValidityManagedEntity
             yield return behavior.GetSimulationRule(submodule.GetChildSignalReference(signal));
 
         // Instantiations
+        // foreach (SimulationRule rule in Instantiations.SelectMany(i => i.InstantiatedModule.GetSimulationRules(submodule.GetChildSubmoduleReference(i))))
         foreach (SimulationRule rule in Instantiations.SelectMany(i => i.GetSimulationRules(submodule)))
             yield return rule;
 

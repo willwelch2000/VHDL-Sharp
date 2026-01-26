@@ -9,7 +9,7 @@ namespace VHDLSharp.Modules;
 /// Interface for an instantiation of one module inside of another (parent).
 /// It is assumed that the parent module and instantiated module won't change
 /// </summary>
-public interface IInstantiation : IValidityManagedEntity, ICompletable
+public interface IInstantiation : IValidityManagedEntity, ICompletable, IEquatable<IInstantiation>
 {
     /// <summary>
     /// Module that is instantiated
@@ -78,4 +78,11 @@ public interface IInstantiation : IValidityManagedEntity, ICompletable
     /// <param name="portDirection"></param>
     /// <returns></returns>
     public IEnumerable<INamedSignal> GetSignals(PortDirection portDirection) => PortMapping.Where(kvp => kvp.Key.Direction == portDirection).Select(kvp => kvp.Value);
+
+
+    /// <summary>
+    /// If this is a type of instantiation that links to another instantiation (ex. <see cref="CompiledInstantiation"/>),
+    /// this should be a link to that instantiation
+    /// </summary>
+    public IInstantiation BaseInstantiation => this;
 }

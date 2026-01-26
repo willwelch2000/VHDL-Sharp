@@ -141,4 +141,7 @@ public class Instantiation : IInstantiation, IValidityManagedEntity
 
     /// <inheritdoc/>
     public bool IsComplete([MaybeNullWhen(true)] out string reason) => PortMapping.IsComplete(out reason);
+
+    /// <inheritdoc/>
+    public bool Equals(IInstantiation? other) => other is not null && other.BaseInstantiation == this;
 }

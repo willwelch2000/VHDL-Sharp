@@ -11,36 +11,41 @@ namespace VHDLSharp.Modules;
 /// </summary>
 public class CompiledInstantiation : IInstantiation, ICompiledObject
 {
-    private readonly IInstantiation baseInstantiation;
     internal CompiledInstantiation(IInstantiation baseInstantiation)
     {
-        this.baseInstantiation = baseInstantiation;
+        BaseInstantiation = baseInstantiation;
     }
 
     /// <inheritdoc/>
-    public PortMapping PortMapping => baseInstantiation.PortMapping;
+    public IInstantiation BaseInstantiation { get; }
 
     /// <inheritdoc/>
-    public string Name => baseInstantiation.Name;
+    public PortMapping PortMapping => BaseInstantiation.PortMapping;
 
     /// <inheritdoc/>
-    public ValidityManager ValidityManager => baseInstantiation.ValidityManager;
+    public string Name => BaseInstantiation.Name;
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules() => baseInstantiation.GetSimulationRules();
+    public ValidityManager ValidityManager => BaseInstantiation.ValidityManager;
 
     /// <inheritdoc/>
-    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule) => baseInstantiation.GetSimulationRules(submodule);
+    public IEnumerable<SimulationRule> GetSimulationRules() => BaseInstantiation.GetSimulationRules();
 
     /// <inheritdoc/>
-    public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits) => baseInstantiation.GetSpice(existingModuleLinkedSubcircuits);
+    public IEnumerable<SimulationRule> GetSimulationRules(SubmoduleReference submodule) => BaseInstantiation.GetSimulationRules(submodule);
 
     /// <inheritdoc/>
-    public string GetVhdlStatement() => baseInstantiation.GetVhdlStatement();
+    public SpiceCircuit GetSpice(ISet<IModuleLinkedSubcircuitDefinition> existingModuleLinkedSubcircuits) => BaseInstantiation.GetSpice(existingModuleLinkedSubcircuits);
 
     /// <inheritdoc/>
-    public bool IsComplete([MaybeNullWhen(true)] out string reason) => baseInstantiation.IsComplete(out reason);
+    public string GetVhdlStatement() => BaseInstantiation.GetVhdlStatement();
 
     /// <inheritdoc/>
-    public override string ToString() => baseInstantiation.ToString();
+    public bool IsComplete([MaybeNullWhen(true)] out string reason) => BaseInstantiation.IsComplete(out reason);
+
+    /// <inheritdoc/>
+    public override string ToString() => BaseInstantiation.ToString();
+
+    /// <inheritdoc/>
+    public bool Equals(IInstantiation? other) => other is not null && other.BaseInstantiation == BaseInstantiation;
 }

@@ -46,10 +46,11 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
     protected override IEnumerable<ISimulationResult> SimulateWithoutCheck()
     {
         SimulationRule[] rules = [.. GetSimulationRules()];
+        SimulationRule[] nonRedirectRules = [.. rules.Where(r => r.Redirect is null)];
         Dictionary<SignalReference, SignalReference> redirects = GetRedirectDictionary(rules);
         RuleBasedSimulationState state = new()
         {
-            Redirects = redirects,
+            Redirects = new(redirects), 
         };
         double[] independentEventTimes = [.. rules.SelectMany(r => r.IndependentEventTimeGenerator(Length)).Order()];
         if (SimulationRule.RulesOverlap(rules))
@@ -59,7 +60,7 @@ public class RuleBasedSimulation(IModule module, ITimeStepGenerator timeStepGene
         while (true)
         {
             // Apply rules
-            foreach (SimulationRule rule in rules)
+            foreach (SimulationRule rule in nonRedirectRules)
                 state.AddSignalValue(rule.OutputSignal, rule.OutputValueCalculation(state));
             
             // Go to next time step, if within length

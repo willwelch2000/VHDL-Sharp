@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using VHDLSharp.Signals;
 
 namespace VHDLSharp.Simulations;
@@ -8,7 +9,7 @@ namespace VHDLSharp.Simulations;
 public class RuleBasedSimulationState
 {
     /// <summary>
-    /// Map of single-node (and fully ascended!) signal references to their boolean values for the timesteps.
+    /// Map of single-node (and fully redirected, if necessary) signal references to their boolean values for the timesteps.
     /// This is the ultimate source of truth
     /// </summary>
     private Dictionary<SignalReference, List<bool>> singleNodeSignalValues = [];
@@ -36,7 +37,7 @@ public class RuleBasedSimulationState
     /// Mapping of single-node signals to the single-node signals that they are set to mirror.
     /// This should be set by the <see cref="RuleBasedSimulation"/> controlling this.
     /// </summary>
-    internal Dictionary<SignalReference, SignalReference> Redirects { get; set; } = [];
+    internal ReadOnlyDictionary<SignalReference, SignalReference> Redirects { get; init; } = new(new Dictionary<SignalReference, SignalReference>());
 
     /// <summary>
     /// Current index of time step in the list
